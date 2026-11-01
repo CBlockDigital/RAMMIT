@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link rel="icon" href="../RAMMIT.png">
+    <link rel="stylesheet" href="../CSS/style.css?v=16">
+    <link rel="stylesheet" href="../CSS/phosphor-bold.css">
+    <title>RAM</title>
+</head>
+<body>
+    <div class="container">
+        <!-- ROW 1: ACCOUNTS + LAUNCHER CONTROLS -->
+        <div class="left-panel">
+            <div class="left-section">
+                <div class="section-header-row">
+                    <div class="section-header">SAVED ACCOUNTS<span class="selection-count" id="selectionCount"></span></div>
+                    <div class="section-tab"></div>
+                </div>
+                <div class="list-wrapper">
+                    <ul class="item-list" id="accountList"></ul>
+                </div>
+            </div>
+            <div class="list-buttons" id="accountButtons">
+                <button class="btn-add" onclick="addAccount()" title="Sign in to a Roblox account and save it">+ ADD</button>
+                <button class="btn-remove" onclick="removeAccount()" title="Delete every ticked account">- REMOVE</button>
+                <button class="btn-select" id="selectAllBtn" onclick="toggleSelectAll()" title="Tick or untick every account">SELECT ALL</button>
+            </div>
+        </div>
+        <div class="right-panel">
+            <div class="card launcher-card">
+                <div class="card-header-row">
+                    <div class="section-header">LAUNCHER CONTROLS</div>
+                    <button class="btn-help" onclick="openTourMenu()" title="Tutorials">?</button>
+                </div>
+                <button class="btn-launch" id="launchBtn" onclick="onLaunchClick()" title="Launch every ticked account, one after another">LAUNCH SELECTED</button>
+
+                <label class="launch-option-label">Launch Option</label>
+                <div class="launch-option-row">
+                    <div class="custom-select" id="launchOptionSelect" data-value="Home">
+                        <div class="custom-select-trigger">
+                            <span class="custom-select-text">Home</span>
+                            <span class="custom-select-arrow">&#9660;</span>
+                        </div>
+                        <div class="custom-select-options">
+                            <div class="custom-select-option" data-value="Home">Home</div>
+                            <div class="custom-select-option" data-value="Config">Config</div>
+                            <div class="custom-select-option" data-value="Game URL">Game URL</div>
+                            <div class="custom-select-option" data-value="Place ID">Place ID</div>
+                            <div class="custom-select-option" data-value="Place ID + Job ID">Place ID + Job ID</div>
+                            <div class="custom-select-option" data-value="VIP Link">VIP Link</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="launchFields"></div>
+
+                <div class="status-footer">
+                    <div class="counter-label" id="counterLabel">RUNNING: 0 / 0</div>
+                    <div class="launch-status" id="launchStatus"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ROW 2: CONFIGS + SETTINGS -->
+        <div class="row2-wrapper" id="row2Wrapper">
+            <div class="left-panel configs-panel" id="configsPanel">
+                <div class="left-section">
+                    <div class="section-header-row">
+                        <div class="section-header">LAUNCH CONFIGS</div>
+                        <div class="section-tab"></div>
+                    </div>
+                    <div class="list-wrapper">
+                        <div class="config-list-header">
+                            <span class="col-name">Name</span>
+                            <span class="col-method">Method</span>
+                            <span class="col-params">Params</span>
+                        </div>
+                        <ul class="item-list" id="configList"></ul>
+                    </div>
+                </div>
+                <div class="list-buttons">
+                    <button class="btn-add" onclick="addConfig()">+ ADD</button>
+                    <button class="btn-edit" onclick="editConfig()">EDIT</button>
+                    <button class="btn-remove" onclick="removeConfig()">- REMOVE</button>
+                </div>
+            </div>
+            <div class="settings-collapse-toggle" id="settingsToggle" onclick="toggleSettings()">
+                <i class="ph-bold ph-caret-right" id="settingsToggleIcon"></i>
+            </div>
+            <div class="right-panel settings-panel" id="settingsPanel">
+                <div class="card settings-card">
+                    <div class="section-header">SETTINGS</div>
+                    <div class="settings-grid">
+                        <label>Theme</label>
+                        <div class="custom-select" id="themeSelect" data-value="dark">
+                            <div class="custom-select-trigger">
+                                <span class="custom-select-text">Dark</span>
+                                <span class="custom-select-arrow">&#9660;</span>
+                            </div>
+                            <div class="custom-select-options">
+                                <div class="custom-select-option" data-value="dark">Dark</div>
+                                <div class="custom-select-option" data-value="roblox2016">2016 Roblox</div>
+                            </div>
+                        </div>
+
+                        <label>Launcher</label>
+                        <div class="custom-select" id="launcherSelect" data-value="Roblox">
+                            <div class="custom-select-trigger">
+                                <span class="custom-select-text">Roblox</span>
+                                <span class="custom-select-arrow">&#9660;</span>
+                            </div>
+                            <div class="custom-select-options">
+                                <div class="custom-select-option" data-value="Roblox">Roblox</div>
+                                <div class="custom-select-option" data-value="Bloxstrap">Bloxstrap</div>
+                                <div class="custom-select-option" data-value="Voidstrap">Voidstrap</div>
+                            </div>
+                        </div>
+
+                        <label style="line-height:1.1">Multi Instance<br>Method</label>
+                        <div class="custom-select" id="multiMethodSelect" data-value="pywin32">
+                            <div class="custom-select-trigger">
+                                <span class="custom-select-text">pywin32</span>
+                                <span class="custom-select-arrow">&#9660;</span>
+                            </div>
+                            <div class="custom-select-options">
+                                <div class="custom-select-option" data-value="psutil">psutil</div>
+                                <div class="custom-select-option" data-value="pywin32">pywin32</div>
+                            </div>
+                        </div>
+
+                        <label>Channel</label>
+                        <div class="channel-row">
+                            <input type="text" id="channelEntry">
+                            <button class="btn-icon check" onclick="saveChannel()"><i class="ph-bold ph-check"></i></button>
+                            <button class="btn-icon cross" onclick="resetChannel()"><i class="ph-bold ph-x"></i></button>
+                        </div>
+
+                        <label>Max Instances</label>
+                        <input type="text" id="maxInstances" value="1">
+
+                        <label style="line-height:1.1">Launch Delay<br>(seconds)</label>
+                        <input type="text" id="launchDelay" value="3">
+                    </div>
+
+                    <button class="btn-save" onclick="saveSettings()">SAVE SETTINGS</button>
+                    <div class="settings-footer">
+                        <div class="status-message" id="statusMessage"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GUIDED TUTORIAL -->
+    <div class="tour-overlay" id="tourOverlay" hidden>
+        <div class="tour-spot" id="tourSpot"></div>
+        <div class="tour-menu" id="tourMenu" hidden>
+            <div class="tour-menu-title">TUTORIALS</div>
+            <div class="tour-menu-sub">Pick a topic &mdash; each one walks you through the real controls.</div>
+            <div class="tour-menu-list" id="tourMenuList"></div>
+            <div class="tour-actions">
+                <button class="tour-skip" id="tourClose">Close</button>
+                <button class="tour-btn primary" id="tourAll">RUN THEM ALL</button>
+            </div>
+        </div>
+        <div class="tour-card" id="tourCard">
+            <div class="tour-step" id="tourStep"></div>
+            <div class="tour-title" id="tourTitle"></div>
+            <div class="tour-body" id="tourBody"></div>
+            <div class="tour-actions">
+                <button class="tour-skip" id="tourSkip">Skip tour</button>
+                <div class="tour-nav">
+                    <button class="tour-btn" id="tourBack">BACK</button>
+                    <button class="tour-btn primary" id="tourNext">NEXT</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedAccounts = new Set();   // indices ticked for launch
+        let selectionAnchor = -1;           // anchor row for shift-click ranges
+        let accountCount = 0;
+        let accountStatus = {};             // index -> {state, text, title}
+        let selectedConfigIndex = -1;
+
+        // --- INIT ---
+        async function init() {
+            try {
+                while (!window.pywebview || !window.pywebview.api || typeof window.pywebview.api.get_settings !== 'function') {
+                    await new Promise(r => setTimeout(r, 50));
+                }
+            } catch (e) {
+                document.getElementById('launchStatus').textContent = 'API init failed: ' + e.message;
+                return;
+            }
+            try { await refreshAccounts(); } catch (e) {
+                document.getElementById('launchStatus').textContent = 'Accounts failed: ' + e.message;
+            }
+            try { await refreshConfigs(true); } catch (e) {
+                document.getElementById('launchStatus').textContent = 'Configs failed: ' + e.message;
+            }
+            try { await loadSettings(); } catch (e) {
+                document.getElementById('launchStatus').textContent = 'Settings failed: ' + e.message;
+            }
+            try { startCounterLoop(); } catch (e) {
+                document.getElementById('launchStatus').textContent = 'Counter failed: ' + e.message;
+            }
+        }
+
+        // --- ACCOUNTS ---
+        function escHtml(v) {
+            return String(v == null ? '' : v).replace(/[&<>"']/g,
+                c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+        }
+
+        async function refreshAccounts() {
+            const accounts = await pywebview.api.get_accounts();
+            accountCount = accounts.length;
+            [...selectedAccounts].forEach(i => { if (i >= accountCount) selectedAccounts.delete(i); });
+            const list = document.getElementById('accountList');
+            list.innerHTML = '';
+            accounts.forEach((acc, i) => {
+                const li = document.createElement('li');
+                li.className = 'account-item list-item' + (selectedAccounts.has(i) ? ' selected' : '');
+                li.innerHTML =
+                    '<span class="acct-check"><i class="ph-bold ph-check"></i></span>' +
+                    '<span class="acct-label">' + escHtml(acc.displayName) +
+                    ' <span class="acct-user">(@' + escHtml(acc.username) + ')</span></span>' +
+                    '<span class="acct-status"></span>';
+                li.querySelector('.acct-check').onclick = (e) => { e.stopPropagation(); toggleAccount(i); };
+                li.onclick = (e) => onAccountClick(e, i);
+                list.appendChild(li);
+            });
+            applyAccountSelection();
+            applyAccountStatus();
+        }
+
+        // Plain click = select only this one (click again to clear).
+        // Ctrl+click = add/remove one. Shift+click = select the range. Checkbox = toggle one.
+        function onAccountClick(e, index) {
+            if (e.shiftKey && selectionAnchor >= 0) {
+                const lo = Math.min(selectionAnchor, index), hi = Math.max(selectionAnchor, index);
+                if (!e.ctrlKey) selectedAccounts.clear();
+                for (let k = lo; k <= hi; k++) selectedAccounts.add(k);
+            } else if (e.ctrlKey) {
+                toggleAccount(index);
+                return;
+            } else {
+                const onlyThis = selectedAccounts.size === 1 && selectedAccounts.has(index);
+                selectedAccounts.clear();
+                if (!onlyThis) selectedAccounts.add(index);
+                selectionAnchor = index;
+            }
+            applyAccountSelection();
+            saveSelectedAccounts();
+        }
+
+        function toggleAccount(index) {
+            if (selectedAccounts.has(index)) selectedAccounts.delete(index);
+            else selectedAccounts.add(index);
+            selectionAnchor = index;
+            applyAccountSelection();
+            saveSelectedAccounts();
+        }
+
+        function toggleSelectAll() {
+            const allSelected = accountCount > 0 && selectedAccounts.size >= accountCount;
+            selectedAccounts.clear();
+            if (!allSelected) for (let i = 0; i < accountCount; i++) selectedAccounts.add(i);
+            selectionAnchor = -1;
+            applyAccountSelection();
+            saveSelectedAccounts();
+        }
+
+        function applyAccountSelection() {
+            document.querySelectorAll('#accountList .list-item').forEach((item, i) => {
+                item.classList.toggle('selected', selectedAccounts.has(i));
+            });
+            const n = selectedAccounts.size;
+            const countEl = document.getElementById('selectionCount');
+            if (countEl) countEl.textContent = n ? ` (${n} SELECTED)` : '';
+            const allBtn = document.getElementById('selectAllBtn');
+            if (allBtn) allBtn.textContent = (accountCount > 0 && n >= accountCount) ? 'CLEAR' : 'SELECT ALL';
+            const btn = document.getElementById('launchBtn');
+            if (btn && !batchRunning) btn.textContent = n > 1 ? `LAUNCH ${n} SELECTED` : 'LAUNCH SELECTED';
+        }
+
+        function applyAccountStatus() {
+            document.querySelectorAll('#accountList .list-item').forEach((item, i) => {
+                const el = item.querySelector('.acct-status');
+                if (!el) return;
+                const st = accountStatus[i];
+                el.className = 'acct-status' + (st ? ' ' + st.state : '');
+                el.textContent = st ? st.text : '';
+                el.title = (st && st.title) ? st.title : '';
+            });
+        }
+
+        function saveSelectedAccounts() {
+            pywebview.api.get_accounts().then(accounts => {
+                const names = [...selectedAccounts].sort((a, b) => a - b)
+                    .map(i => accounts[i] && accounts[i].username).filter(Boolean);
+                pywebview.api.update_settings('selected_accounts', names);
+                pywebview.api.update_settings('selected_account', names[0] || '');
+            }).catch(() => {});
+        }
+
+        async function addAccount() {
+            await pywebview.api.add_account();
+            await refreshAccounts();
+        }
+
+        async function removeAccount() {
+            // Descending, so earlier removals don't shift the indices still to come.
+            const indices = [...selectedAccounts].sort((a, b) => b - a);
+            if (!indices.length) return;
+            for (const i of indices) await pywebview.api.remove_account(i);
+            selectedAccounts.clear();
+            selectionAnchor = -1;
+            accountStatus = {};
+            await refreshAccounts();
+            saveSelectedAccounts();
+        }
+
+        // --- CONFIGS ---
+        let lastConfigsJson = '';
+
+        async function refreshConfigs(force) {
+            const configs = await pywebview.api.get_configs();
+            const json = JSON.stringify(configs);
+            if (!force && json === lastConfigsJson) return; // no change, don't rebuild
+            lastConfigsJson = json;
+            const list = document.getElementById('configList');
+            list.innerHTML = '';
+            configs.forEach((cfg, i) => {
+                const li = document.createElement('li');
+                li.className = 'config-item list-item' + (i === selectedConfigIndex ? ' selected' : '');
+                const p = cfg.params || {};
+                const displayParts = [];
+                if (p.url) displayParts.push(p.url);
+                if (p.place_id) displayParts.push(p.place_id);
+                if (p.job_id) displayParts.push(p.job_id);
+                if (p.player_mode && p.player_mode !== 'any') displayParts.push(p.player_mode);
+                if (p.min_players) displayParts.push('min:' + p.min_players);
+                if (p.max_players) displayParts.push('max:' + p.max_players);
+                if (p.ping_mode && p.ping_mode !== 'any') displayParts.push(p.ping_mode + ' ping');
+                const paramStr = displayParts.join(', ');
+                const maxNameLen = 15;
+                const displayName = cfg.name.length > maxNameLen ? cfg.name.slice(0, maxNameLen - 1) + '...' : cfg.name;
+                li.innerHTML = `<span class="col-name" title="${cfg.name}">${displayName}</span><span class="col-method">${cfg.method}</span><span class="col-params" title="${paramStr}">${paramStr}</span>`;
+                li.onclick = () => selectConfig(i);
+                li.ondblclick = () => dblSelectConfig(i);
+                list.appendChild(li);
+            });
+            autoSizeConfigColumns();
+        }
+
+        function dbg(msg) { pywebview.api.debug_print(msg); }
+
+        function selectConfig(index) {
+            selectedConfigIndex = (selectedConfigIndex === index) ? -1 : index;
+            const items = document.querySelectorAll('#configList .list-item');
+            if (items.length === 0) { dbg('selectConfig: no items in DOM'); return; }
+            items.forEach((item, i) => item.classList.toggle('selected', i === selectedConfigIndex));
+            pywebview.api.get_configs().then(configs => {
+                if (!configs || !configs.length) { dbg('selectConfig: get_configs empty'); return; }
+                const name = (selectedConfigIndex >= 0 && configs[selectedConfigIndex]) ? configs[selectedConfigIndex].name : '';
+                pywebview.api.update_settings('launch_params', {selected_config: name});
+            }).catch((e) => dbg('selectConfig: get_configs failed: ' + e));
+        }
+
+        function dblSelectConfig(index) {
+            selectedConfigIndex = index;
+            const items = document.querySelectorAll('#configList .list-item');
+            if (items.length === 0) { dbg('dblSelectConfig: no items in DOM'); return; }
+            items.forEach((item, i) => item.classList.toggle('selected', i === selectedConfigIndex));
+            editConfig();
+        }
+
+        async function addConfig() {
+            await pywebview.api.open_config_wizard(-1);
+            startConfigPoll();
+        }
+
+        async function editConfig() {
+            if (selectedConfigIndex < 0) {
+                dbg('editConfig: no config selected');
+                return;
+            }
+            try {
+                await pywebview.api.open_config_wizard(selectedConfigIndex);
+            } catch(e) {
+                dbg('editConfig: open_config_wizard failed: ' + e);
+            }
+            startConfigPoll();
+        }
+
+        let configPoll = null;
+        let configPollTimeout = null;
+
+        function startConfigPoll() {
+            if (configPoll) { clearInterval(configPoll); configPoll = null; }
+            if (configPollTimeout) { clearTimeout(configPollTimeout); configPollTimeout = null; }
+            let first = true;
+            configPoll = setInterval(async () => {
+                await refreshConfigs(first);
+                first = false;
+            }, 500);
+            configPollTimeout = setTimeout(() => {
+                clearInterval(configPoll);
+                configPoll = null;
+            }, 60000);
+        }
+
+        async function removeConfig() {
+            if (selectedConfigIndex < 0) return;
+            await pywebview.api.remove_config(selectedConfigIndex);
+            selectedConfigIndex = -1;
+            await refreshConfigs(true);
+        }
+
+        // --- SERVER FILTER UI ---
+        let cachedMaxPlayers = 0;
+
+        function buildServerFiltersHTML() {
+            return `
+                <label class="launch-option-label" style="margin-top:10px">Players</label>
+                <div class="custom-select" id="playerModeSelect" data-value="any">
+                    <div class="custom-select-trigger">
+                        <span class="custom-select-text">Any</span>
+                        <span class="custom-select-arrow">&#9660;</span>
+                    </div>
+                    <div class="custom-select-options">
+                        <div class="custom-select-option" data-value="any">Any</div>
+                        <div class="custom-select-option" data-value="smallest">Smallest Server</div>
+                        <div class="custom-select-option" data-value="biggest">Biggest (Non-Full)</div>
+                        <div class="custom-select-option" data-value="min_only">Min Players</div>
+                        <div class="custom-select-option" data-value="max_only">Max Players</div>
+                        <div class="custom-select-option" data-value="range">Player Range</div>
+                    </div>
+                </div>
+                <div id="playerSubFields"></div>
+
+                <label class="launch-option-label" style="margin-top:10px">Ping</label>
+                <div class="custom-select" id="pingModeSelect" data-value="any" style="margin-bottom:10px">
+                    <div class="custom-select-trigger">
+                        <span class="custom-select-text">Any</span>
+                        <span class="custom-select-arrow">&#9660;</span>
+                    </div>
+                    <div class="custom-select-options">
+                        <div class="custom-select-option" data-value="any">Any</div>
+                        <div class="custom-select-option" data-value="lowest">Lowest Ping</div>
+                        <div class="custom-select-option" data-value="highest">Highest Ping</div>
+                    </div>
+                </div>`;
+        }
+
+        function buildPlayerSubFields(mode) {
+            const cap = cachedMaxPlayers > 0 ? cachedMaxPlayers - 1 : '';
+            if (mode === 'min_only') {
+                return `<div style="margin-top:8px;"><input type="text" class="launch-input" id="minPlayers" placeholder="Min Players (0)"></div>`;
+            } else if (mode === 'max_only') {
+                return `<div style="margin-top:8px;"><input type="text" class="launch-input" id="maxPlayers" placeholder="Max Players${cap ? ' (' + cap + ')' : ''}"></div>`;
+            } else if (mode === 'range') {
+                return `<div style="display:flex; gap:8px; margin-top:8px;">
+                    <input type="text" class="launch-input" id="minPlayers" placeholder="Min (0)" style="flex:1">
+                    <input type="text" class="launch-input" id="maxPlayers" placeholder="Max${cap ? ' (' + cap + ')' : ''}" style="flex:1">
+                </div>`;
+            }
+            return '';
+        }
+
+        function reclampPlayerInputs() {
+            const cap = cachedMaxPlayers > 0 ? cachedMaxPlayers - 1 : 999;
+            const minEl = document.getElementById('minPlayers');
+            const maxEl = document.getElementById('maxPlayers');
+            if (minEl && minEl.value !== '') { let v = parseInt(minEl.value); if (!isNaN(v) && v > cap) minEl.value = cap; }
+            if (maxEl && maxEl.value !== '') { let v = parseInt(maxEl.value); if (!isNaN(v) && v > cap) maxEl.value = cap; }
+            if (maxEl) maxEl.placeholder = `Max Players${cap < 999 ? ' (' + cap + ')' : ''}`;
+        }
+
+        function initServerFilters() {
+            initFilterSelect('playerModeSelect', (val) => {
+                const sub = document.getElementById('playerSubFields');
+                if (!sub) return;
+                sub.innerHTML = buildPlayerSubFields(val);
+                if (sub.innerHTML) attachPlayerValidation();
+                saveLaunchParams();
+                resizeForCurrentOption();
+            });
+            initFilterSelect('pingModeSelect', (val) => {
+                saveLaunchParams();
+                resizeForCurrentOption();
+            });
+        }
+
+        function initFilterSelect(id, onChange) {
+            const sel = document.getElementById(id);
+            if (!sel) return;
+            const trigger = sel.querySelector('.custom-select-trigger');
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.querySelectorAll('.custom-select.open').forEach(s => { if (s !== sel) s.classList.remove('open'); });
+                sel.classList.toggle('open');
+            });
+            sel.querySelectorAll('.custom-select-option').forEach(opt => {
+                opt.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    sel.dataset.value = opt.dataset.value;
+                    sel.querySelector('.custom-select-text').textContent = opt.textContent;
+                    sel.classList.remove('open');
+                    if (onChange) onChange(opt.dataset.value);
+                });
+            });
+        }
+
+        function attachPlayerValidation() {
+            const minEl = document.getElementById('minPlayers');
+            const maxEl = document.getElementById('maxPlayers');
+            const cap = cachedMaxPlayers > 0 ? cachedMaxPlayers - 1 : 999;
+
+            function digitsOnly(el) { el.value = el.value.replace(/[^0-9]/g, ''); }
+            function clampAndEnforce() {
+                if (minEl) {
+                    digitsOnly(minEl);
+                    let v = parseInt(minEl.value);
+                    if (!isNaN(v)) {
+                        if (v < 0) { v = 0; minEl.value = v; }
+                        if (v > cap) { v = cap; minEl.value = v; }
+                    }
+                }
+                if (maxEl) {
+                    digitsOnly(maxEl);
+                    let v = parseInt(maxEl.value);
+                    if (!isNaN(v)) {
+                        if (v < 0) { v = 0; maxEl.value = v; }
+                        if (v > cap) { v = cap; maxEl.value = v; }
+                    }
+                }
+                if (minEl && maxEl && minEl.value !== '' && maxEl.value !== '') {
+                    let mn = parseInt(minEl.value), mx = parseInt(maxEl.value);
+                    if (!isNaN(mn) && !isNaN(mx) && mn > mx) { maxEl.value = mn; }
+                }
+                saveLaunchParams();
+            }
+            if (minEl) minEl.addEventListener('input', clampAndEnforce);
+            if (maxEl) maxEl.addEventListener('input', clampAndEnforce);
+        }
+
+        function fetchMaxPlayers(placeId) {
+            if (!placeId) { cachedMaxPlayers = 0; return; }
+            pywebview.api.get_game_max_players(placeId).then(mp => {
+                cachedMaxPlayers = mp || 0;
+                reclampPlayerInputs();
+            }).catch(() => { cachedMaxPlayers = 0; });
+        }
+
+        // --- WINDOW RESIZE ---
+        const HEIGHT_MAP = {
+            'Home': 716,
+            'Config': 716,
+            'Game URL': 886,
+            'Place ID': 886,
+            'Place ID + Job ID': 788,
+            'VIP Link': 752,
+        };
+
+        function resizeForCurrentOption() {
+            const option = document.getElementById('launchOptionSelect').dataset.value;
+            let h = HEIGHT_MAP[option] || 716;
+            // Add extra height for player sub-field inputs
+            const pSel = document.getElementById('playerModeSelect');
+            if (pSel && ['min_only', 'max_only', 'range'].includes(pSel.dataset.value)) h += 50;
+            pywebview.api.resize_window(h);
+        }
+
+        // --- LAUNCH OPTIONS ---
+        function onLaunchOptionChange(value, restoring) {
+            const fields = document.getElementById('launchFields');
+            fields.innerHTML = '';
+
+            const hasFilters = (value === 'Game URL' || value === 'Place ID');
+
+            if (value === 'Game URL') {
+                fields.innerHTML = '<input type="text" class="launch-input" id="launchUrl" placeholder="https://www.roblox.com/games/...">' + buildServerFiltersHTML();
+            } else if (value === 'Place ID') {
+                fields.innerHTML = '<input type="text" class="launch-input" id="launchPlaceId" placeholder="Place ID">' + buildServerFiltersHTML();
+            } else if (value === 'Place ID + Job ID') {
+                fields.innerHTML = '<input type="text" class="launch-input" id="launchPlaceId" placeholder="Place ID"><input type="text" class="launch-input" id="launchJobId" placeholder="Job ID" style="margin-bottom:10px">';
+            } else if (value === 'VIP Link') {
+                fields.innerHTML = '<input type="text" class="launch-input" id="launchVipUrl" placeholder="VIP Server Link" style="margin-bottom:10px">';
+            }
+            // Home and Config = no fields
+
+            // Attach input listeners for auto-save + init filters
+            setTimeout(() => {
+                document.querySelectorAll('.launch-input').forEach(el => {
+                    el.addEventListener('input', () => {
+                        saveLaunchParams();
+                        if (el.id === 'launchPlaceId' || el.id === 'launchUrl') {
+                            let pid = null;
+                            if (el.id === 'launchPlaceId') pid = el.value.trim();
+                            else {
+                                const m = el.value.match(/roblox\.com\/games\/(\d+)/);
+                                if (m) pid = m[1];
+                            }
+                            fetchMaxPlayers(pid);
+                        }
+                    });
+                });
+                if (hasFilters) initServerFilters();
+                if (!restoring) resizeForCurrentOption();
+            }, 10);
+
+            // Save selection + set default empty params (unless restoring from settings)
+            if (!restoring) {
+                pywebview.api.update_settings('launch_option', value);
+                pywebview.api.update_settings('launch_params', getDefaultParams(value));
+            }
+        }
+
+        function getLaunchParams() {
+            const option = document.getElementById('launchOptionSelect').dataset.value;
+            const params = {};
+            if (option === 'Game URL') {
+                const el = document.getElementById('launchUrl');
+                if (el) params.url = el.value;
+            } else if (option === 'Place ID') {
+                const el = document.getElementById('launchPlaceId');
+                if (el) params.place_id = el.value;
+            } else if (option === 'Place ID + Job ID') {
+                const el1 = document.getElementById('launchPlaceId');
+                const el2 = document.getElementById('launchJobId');
+                if (el1) params.place_id = el1.value;
+                if (el2) params.job_id = el2.value;
+            } else if (option === 'VIP Link') {
+                const el = document.getElementById('launchVipUrl');
+                if (el) params.url = el.value;
+            }
+            // Player filter
+            const playerSel = document.getElementById('playerModeSelect');
+            if (playerSel) {
+                params.player_mode = playerSel.dataset.value;
+                const minEl = document.getElementById('minPlayers');
+                const maxEl = document.getElementById('maxPlayers');
+                if (minEl && minEl.value) params.min_players = minEl.value;
+                if (maxEl && maxEl.value) params.max_players = maxEl.value;
+            }
+            // Ping filter
+            const pingSel = document.getElementById('pingModeSelect');
+            if (pingSel) params.ping_mode = pingSel.dataset.value;
+            return params;
+        }
+
+        function getDefaultParams(option) {
+            if (option === 'Game URL') return {url: '', player_mode: 'any', ping_mode: 'any'};
+            if (option === 'Place ID') return {place_id: '', player_mode: 'any', ping_mode: 'any'};
+            if (option === 'Place ID + Job ID') return {place_id: '', job_id: ''};
+            if (option === 'VIP Link') return {url: ''};
+            if (option === 'Config') return {selected_config: ''};
+            return {};
+        }
+
+        function saveLaunchParams() {
+            const params = getLaunchParams();
+            pywebview.api.update_settings('launch_params', params);
+        }
+
+        // --- LAUNCH ---
+        function showLaunchError(msg) {
+            const status = document.getElementById('launchStatus');
+            status.textContent = msg;
+            status.classList.add('error');
+            setTimeout(() => { status.textContent = ''; status.classList.remove('error'); }, 8000);
+        }
+
+        let batchRunning = false;
+        let batchPoll = null;
+        let jsBatchMode = false;      // true when driving the batch from JS (old backend)
+        let jsBatchCancelled = false;
+
+        function onLaunchClick() {
+            if (batchRunning) {
+                if (jsBatchMode) jsBatchCancelled = true;
+                else pywebview.api.cancel_launch();
+                return;
+            }
+            launchAccount();
+        }
+
+        async function launchAccount() {
+            const indices = [...selectedAccounts].sort((a, b) => a - b);
+            if (!indices.length) {
+                showLaunchError('No account selected.');
+                return;
+            }
+            const status = document.getElementById('launchStatus');
+            status.classList.remove('error');
+            status.textContent = indices.length > 1 ? `Launching 1 / ${indices.length}...` : 'Launching...';
+            accountStatus = {};
+            applyAccountStatus();
+            const option = document.getElementById('launchOptionSelect').dataset.value;
+            const params = getLaunchParams();
+            // A RAMMIT.exe built before launch_accounts() existed still serves this
+            // page, so fall back to driving the batch from here.
+            if (typeof pywebview.api.launch_accounts !== 'function') {
+                await launchBatchFromJs(indices, option, params);
+                return;
+            }
+            jsBatchMode = false;
+            const result = await pywebview.api.launch_accounts(indices, option, params, selectedConfigIndex);
+            if (result && result.error) {
+                showLaunchError(result.error);
+                return;
+            }
+            setBatchRunning(true);
+            startBatchPoll();
+        }
+
+        function currentLaunchDelay() {
+            const d = parseInt(document.getElementById('launchDelay').value);
+            return (isNaN(d) || d < 0) ? 3 : d;
+        }
+
+        async function launchBatchFromJs(indices, option, params) {
+            jsBatchMode = true;
+            jsBatchCancelled = false;
+            setBatchRunning(true);
+            const delay = currentLaunchDelay();
+            const results = {};
+            indices.forEach(i => results[String(i)] = 'queued');
+            let message = '';
+
+            for (let n = 0; n < indices.length; n++) {
+                if (jsBatchCancelled) break;
+                const idx = indices[n];
+                results[String(idx)] = 'launching';
+                applyProgress({running: true, done: n, total: indices.length, results});
+                let res;
+                try {
+                    res = await pywebview.api.launch_account(idx, option, params, selectedConfigIndex);
+                } catch (e) {
+                    res = {error: String(e && e.message ? e.message : e)};
+                }
+                if (res && res.success) {
+                    results[String(idx)] = 'ok';
+                } else {
+                    const err = (res && res.error) || 'Launch failed.';
+                    results[String(idx)] = 'error:' + err;
+                    if (err === 'Instance limit reached.') { message = err; break; }
+                }
+                if (n < indices.length - 1 && delay > 0) {
+                    for (let t = 0; t < delay * 10 && !jsBatchCancelled; t++) {
+                        await new Promise(r => setTimeout(r, 100));
+                    }
+                }
+            }
+
+            if (jsBatchCancelled && !message) message = 'Cancelled.';
+            indices.forEach(i => {
+                if (['queued', 'launching'].includes(results[String(i)])) results[String(i)] = 'skipped';
+            });
+            const done = {running: false, done: indices.length, total: indices.length, results, message};
+            applyProgress(done);
+            jsBatchMode = false;
+            setBatchRunning(false);
+            finishBatch(done);
+        }
+
+        function setBatchRunning(on) {
+            batchRunning = on;
+            const btn = document.getElementById('launchBtn');
+            if (!btn) return;
+            if (on) {
+                btn.classList.add('cancel');
+                btn.textContent = 'CANCEL LAUNCH';
+            } else {
+                btn.classList.remove('cancel');
+                applyAccountSelection();
+            }
+        }
+
+        function startBatchPoll() {
+            if (batchPoll) clearInterval(batchPoll);
+            batchPoll = setInterval(async () => {
+                let p;
+                try { p = await pywebview.api.get_launch_progress(); } catch (e) { return; }
+                if (!p) return;
+                applyProgress(p);
+                if (!p.running) {
+                    clearInterval(batchPoll);
+                    batchPoll = null;
+                    setBatchRunning(false);
+                    finishBatch(p);
+                }
+            }, 350);
+        }
+
+        function applyProgress(p) {
+            const res = p.results || {};
+            accountStatus = {};
+            Object.keys(res).forEach(k => {
+                const i = parseInt(k, 10);
+                const v = String(res[k]);
+                if (v === 'ok') accountStatus[i] = {state: 'ok', text: '\u2713'};
+                else if (v === 'launching') accountStatus[i] = {state: 'launching', text: '\u2022\u2022\u2022'};
+                else if (v === 'queued') accountStatus[i] = {state: 'queued', text: '\u2026'};
+                else if (v === 'skipped') accountStatus[i] = {state: 'queued', text: '\u2013'};
+                else if (v.indexOf('error:') === 0) accountStatus[i] = {state: 'error', text: '\u2717', title: v.slice(6)};
+            });
+            applyAccountStatus();
+            if (p.running) {
+                const status = document.getElementById('launchStatus');
+                status.classList.remove('error');
+                status.textContent = `Launching ${Math.min(p.done + 1, p.total)} / ${p.total}...`;
+            }
+        }
+
+        function finishBatch(p) {
+            const vals = Object.keys(p.results || {}).map(k => String(p.results[k]));
+            const ok = vals.filter(v => v === 'ok').length;
+            const firstErr = vals.find(v => v.indexOf('error:') === 0);
+            const failed = vals.filter(v => v.indexOf('error:') === 0).length;
+            const status = document.getElementById('launchStatus');
+            if (failed || p.message) {
+                let msg = `Launched ${ok}/${p.total}`;
+                if (p.message) msg += ' \u2014 ' + p.message;
+                if (failed) msg += ` \u2014 ${failed} failed: ${firstErr.slice(6)}`;
+                showLaunchError(msg);
+            } else {
+                status.classList.remove('error');
+                status.textContent = `Launched ${ok}/${p.total}`;
+                setTimeout(() => {
+                    if (status.textContent.indexOf('Launched') === 0) status.textContent = '';
+                }, 6000);
+            }
+            updateCounter();
+        }
+
+        // --- CUSTOM SELECT ---
+        function initCustomSelects() {
+            document.querySelectorAll('.custom-select').forEach(sel => {
+                const trigger = sel.querySelector('.custom-select-trigger');
+
+                trigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    document.querySelectorAll('.custom-select.open').forEach(s => {
+                        if (s !== sel) s.classList.remove('open');
+                    });
+                    sel.classList.toggle('open');
+                });
+
+                sel.querySelectorAll('.custom-select-option').forEach(opt => {
+                    opt.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const val = opt.dataset.value;
+                        sel.dataset.value = val;
+                        sel.querySelector('.custom-select-text').textContent = opt.textContent;
+                        sel.classList.remove('open');
+
+                        if (sel.id === 'themeSelect') onThemeChange(val);
+                        else if (sel.id === 'launcherSelect') onSettingsChange('launcher', val);
+                        else if (sel.id === 'multiMethodSelect') onSettingsChange('multi_method', val);
+                        else if (sel.id === 'launchOptionSelect') onLaunchOptionChange(val);
+                    });
+                });
+            });
+
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.custom-select.open').forEach(s => s.classList.remove('open'));
+            });
+        }
+
+        // --- SETTINGS ---
+        async function loadSettings() {
+            const s = await pywebview.api.get_settings();
+            applyTheme(s.theme);
+            setCustomSelect('themeSelect', s.theme || 'dark');
+            setCustomSelect('launcherSelect', s.launcher);
+            setCustomSelect('multiMethodSelect', s.multi_method);
+            document.getElementById('channelEntry').value = s.channel || '';
+            document.getElementById('maxInstances').value = s.max_instances;
+            document.getElementById('launchDelay').value = (s.launch_delay === undefined ? 3 : s.launch_delay);
+
+            // Restore launch option
+            if (s.launch_option) {
+                setCustomSelect('launchOptionSelect', s.launch_option);
+                onLaunchOptionChange(s.launch_option, true);
+                // Restore param values after fields are created — retry up to 4x
+                (function tryRestore(attempt) {
+                    const params = s.launch_params || {};
+                    let ok = false;
+                    if (s.launch_option === 'Game URL' && params.url) {
+                        const el = document.getElementById('launchUrl');
+                        if (el) { el.value = params.url; ok = true; }
+                    } else if (s.launch_option === 'Place ID' && params.place_id) {
+                        const el = document.getElementById('launchPlaceId');
+                        if (el) { el.value = params.place_id; ok = true; }
+                    } else if (s.launch_option === 'Place ID + Job ID') {
+                        const el1 = document.getElementById('launchPlaceId');
+                        const el2 = document.getElementById('launchJobId');
+                        if (el1 && el2) {
+                            if (params.place_id) el1.value = params.place_id;
+                            if (params.job_id) el2.value = params.job_id;
+                            ok = true;
+                        }
+                    } else if (s.launch_option === 'VIP Link' && params.url) {
+                        const el = document.getElementById('launchVipUrl');
+                        if (el) { el.value = params.url; ok = true; }
+                    } else {
+                        ok = true; // Config / Default — no fields to restore
+                    }
+                    // Restore player filter
+                    if (ok && params.player_mode) {
+                        const pSel = document.getElementById('playerModeSelect');
+                        if (pSel) {
+                            pSel.dataset.value = params.player_mode;
+                            const pOpt = pSel.querySelector(`.custom-select-option[data-value="${params.player_mode}"]`);
+                            if (pOpt) pSel.querySelector('.custom-select-text').textContent = pOpt.textContent;
+                            const subHTML = buildPlayerSubFields(params.player_mode);
+                            if (subHTML) {
+                                const sub = document.getElementById('playerSubFields');
+                                if (sub) {
+                                    sub.innerHTML = subHTML;
+                                    attachPlayerValidation();
+                                    const minEl = document.getElementById('minPlayers');
+                                    const maxEl = document.getElementById('maxPlayers');
+                                    if (minEl && params.min_players) minEl.value = params.min_players;
+                                    if (maxEl && params.max_players) maxEl.value = params.max_players;
+                                }
+                            }
+                        }
+                        // Fetch maxPlayers for validation cap + reclamp
+                        let pid = params.place_id || null;
+                        if (!pid && params.url) {
+                            const m = (params.url || '').match(/roblox\.com\/games\/(\d+)/);
+                            if (m) pid = m[1];
+                        }
+                        if (pid) fetchMaxPlayers(pid);
+                    }
+                    // Restore ping filter
+                    if (ok && params.ping_mode) {
+                        const pgSel = document.getElementById('pingModeSelect');
+                        if (pgSel) {
+                            pgSel.dataset.value = params.ping_mode;
+                            const pgOpt = pgSel.querySelector(`.custom-select-option[data-value="${params.ping_mode}"]`);
+                            if (pgOpt) pgSel.querySelector('.custom-select-text').textContent = pgOpt.textContent;
+                        }
+                    }
+                    if (!ok && attempt < 4) {
+                        setTimeout(() => tryRestore(attempt + 1), 60);
+                    } else if (!ok) {
+                        document.getElementById('launchStatus').textContent = 'Failed to restore saved params.';
+                    }
+                })(0);
+            }
+
+            // Restore selected config name from launch_params
+            const savedConfigName = (s.launch_params || {}).selected_config;
+            if (savedConfigName) {
+                const configs = await pywebview.api.get_configs();
+                const idx = configs.findIndex(c => c.name === savedConfigName);
+                if (idx >= 0) {
+                    selectedConfigIndex = idx;
+                    document.querySelectorAll('#configList .list-item').forEach((item, i) => {
+                        item.classList.toggle('selected', i === idx);
+                    });
+                }
+            }
+
+            // Restore collapse state
+            if (s.settings_collapsed) {
+                settingsCollapsed = true;
+                applySettingsCollapse();
+            }
+
+            // Final resize + smart columns after everything is restored
+            setTimeout(() => { resizeForCurrentOption(); autoSizeConfigColumns(); }, 300);
+
+            // Remember which topics have been finished
+            if (Array.isArray(s.tutorials_done)) toursDone = new Set(s.tutorials_done);
+
+            // First run — start the basics tour once the layout has settled
+            if (!s.tutorial_seen) setTimeout(() => startTour('basics'), 900);
+
+            // Restore selected accounts (falls back to the old single-account key)
+            const accounts = await pywebview.api.get_accounts();
+            accountCount = accounts.length;
+            let savedNames = s.selected_accounts;
+            if (!Array.isArray(savedNames) || !savedNames.length) {
+                savedNames = s.selected_account ? [s.selected_account] : [];
+            }
+            selectedAccounts.clear();
+            savedNames.forEach(name => {
+                const idx = accounts.findIndex(a => a.username === name);
+                if (idx >= 0) selectedAccounts.add(idx);
+            });
+            applyAccountSelection();
+        }
+
+        function setCustomSelect(id, value) {
+            const sel = document.getElementById(id);
+            if (!sel) return;
+            sel.dataset.value = value;
+            const opt = sel.querySelector(`.custom-select-option[data-value="${value}"]`);
+            if (opt) sel.querySelector('.custom-select-text').textContent = opt.textContent;
+        }
+
+        async function onSettingsChange(key, value) {
+            await pywebview.api.update_settings(key, value);
+        }
+
+        // --- THEME ---
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme || 'dark');
+        }
+
+        async function onThemeChange(value) {
+            applyTheme(value);
+            await pywebview.api.update_settings('theme', value);
+        }
+
+        async function saveChannel() {
+            const channel = document.getElementById('channelEntry').value.trim();
+            const result = await pywebview.api.save_channel(channel);
+            showStatus(result.success ? 'Channel updated' : 'Failed to update channel', result.success);
+        }
+
+        async function resetChannel() {
+            const channel = await pywebview.api.get_channel();
+            document.getElementById('channelEntry').value = channel;
+        }
+
+        async function saveSettings() {
+            const maxInstances = parseInt(document.getElementById('maxInstances').value);
+            if (isNaN(maxInstances) || maxInstances < 1) {
+                showStatus('Invalid value', false);
+                return;
+            }
+            const launchDelay = parseInt(document.getElementById('launchDelay').value);
+            if (isNaN(launchDelay) || launchDelay < 0) {
+                showStatus('Invalid launch delay', false);
+                return;
+            }
+            await pywebview.api.update_settings('max_instances', maxInstances);
+            await pywebview.api.update_settings('launch_delay', launchDelay);
+            showStatus('Settings saved', true);
+            await updateCounter();
+        }
+
+        // --- COUNTER ---
+        async function updateCounter() {
+            const data = await pywebview.api.get_counter();
+            document.getElementById('counterLabel').textContent =
+                `RUNNING: ${data.running} / ${data.max}`;
+        }
+
+        function startCounterLoop() {
+            updateCounter();
+            setInterval(updateCounter, 500);
+        }
+
+        // --- SMART CONFIG COLUMN SIZING ---
+        function autoSizeConfigColumns() {
+            const list = document.getElementById('configList');
+            const wrapper = list.closest('.list-wrapper') || list.parentElement;
+            const items = list.querySelectorAll('.config-item');
+            if (!items.length) return;
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.font = '14px Segoe UI';
+            let maxName = 0, maxMethod = 0;
+            items.forEach(item => {
+                const cols = item.children;
+                if (cols[0]) maxName = Math.max(maxName, ctx.measureText(cols[0].textContent).width);
+                if (cols[1]) maxMethod = Math.max(maxMethod, ctx.measureText(cols[1].textContent).width);
+            });
+            ctx.font = '600 10px Segoe UI';
+            const header = document.querySelector('.config-list-header');
+            if (header) {
+                const hCols = header.children;
+                if (hCols[0]) maxName = Math.max(maxName, ctx.measureText(hCols[0].textContent).width);
+                if (hCols[1]) maxMethod = Math.max(maxMethod, ctx.measureText(hCols[1].textContent).width);
+            }
+            const gap = 20;
+            const nameW = maxName + gap;
+            const methodW = maxMethod + gap;
+            wrapper.style.setProperty('--col-name-w', nameW + 'px');
+            wrapper.style.setProperty('--col-method-w', methodW + 'px');
+        }
+
+        // --- COLLAPSIBLE SETTINGS ---
+        let settingsCollapsed = false;
+
+        function toggleSettings() {
+            settingsCollapsed = !settingsCollapsed;
+            applySettingsCollapse();
+            pywebview.api.update_settings('settings_collapsed', settingsCollapsed);
+        }
+
+        function applySettingsCollapse() {
+            const panel = document.getElementById('settingsPanel');
+            const toggle = document.getElementById('settingsToggle');
+            if (settingsCollapsed) {
+                panel.classList.add('collapsed');
+                toggle.classList.add('flipped');
+            } else {
+                panel.classList.remove('collapsed');
+                toggle.classList.remove('flipped');
+            }
+        }
+
+        // --- STATUS ---
+        function showStatus(msg, success) {
+            const el = document.getElementById('statusMessage');
+            el.textContent = msg;
+            el.className = 'status-message ' + (success ? 'success' : 'error');
+            setTimeout(() => { el.textContent = ''; el.className = 'status-message'; }, 3000);
+        }
+
+        // --- MAX INSTANCES: digits only ---
+        document.getElementById('maxInstances').addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+        document.getElementById('launchDelay').addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+
+        // --- GUIDED TUTORIALS ---
+        // A menu of spotlight tours over the real controls. Reopen with the ? button.
+        const TOURS = [
+            {
+                id: 'basics',
+                name: 'Getting started',
+                desc: 'What RAMMIT does, and how to save your accounts.',
+                steps: [
+                    {
+                        title: 'Welcome to RAMMIT',
+                        body: 'RAMMIT keeps your Roblox accounts in one place and opens as many of them as you like at the same time \u2014 no logging in and out.<br><br>These tutorials take a minute each. You can reopen them any time with the <b>?</b> button.',
+                    },
+                    {
+                        target: '#accountList',
+                        title: 'Your saved accounts',
+                        body: 'Every account you add shows up here as <b>Display Name (@username)</b>.<br><br>RAMMIT stores the login token, so you only ever sign in to an account once.',
+                    },
+                    {
+                        target: '#accountButtons',
+                        title: 'Adding and removing',
+                        body: '<b>+ ADD</b> opens a Roblox login window. Sign in as normal and the account saves itself the moment it logs in.<br><br><b>- REMOVE</b> deletes every account you have ticked.',
+                    },
+                    {
+                        target: '.launcher-card',
+                        title: 'The launch panel',
+                        body: 'Everything about starting accounts lives on the right: the launch button, where they should go, and a <b>RUNNING</b> count of how many Roblox instances are open right now.',
+                    },
+                    {
+                        title: 'That is the basics',
+                        body: 'Tick an account, press launch, and you are away.<br><br>Next up: <b>Running several at once</b> \u2014 the part RAMMIT is really for.',
+                    },
+                ],
+            },
+            {
+                id: 'multi',
+                name: 'Running several at once',
+                desc: 'Select many accounts and launch them together.',
+                steps: [
+                    {
+                        target: '#accountList',
+                        title: 'Pick as many as you like',
+                        body: 'Tick the accounts you want, then launch them together. Four ways to do it:',
+                        keys: [
+                            ['Click', 'select just that one (click again to clear it)'],
+                            ['Checkbox', 'tick one without touching the rest'],
+                            ['Ctrl + click', 'add or remove one at a time'],
+                            ['Shift + click', 'select everything between two rows'],
+                        ],
+                    },
+                    {
+                        target: '#selectAllBtn',
+                        title: 'Or grab them all',
+                        body: '<b>SELECT ALL</b> ticks every account in the list. The same button then reads <b>CLEAR</b> to untick them again.<br><br>The header keeps a running count: <b>SAVED ACCOUNTS (4 SELECTED)</b>.',
+                    },
+                    {
+                        target: '#launchBtn',
+                        title: 'Launch them together',
+                        body: 'The button counts what you picked \u2014 <b>LAUNCH 4 SELECTED</b>.<br><br>They open one after another rather than all in the same instant. Changed your mind halfway? The button turns into <b>CANCEL LAUNCH</b> and stops the ones that have not started yet.',
+                    },
+                    {
+                        target: '#accountList',
+                        title: 'Watch how each one goes',
+                        body: 'While a launch runs, every row shows where it is up to:',
+                        keys: [
+                            ['\u2026', 'waiting its turn'],
+                            ['\u2022\u2022\u2022', 'starting up now'],
+                            ['\u2713', 'launched'],
+                            ['\u2717', 'failed \u2014 hover it to read why'],
+                        ],
+                    },
+                    {
+                        target: '.status-footer',
+                        title: 'Keeping score',
+                        body: '<b>RUNNING</b> shows how many instances are open against your limit.<br><br>Underneath it, the line reads <b>Launching 3 / 5...</b> as it works, then <b>Launched 5/5</b> when it is done. If any failed, it tells you how many and what went wrong.',
+                    },
+                ],
+            },
+            {
+                id: 'where',
+                name: 'Choosing where they launch',
+                desc: 'Home, a game, one exact server, or a VIP link.',
+                steps: [
+                    {
+                        target: '#launchOptionSelect',
+                        title: 'Where should they go?',
+                        body: 'This drop-down decides what every selected account does when it opens:',
+                        keys: [
+                            ['Home', 'just opens the Roblox home page'],
+                            ['Game URL', 'paste a roblox.com/games/... link'],
+                            ['Place ID', 'the game\u2019s number, if you know it'],
+                            ['+ Job ID', 'one exact server'],
+                            ['VIP Link', 'a private server link or share code'],
+                            ['Config', 'a setup you saved earlier'],
+                        ],
+                    },
+                    {
+                        target: '#launchFields',
+                        title: 'The boxes underneath',
+                        body: 'Whatever you pick, the boxes you need appear right below the drop-down. RAMMIT remembers what you typed, so it is still there next time you open it.',
+                    },
+                    {
+                        title: 'Getting everyone in the SAME server',
+                        body: 'Sending accounts to a plain <b>Game URL</b> or <b>Place ID</b> means Roblox picks a server for each one \u2014 they can end up scattered.<br><br>To land them together, use <b>Place ID + Job ID</b> (the Job ID is that exact server\u2019s id) or a <b>VIP Link</b>. Everyone joins the same place.',
+                    },
+                    {
+                        title: 'Not sure of the Job ID?',
+                        body: 'Use the server filters instead \u2014 they pick a server for you and send everyone to that one.<br><br>That is the next tutorial: <b>Picking a server</b>.',
+                    },
+                ],
+            },
+            {
+                id: 'servers',
+                name: 'Picking a server',
+                desc: 'Filter by player count and ping before launching.',
+                steps: [
+                    {
+                        target: '#launchOptionSelect',
+                        title: 'Where the filters live',
+                        body: 'Choose <b>Game URL</b> or <b>Place ID</b> here and two extra drop-downs appear underneath \u2014 <b>Players</b> and <b>Ping</b>.<br><br>They let RAMMIT choose a server for you instead of letting Roblox decide.',
+                    },
+                    {
+                        target: '#playerModeSelect',
+                        title: 'Filter by how busy it is',
+                        body: 'RAMMIT reads the game\u2019s live server list and picks one that fits:',
+                        keys: [
+                            ['Any', 'no preference \u2014 pick at random'],
+                            ['Smallest', 'the emptiest server it can find'],
+                            ['Biggest', 'the fullest one that still has room'],
+                            ['Min Players', 'at least this many people'],
+                            ['Max Players', 'no more than this many'],
+                            ['Player Range', 'between a min and a max'],
+                        ],
+                    },
+                    {
+                        target: '#pingModeSelect',
+                        title: 'Filter by ping',
+                        body: '<b>Lowest Ping</b> picks the snappiest server, <b>Highest Ping</b> the slowest, <b>Any</b> ignores ping altogether.<br><br>Set both filters and they work together: RAMMIT narrows by players first, then picks by ping.',
+                    },
+                    {
+                        title: 'Two things worth knowing',
+                        body: 'Servers that are already <b>full</b> are never chosen, so your accounts do not bounce off.<br><br>If nothing matches, you will see <b>No servers found matching filters</b> \u2014 loosen the numbers and try again.',
+                    },
+                ],
+            },
+            {
+                id: 'configs',
+                name: 'Saving launch configs',
+                desc: 'Reuse a game and its filters in one click.',
+                steps: [
+                    {
+                        target: '#configsPanel',
+                        title: 'Save a setup once',
+                        body: 'Got a game and a set of filters you use all the time? Save the whole thing here under a name instead of retyping it.<br><br>The list shows each config\u2019s <b>name</b>, <b>method</b> and <b>params</b> at a glance.',
+                    },
+                    {
+                        target: '#configsPanel',
+                        title: 'Building one',
+                        body: '<b>+ ADD</b> opens a small window: give it a <b>Name</b>, choose a <b>Method</b> (the same choices as the launch drop-down), then fill in the boxes that appear \u2014 including the player and ping filters.<br><br><b>CONFIRM</b> saves it.',
+                    },
+                    {
+                        target: '#configsPanel',
+                        title: 'Changing one later',
+                        body: 'Click a config to select it, then <b>EDIT</b> to reopen it \u2014 or just <b>double-click</b> the row.<br><br><b>- REMOVE</b> deletes the selected one.',
+                    },
+                    {
+                        target: '#launchOptionSelect',
+                        title: 'Using it',
+                        body: 'Set the launch option to <b>Config</b>, click the config you want in the list, and launch.<br><br>Every selected account uses that saved setup \u2014 game, server filters and all.',
+                    },
+                ],
+            },
+            {
+                id: 'settings',
+                name: 'Settings explained',
+                desc: 'Launcher, channel, instance limit and delay.',
+                steps: [
+                    {
+                        target: '#settingsToggle',
+                        title: 'Hiding the settings',
+                        body: 'This arrow folds the settings panel away when you do not need it, and RAMMIT remembers which way you left it.',
+                        before: expandSettingsForTour,
+                    },
+                    {
+                        target: '#themeSelect',
+                        title: 'Pick a look',
+                        body: '<b>Dark</b> is the default. <b>2016 Roblox</b> repaints RAMMIT in the light blue-and-green style of the old roblox.com \u2014 white panels, Roblox blue highlights and the green Play-button green.<br><br>It applies the moment you pick it, and the config window follows along.',
+                        before: expandSettingsForTour,
+                    },
+                    {
+                        target: '#launcherSelect',
+                        title: 'Which launcher to use',
+                        body: 'Pick whichever one you actually have installed \u2014 <b>Roblox</b>, <b>Bloxstrap</b> or <b>Voidstrap</b>. RAMMIT finds its newest version folder and starts the client from there.<br><br>Seeing <b>Launcher not found</b>? It is set to one you do not have installed.',
+                        before: expandSettingsForTour,
+                    },
+                    {
+                        target: '#multiMethodSelect',
+                        title: 'Multi instance method',
+                        body: 'Roblox normally allows one client at a time. RAMMIT holds that lock open for you so several can run.<br><br>Both options behave the same in this build \u2014 leave it alone unless you are told otherwise.',
+                        before: expandSettingsForTour,
+                    },
+                    {
+                        target: '#channelEntry',
+                        title: 'Roblox channel',
+                        body: 'Which Roblox build your clients launch on. <b>production</b> is the normal one and what almost everybody wants.<br><br>The <b>\u2713</b> saves what you typed; the <b>\u2717</b> puts back whatever Roblox is currently set to.',
+                        before: expandSettingsForTour,
+                    },
+                    {
+                        target: '#maxInstances',
+                        title: 'Set a safety limit',
+                        body: 'RAMMIT stops launching once this many instances are already running, so selecting twenty accounts by accident cannot run away from you.<br><br>Your machine\u2019s RAM is the real limit \u2014 each Roblox client is a full game.',
+                        before: expandSettingsForTour,
+                    },
+                    {
+                        target: '#launchDelay',
+                        title: 'Give them breathing room',
+                        body: 'Roblox does not like several clients starting in the same instant, so RAMMIT waits this long between each one.<br><br><b>3 seconds</b> suits most people. If instances fail to open, raise it a little.',
+                        before: expandSettingsForTour,
+                    },
+                    {
+                        target: '.btn-save',
+                        title: 'Do not forget to save',
+                        body: 'The drop-downs and the channel apply straight away, but <b>Max Instances</b> and <b>Launch Delay</b> only stick once you press <b>SAVE SETTINGS</b>.',
+                        before: expandSettingsForTour,
+                    },
+                ],
+            },
+        ];
+
+        let tourSteps = [];
+        let tourIndex = 0;
+        let tourActive = false;
+        let tourId = null;
+        let tourQueue = [];
+        let toursDone = new Set();
+        let tourCollapseBefore = null;
+        let tourReflow = null;
+
+        // Returns true when it changed the layout, so the spotlight can be
+        // re-measured once the panel has finished sliding open.
+        function expandSettingsForTour() {
+            if (!settingsCollapsed) return false;
+            if (tourCollapseBefore === null) tourCollapseBefore = true;
+            toggleSettings();
+            return true;
+        }
+
+        function tourEl(id) { return document.getElementById(id); }
+
+        // --- menu ---
+        function openTourMenu() {
+            tourActive = false;
+            tourSteps = [];
+            const list = tourEl('tourMenuList');
+            list.innerHTML = '';
+            TOURS.forEach(t => {
+                const b = document.createElement('button');
+                b.className = 'tour-menu-item';
+                b.innerHTML =
+                    '<span class="tm-text"><span class="tm-name">' + t.name + '</span>' +
+                    '<span class="tm-desc">' + t.desc + '</span></span>' +
+                    '<span class="tm-done">' + (toursDone.has(t.id) ? '\u2713' : '') + '</span>';
+                b.onclick = () => startTour(t.id);
+                list.appendChild(b);
+            });
+            tourEl('tourOverlay').hidden = false;
+            tourEl('tourOverlay').classList.add('plain');
+            tourEl('tourSpot').hidden = true;
+            tourEl('tourCard').hidden = true;
+            tourEl('tourMenu').hidden = false;
+            markTutorialSeen();
+        }
+
+        function startTour(id) {
+            const tour = TOURS.find(t => t.id === id);
+            if (!tour) { closeTour(); return; }
+            tourId = id;
+            tourSteps = tour.steps;
+            tourActive = true;
+            tourEl('tourOverlay').hidden = false;
+            tourEl('tourMenu').hidden = true;
+            tourEl('tourCard').hidden = false;
+            markTutorialSeen();
+            showTourStep(0);
+        }
+
+        function runAllTours() {
+            tourQueue = TOURS.map(t => t.id);
+            startTour(tourQueue.shift());
+        }
+
+        function showTourStep(i) {
+            const step = tourSteps[i];
+            if (!step) { finishTour(); return; }
+            tourIndex = i;
+            const layoutChanged = step.before ? step.before() : false;
+
+            const tour = TOURS.find(t => t.id === tourId) || {name: ''};
+            tourEl('tourStep').textContent =
+                `${tour.name.toUpperCase()} \u2014 ${i + 1} OF ${tourSteps.length}`;
+            tourEl('tourTitle').innerHTML = step.title;
+            let html = step.body;
+            if (step.keys) {
+                html += '<div class="tour-keys">' + step.keys.map(k =>
+                    `<div class="tour-key"><kbd>${k[0]}</kbd><span>${k[1]}</span></div>`).join('') + '</div>';
+            }
+            tourEl('tourBody').innerHTML = html;
+            tourEl('tourBack').disabled = (i === 0);
+            tourEl('tourNext').textContent = (i === tourSteps.length - 1)
+                ? (tourQueue.length ? 'NEXT TOPIC' : 'DONE') : 'NEXT';
+
+            positionTour(step);
+            if (tourReflow) { clearTimeout(tourReflow); tourReflow = null; }
+            if (layoutChanged) {
+                // The settings panel slides open over 0.3s — re-measure once it lands,
+                // otherwise the spotlight ends up on a half-open panel.
+                const panel = tourEl('settingsPanel');
+                const settle = () => {
+                    panel.removeEventListener('transitionend', settle);
+                    if (tourReflow) { clearTimeout(tourReflow); tourReflow = null; }
+                    if (tourActive && tourSteps[tourIndex] === step) positionTour(step);
+                };
+                panel.addEventListener('transitionend', settle);
+                tourReflow = setTimeout(settle, 600);
+            }
+        }
+
+        function positionTour(step) {
+            const overlay = tourEl('tourOverlay');
+            const spot = tourEl('tourSpot');
+            const card = tourEl('tourCard');
+            const el = step.target ? document.querySelector(step.target) : null;
+            const rect = el ? el.getBoundingClientRect() : null;
+            const offscreen = rect && (rect.right <= 0 || rect.bottom <= 0 ||
+                rect.left >= window.innerWidth || rect.top >= window.innerHeight);
+
+            if (!rect || rect.width === 0 || rect.height === 0 || offscreen) {
+                // No target, hidden, or off-screen — dim everything and centre the card.
+                overlay.classList.add('plain');
+                spot.hidden = true;
+                card.classList.add('centered');
+                card.style.top = '';
+                card.style.left = '';
+                return;
+            }
+
+            overlay.classList.remove('plain');
+            spot.hidden = false;
+            const pad = 5;
+            spot.style.top = (rect.top - pad) + 'px';
+            spot.style.left = (rect.left - pad) + 'px';
+            spot.style.width = (rect.width + pad * 2) + 'px';
+            spot.style.height = (rect.height + pad * 2) + 'px';
+
+            card.classList.remove('centered');
+            card.style.transform = '';
+            const gap = 14;
+            const cw = card.offsetWidth, ch = card.offsetHeight;
+            let top = rect.bottom + gap;
+            if (top + ch > window.innerHeight - 10) top = rect.top - ch - gap;
+            if (top < 10) top = Math.max(10, Math.min(window.innerHeight - ch - 10, rect.top));
+            let left = rect.left + rect.width / 2 - cw / 2;
+            left = Math.max(10, Math.min(left, window.innerWidth - cw - 10));
+            card.style.top = top + 'px';
+            card.style.left = left + 'px';
+        }
+
+        // Finished a topic — tick it off, then move to the next or back to the menu.
+        function finishTour() {
+            if (tourId) toursDone.add(tourId);
+            saveToursDone();
+            restoreAfterTour();
+            if (tourQueue.length) { startTour(tourQueue.shift()); return; }
+            openTourMenu();
+        }
+
+        function closeTour() {
+            tourQueue = [];
+            restoreAfterTour();
+            tourActive = false;
+            tourEl('tourOverlay').hidden = true;
+            markTutorialSeen();
+        }
+
+        function restoreAfterTour() {
+            if (tourReflow) { clearTimeout(tourReflow); tourReflow = null; }
+            // Put the settings panel back the way the user had it.
+            if (tourCollapseBefore === true && !settingsCollapsed) toggleSettings();
+            tourCollapseBefore = null;
+        }
+
+        function markTutorialSeen() {
+            try { pywebview.api.update_settings('tutorial_seen', true); } catch (e) {}
+        }
+
+        function saveToursDone() {
+            try { pywebview.api.update_settings('tutorials_done', [...toursDone]); } catch (e) {}
+        }
+
+        tourEl('tourNext').onclick = () => showTourStep(tourIndex + 1);
+        tourEl('tourBack').onclick = () => showTourStep(tourIndex - 1);
+        tourEl('tourSkip').onclick = () => { tourQueue = []; restoreAfterTour(); openTourMenu(); };
+        tourEl('tourClose').onclick = closeTour;
+        tourEl('tourAll').onclick = runAllTours;
+        document.addEventListener('keydown', (e) => {
+            if (tourEl('tourOverlay').hidden) return;
+            if (e.key === 'Escape') closeTour();
+            else if (!tourActive) return;
+            else if (e.key === 'ArrowRight' || e.key === 'Enter') showTourStep(tourIndex + 1);
+            else if (e.key === 'ArrowLeft') showTourStep(tourIndex - 1);
+        });
+        window.addEventListener('resize', () => {
+            if (tourActive && tourSteps[tourIndex]) positionTour(tourSteps[tourIndex]);
+        });
+
+        // --- START ---
+        initCustomSelects();
+        init();
+    </script>
+</body>
+</html>

@@ -72,5 +72,6 @@ python Tools\MakeZip.py $Zip (Join-Path $Dist "RAMMIT") $SourceOut.FullName
 if ($LASTEXITCODE) { throw "zip failed" }
 $Hash = (Get-FileHash $Zip -Algorithm SHA256).Hash
 # Same format as sha256sum: the installer checks the download against this before installing it.
-Set-Content -Encoding ascii "$Zip.sha256" "$($Hash.ToLower())  $ZipName.zip"
+# LF line ending (not Set-Content's CRLF), or `sha256sum -c` on Linux/macOS reads the file name with a stray \r.
+[IO.File]::WriteAllText("$Zip.sha256", "$($Hash.ToLower())  $ZipName.zip`n", [Text.Encoding]::ASCII)
 Write-Host "`nBuilt $Zip ($([math]::Round((Get-Item $Zip).Length / 1MB, 1)) MB)  SHA-256 $Hash" -ForegroundColor Green

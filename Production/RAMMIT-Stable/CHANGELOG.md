@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1 (2026-11)
+
+- **Installer:** uninstalling now removes the Desktop and Start Menu shortcuts even when Windows writes the folder with its short name (e.g. `C:\Users\JOHNSM~1\...` instead of `C:\Users\John Smith\...`). Before, the shortcuts were left behind in that case.
+- The project is open source under the GPL-3.0, with CI, a contributing guide and issue templates on GitHub.
+
 ## 1.1.0 (2026-11)
 
 - **Installer:** `RAMMIT-Setup.exe`, one file you download and run. It can:

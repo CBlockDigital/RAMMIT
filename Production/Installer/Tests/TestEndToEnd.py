@@ -4,7 +4,7 @@ folders, in test mode. One long story, in order:
     install 1.0.0 (the REAL release zip) -> update to 1.1.0 -> downgrade back to 1.0.0 -> undo (offline)
     -> repair (a deleted file comes back) -> uninstall keeping Config -> reinstall finds Config -> uninstall all
 
-Run from InstallerDev\\:  python -m unittest Tests.TestEndToEnd   (part of the normal discover run too)
+Run from Production\\Installer\\:  python -m unittest Tests.TestEndToEnd   (part of the normal discover run too)
 """
 import os
 import unittest

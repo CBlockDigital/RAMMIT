@@ -2,5 +2,5 @@
     "Name": "CBlock",
     "Author": "RAMMIT",
     "Description": "The CBlock / Industrialist look.",
-    "SupportedVersions": ["1.0"]
+    "SupportedVersions": ["1.0", "1.1"]
 }

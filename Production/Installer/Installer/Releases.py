@@ -26,8 +26,8 @@ import urllib.request
 import Locations
 from Log import Logger
 
-# TODO(owner): the public repo on the C-Block GitHub account; the exact owner/name is not decided yet.
-ReleaseRepo = "OWNER/RAMMIT"
+# The repo whose GitHub Releases hold RAMMIT. It must be public: the installer never carries a token.
+ReleaseRepo = "CBlockDigital/RAMMIT"
 ApiUrl = "https://api.github.com/repos/{Repo}/releases?per_page=100"
 # Release downloads redirect from github.com to these hosts; nothing else is fetched.
 AllowedDownloadHosts = {"github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com"}

@@ -18,7 +18,7 @@ from PyInstaller.utils.win32.versioninfo import (
 
 Here = os.path.abspath(SPECPATH)
 InstallerDir = os.path.join(Here, 'Installer')
-VersionFile = os.environ.get('RAMMIT_VERSION_FILE') or os.path.join(Here, '..', 'Production', 'RAMMIT-Stable', 'App', 'Version.py')
+VersionFile = os.environ.get('RAMMIT_VERSION_FILE') or os.path.join(Here, '..', 'RAMMIT-Stable', 'App', 'Version.py')
 with open(VersionFile, encoding='utf-8') as File:
     AppVersion = re.search(r'^AppVersion\s*=\s*"([^"]+)"', File.read(), re.M).group(1)
 

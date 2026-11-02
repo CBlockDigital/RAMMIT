@@ -2,7 +2,7 @@
 # Not tested on GitHub yet. Before using it:
 #   * replace every <PIN: ...> with the full commit SHA of that action release (never a tag)
 #   * the paths assume the repo layout App/, Src/, Tests/, Tools/, Installer/, Installer.spec at the root
-#     (today: Production/RAMMIT-Stable + InstallerDev)
+#     (today: Production/RAMMIT-Stable + Production/Installer)
 #   * requirements.txt must pin exact versions with hashes (pip --require-hashes)
 #
 # Tag push v1.2.3  -> checks, build, smoke test, DRAFT release with the three assets.

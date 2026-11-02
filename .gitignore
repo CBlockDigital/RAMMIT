@@ -6,7 +6,7 @@
 !/Production/
 /Production/*
 !/Production/RAMMIT-Stable/
-!/InstallerDev/
+!/Production/Installer/
 
 # Build output and local data, wherever they appear
 dist/
@@ -17,4 +17,4 @@ __pycache__/
 Config/
 ThemeRenders/
 App/BuildInfo.py
-/InstallerDev/Screenshots/
+/Production/Installer/Screenshots/

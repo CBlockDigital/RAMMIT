@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0 (2026-11)
+
+- **Installer:** `RAMMIT-Setup.exe`, one file you download and run. It can:
+  - install, update, repair and uninstall RAMMIT from this repo's releases;
+  - switch to any version and undo the last change;
+  - move accounts over from an old test install.
+  - It lives in `Production/Installer`.
+- The built-in themes list `"1.1"` in `SupportedVersions`.
+- `Build.ps1` writes the `.sha256` file with an LF line ending, so `sha256sum -c` works on Linux and macOS too.
+
 ## 1.0.0 (2026-11)
 
 First release on the new main line. It was tested as "QA Beta" (2026.11-QABeta) before release.

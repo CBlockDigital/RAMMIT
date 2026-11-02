@@ -1,4 +1,4 @@
-"""Backend unit tests for the installer. Run from InstallerDev\\:
+"""Backend unit tests for the installer. Run from Production\\Installer\\:
 
     python -m unittest discover -s Tests -p "Test*.py"
 

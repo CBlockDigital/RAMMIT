@@ -1,6 +1,6 @@
-# RAMMIT-Setup (installer prototype)
+# RAMMIT-Setup (installer)
 
-The installer for RAMMIT, built outside `Production/` until it is ready. The design is `../Docs/InstallerPlan.md`; the look is Test1's installer (same screens, CSS, wording and slide transitions), with new screens built from the same components.
+The installer for RAMMIT, released from 1.1.0. It sits next to the app (`../RAMMIT-Stable`) and takes its version from the app's `App/Version.py`. The look is Test1's installer (same screens, CSS, wording and slide transitions), with new screens built from the same components.
 
 `RAMMIT-Setup.exe` is one self-contained file: the page, CSS, JS, icon font and icons are embedded and served from memory, so it works on a PC that has never had RAMMIT.
 
@@ -10,7 +10,7 @@ The installer for RAMMIT, built outside `Production/` until it is ready. The des
 Installer/
   Installer.py        entry: single instance, in-memory UI server, window, native spinner, /Uninstall
   InstallerApi.py     the JS bridge (validated inputs, {"Error": ...} results, all state _private)
-  Releases.py         GitHub Releases: list, download, SHA-256 check (no token). ReleaseRepo = "OWNER/RAMMIT" (TODO)
+  Releases.py         GitHub Releases: list, download, SHA-256 check (no token). ReleaseRepo = "CBlockDigital/RAMMIT" (must be public)
   Setup.py            install/update/downgrade/repair/undo/uninstall: staging, manifest, swap + rollback,
                       Config backups, kept accounts, registry, Apps entry, shortcuts, Undo cache, "RAMMIT is running"
   Legacy.py           old Test1 installs: detect, move accounts, remove, ignore

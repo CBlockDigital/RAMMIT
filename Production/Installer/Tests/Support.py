@@ -22,11 +22,12 @@ import zipfile
 TestsDir = os.path.dirname(os.path.abspath(__file__))
 InstallerDir = os.path.join(os.path.dirname(TestsDir), "Installer")
 # A real release zip for the end-to-end test (skipped when there is none): RAMMIT_TEST_RELEASE_ZIP, or the
-# Releases folder next to InstallerDev (local layout; it isn't in the repo), or the app's own build output.
+# Releases folder next to Production (local layout; it isn't in the repo), or the app's own build output.
+ProductionDir = os.path.dirname(os.path.dirname(TestsDir))
 RealZip = os.environ.get("RAMMIT_TEST_RELEASE_ZIP") or next(
     (Candidate for Candidate in (
-        os.path.join(os.path.dirname(os.path.dirname(TestsDir)), "Releases", "RAMMIT-1.0.0.zip"),
-        os.path.join(os.path.dirname(os.path.dirname(TestsDir)), "Production", "RAMMIT-Stable", "dist", "RAMMIT-1.0.0.zip"),
+        os.path.join(os.path.dirname(ProductionDir), "Releases", "RAMMIT-1.0.0.zip"),
+        os.path.join(ProductionDir, "RAMMIT-Stable", "dist", "RAMMIT-1.0.0.zip"),
     ) if os.path.isfile(Candidate)), "")
 if InstallerDir not in sys.path:
     sys.path.insert(0, InstallerDir)

@@ -7,7 +7,7 @@ afterwards; it is never committed.
 """
 
 AppName = "RAMMIT"
-AppVersion = "1.0.0"
+AppVersion = "1.1.0"
 
 try:
     from App.BuildInfo import AppChannel, AppCommit

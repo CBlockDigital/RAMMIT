@@ -210,7 +210,8 @@ def RemoveShortcuts(InstallPath):
     for LinkPath in ShortcutPaths():
         if os.path.isfile(LinkPath):
             Target, _Args = ReadShortcut(LinkPath)
-            if Target and os.path.normcase(os.path.abspath(Target)) == os.path.normcase(os.path.abspath(Exe)):
+            # SamePath resolves 8.3 short names (C:\Users\RUNNER~1) the .lnk may store differently from ours.
+            if Target and Paths.SamePath(Target, Exe):
                 try:
                     os.remove(LinkPath)
                 except OSError as Error:

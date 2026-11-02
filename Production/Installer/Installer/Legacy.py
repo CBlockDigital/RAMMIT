@@ -20,6 +20,7 @@ import os
 import re
 import shutil
 
+import Paths
 import Setup
 from Log import Logger
 
@@ -160,7 +161,7 @@ def ClearRegistry(Folder):
     for Name in ("Version", "ConfigPath", "CleanupPath"):
         Setup.RegDeleteValue(Name)
     Current = Setup.RegRead("InstallPath")
-    if Current and Folder and os.path.normcase(os.path.abspath(Current)) == os.path.normcase(os.path.abspath(Folder)):
+    if Current and Folder and Paths.SamePath(Current, Folder):
         Setup.RegDeleteValue("InstallPath")
     Setup.TidyRegistry()
 

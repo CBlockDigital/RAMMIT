@@ -18,6 +18,7 @@ import Support
 import InstallerApi  # noqa: E402  (Support put Installer\ on sys.path)
 import Legacy  # noqa: E402
 import Locations  # noqa: E402
+import Paths  # noqa: E402
 import Releases  # noqa: E402
 import Setup  # noqa: E402
 import UiServer  # noqa: E402
@@ -218,7 +219,7 @@ class TestInstallAndSwap(InstallerTestCase):
         self.assertEqual(Entry["InstallLocation"], self.Target)
         for LinkPath in Setup.ShortcutPaths():
             Target, Arguments = Setup.ReadShortcut(LinkPath)
-            self.assertEqual(os.path.normcase(Target), os.path.normcase(os.path.join(self.Target, "RAMMIT.exe")))
+            self.assertTrue(Paths.SamePath(Target, os.path.join(self.Target, "RAMMIT.exe")), Target)
             self.assertEqual(Arguments, "")
         self.assertFalse(os.path.exists(self.Target + Setup.StagingSuffix))
         self.assertFalse(os.path.exists(os.path.join(self.Target, Setup.StagingMarker)))
@@ -337,6 +338,21 @@ class TestUninstall(InstallerTestCase):
         self.assertIsNone(Support.RegValues(self.L.UninstallKeyPath))
         self.assertFalse(any(os.path.exists(P) for P in Setup.ShortcutPaths()))
         self.assertFalse(os.path.exists(self.L.CacheDir))
+
+    def test_shortcuts_removed_when_paths_differ_only_by_short_names(self):
+        # GitHub's runner has TEMP = C:\Users\RUNNER~1\...; the .lnk stores the long form. Same folder, so remove.
+        import ctypes
+        Long = os.path.join(os.path.dirname(self.Target), "RAMMIT Long Folder Name")
+        os.makedirs(Long, exist_ok=True)
+        Buffer = ctypes.create_unicode_buffer(1024)
+        ctypes.windll.kernel32.GetShortPathNameW(Long, Buffer, 1024)
+        Short = Buffer.value
+        if not Short or os.path.normcase(Short) == os.path.normcase(Long):
+            self.skipTest("this drive doesn't make 8.3 short names")
+        Setup.CreateShortcuts(Long)
+        self.assertTrue(all(os.path.isfile(P) for P in Setup.ShortcutPaths()))
+        Setup.RemoveShortcuts(Short)
+        self.assertFalse(any(os.path.exists(P) for P in Setup.ShortcutPaths()))
 
     def test_uninstall_with_config_removes_config_and_backups_only(self):
         self.Install("1.0.0")

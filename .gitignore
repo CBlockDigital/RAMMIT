@@ -7,6 +7,9 @@
 /Production/*
 !/Production/RAMMIT-Stable/
 !/Production/Installer/
+!/Web/
+/Web/*
+!/Web/Website/
 
 # Build output and local data, wherever they appear
 dist/

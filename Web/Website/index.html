@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RAMMIT — One Click. Every Account.</title>
+    <meta name="description" content="RAMMIT is a free Windows app that saves your Roblox accounts and opens a separate Roblox window for each one with a single click.">
+    <meta name="theme-color" content="#0a0a0a">
+    <link rel="icon" href="Assets/RAMMIT.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&display=swap">
+    <link rel="stylesheet" href="CSS/Site.css">
+    <script>document.documentElement.classList.add('Js');</script>
+</head>
+<body>
+
+<!-- ===== NAV ===== -->
+<header class="Nav" id="Nav">
+    <div class="NavInner">
+        <a class="Brand" href="#Top" aria-label="RAMMIT home">
+            <img src="Assets/RAMMIT.png" alt="" width="28" height="28">
+            <span>RAMMIT</span>
+        </a>
+        <nav class="NavLinks" aria-label="Sections">
+            <a href="#HowItWorks">How it works</a>
+            <a href="#Features">Features</a>
+            <a href="#Promo">Promo</a>
+            <a href="#Faq">FAQ</a>
+            <a href="https://github.com/CBlockDigital/RAMMIT" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+        <a class="StatusChip" href="https://github.com/CBlockDigital/RAMMIT/releases/latest/download/RAMMIT-Setup.exe"><span class="StatusDot"></span>Download v1.1.0</a>
+    </div>
+</header>
+
+<main id="Top">
+
+    <!-- ===== HERO ===== -->
+    <section class="Hero">
+        <div class="HeroCopy">
+            <p class="Kicker">Roblox Account Manager &amp; Multi-Instance Tool</p>
+            <h1 class="Display">one click.<br><span class="Accent">every account.</span></h1>
+            <span class="RuleStub"></span>
+            <p class="Lead">Save every Roblox account once, tick the ones you want, and press one button. RAMMIT opens a separate Roblox window for each account, one after another.</p>
+            <div class="HeroActions">
+                <a class="Btn BtnAccent" href="https://github.com/CBlockDigital/RAMMIT/releases/latest/download/RAMMIT-Setup.exe"><i class="Icon IconDownload"></i>Download for Windows</a>
+                <a class="Btn BtnNeutral" href="#Promo"><i class="Icon IconPlay"></i>Watch the promo</a>
+                <a class="Btn BtnNeutral" href="https://github.com/CBlockDigital/RAMMIT" target="_blank" rel="noopener"><svg class="IconGitHub" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>View on GitHub</a>
+            </div>
+            <ul class="MetaRow">
+                <li>Free</li>
+                <li>Windows 10 / 11</li>
+                <li>v1.1.0</li>
+            </ul>
+        </div>
+
+        <figure class="HeroShot">
+            <div class="AppWindow" id="LaunchPlayer" aria-label="RAMMIT launching three accounts">
+                <img class="LaunchFrame IsActive" src="Assets/Shots/main-idle.png" alt="The RAMMIT main window with three demo accounts ticked" width="1913" height="1523">
+                <span class="PressRing" id="PressRing"></span>
+            </div>
+            <figcaption class="ShotCaption">
+                <span class="CaptionLabel">Live capture</span>
+                <span class="CaptionStatus" id="LaunchStatus">RUNNING: 0 / 5</span>
+            </figcaption>
+        </figure>
+    </section>
+
+    <!-- ===== PAIN ===== -->
+    <section class="Band">
+        <div class="Chrome"><span>The old way</span><span>No. 01</span></div>
+        <div class="Fadelist Reveal">
+            <div class="FadeStack" aria-hidden="true">
+                <span>log in.</span>
+                <span>log out.</span>
+                <span>next alt.</span>
+            </div>
+            <div class="FadeTitle">
+                <h2>one at <span class="Accent">a time.</span></h2>
+                <p>Switching alts by hand is the slowest part of playing on more than one account. RAMMIT does the whole list in one press.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== HOW IT WORKS ===== -->
+    <section class="Band" id="HowItWorks">
+        <div class="Chrome"><span>How it works</span><span>No. 02</span></div>
+        <p class="Kicker">Three steps</p>
+        <h2 class="H2">tick your alts.<br>hit launch.</h2>
+        <div class="StepGrid">
+            <article class="StepCard Reveal">
+                <span class="StepNum">01</span>
+                <h3>save</h3>
+                <p>Add each account once. They show up as <em>Display Name (@username)</em> in one list.</p>
+                <span class="StepTag">Saved accounts</span>
+            </article>
+            <article class="StepCard Reveal">
+                <span class="StepNum">02</span>
+                <h3>tick</h3>
+                <p>Click an account to pick it, Shift-click to pick a range, or hit <em>Select All</em>.</p>
+                <span class="StepTag">Selection</span>
+            </article>
+            <article class="StepCard StepGo Reveal">
+                <span class="StepNum">03</span>
+                <h3>launch</h3>
+                <p>One button opens a Roblox window per account. <em>RUNNING</em> counts up as they open, and you can cancel mid-launch.</p>
+                <span class="StepTag">Launch N selected</span>
+            </article>
+        </div>
+    </section>
+
+    <!-- ===== FEATURES ===== -->
+    <section class="Band" id="Features">
+        <div class="Chrome"><span>Where to join</span><span>No. 03</span></div>
+        <div class="Split Reveal">
+            <div class="SplitCopy">
+                <p class="Kicker">Launch option</p>
+                <h2 class="H2">drop every alt <span class="Accent">in the same place.</span></h2>
+                <p class="Body">Pick a destination from the Launch Option menu and every ticked account heads there.</p>
+                <ul class="TagGrid">
+                    <li>Home</li>
+                    <li>Saved config</li>
+                    <li>Game URL</li>
+                    <li>Place ID</li>
+                    <li>Place ID + Job ID</li>
+                    <li>VIP link</li>
+                </ul>
+            </div>
+            <div class="ShotFrame">
+                <img src="Assets/Shots/launch-option-crop.png" alt="Launch Option menu listing Home, Config, Game URL, Place ID, Place ID + Job ID and VIP Link" width="830" height="540" loading="lazy">
+            </div>
+        </div>
+    </section>
+
+    <section class="Band">
+        <div class="Chrome"><span>Smart server pick</span><span>No. 04</span></div>
+        <div class="Split SplitFlip Reveal">
+            <div class="SplitCopy">
+                <p class="Kicker">Game URL &amp; Place ID</p>
+                <h2 class="H2">pick the server, <span class="Accent">not just the game.</span></h2>
+                <ul class="SlashList">
+                    <li>Smallest server, or the biggest one that isn't full</li>
+                    <li>Min players, max players, or a player range</li>
+                    <li>Lowest or highest ping</li>
+                </ul>
+            </div>
+            <div class="ShotStack">
+                <div class="ShotFrame">
+                    <img src="Assets/Shots/player-mode-crop.png" alt="Players menu: Any, Smallest Server, Biggest (Non-Full), Min Players, Max Players, Player Range" width="830" height="820" loading="lazy">
+                </div>
+                <div class="ShotFrame ShotFloat">
+                    <img src="Assets/Shots/ping-mode-crop.png" alt="Ping menu: Any, Lowest Ping, Highest Ping" width="830" height="340" loading="lazy">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="Band">
+        <div class="Chrome"><span>Launch configs</span><span>No. 05</span></div>
+        <div class="Split Reveal">
+            <div class="SplitCopy">
+                <p class="Kicker">Save it once</p>
+                <h2 class="H2">name it. <span class="Accent">reuse it.</span></h2>
+                <p class="Body">Save a destination under a name with the small config wizard, then launch to it again with one click.</p>
+                <div class="ConfigTable" role="table" aria-label="Example launch configs">
+                    <div class="ConfigHead" role="row"><span role="columnheader">Name</span><span role="columnheader">Method</span></div>
+                    <div class="ConfigRow" role="row"><span role="cell">Grind Server</span><span role="cell">Place ID</span></div>
+                    <div class="ConfigRow" role="row"><span role="cell">Squad VIP</span><span role="cell">VIP Link</span></div>
+                    <div class="ConfigRow" role="row"><span role="cell">Trade Hub</span><span role="cell">Game URL</span></div>
+                </div>
+            </div>
+            <div class="ShotFrame ShotNarrow">
+                <img src="Assets/Shots/wizard-crop.png" alt="Add Launch Config wizard with Name and Method fields" width="1000" height="580" loading="lazy">
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SPEC GRID ===== -->
+    <section class="Band">
+        <div class="Chrome"><span>Tuning</span><span>No. 06</span></div>
+        <p class="Kicker">Make it yours</p>
+        <h2 class="H2">every knob, <span class="Accent">one panel.</span></h2>
+        <div class="SpecGrid">
+            <article class="SpecCard Reveal">
+                <span class="SpecValue">3</span>
+                <h3>Launchers</h3>
+                <p>Roblox, Bloxstrap or Fishstrap.</p>
+            </article>
+            <article class="SpecCard Reveal">
+                <span class="SpecValue">Max</span>
+                <h3>Instances</h3>
+                <p>Cap how many windows run at once.</p>
+            </article>
+            <article class="SpecCard Reveal">
+                <span class="SpecValue">Delay</span>
+                <h3>Launch spacing</h3>
+                <p>Set the seconds between each window.</p>
+            </article>
+            <article class="SpecCard Reveal">
+                <span class="SpecValue">Ch.</span>
+                <h3>Roblox channel</h3>
+                <p>Choose which Roblox channel to launch on.</p>
+            </article>
+            <article class="SpecCard Reveal">
+                <span class="SpecValue">3+</span>
+                <h3>Themes</h3>
+                <p>Dark, 2016 Roblox or CBlock, or make your own.</p>
+            </article>
+            <article class="SpecCard Reveal">
+                <span class="SpecValue">?</span>
+                <h3>Guided tour</h3>
+                <p>A short tutorial runs the first time you open it.</p>
+            </article>
+        </div>
+    </section>
+
+    <!-- ===== PRIVACY (accent register) ===== -->
+    <section class="BlueBand">
+        <div class="BlueInner Reveal">
+            <p class="KickerInk">Private by design</p>
+            <h2 class="DisplayInk">your accounts stay on your pc.</h2>
+            <div class="InkCols">
+                <p>Accounts are saved only on your computer, inside the RAMMIT folder.</p>
+                <p>Run <strong>RAMMIT-Setup.exe</strong>, or unzip the release and run <strong>RAMMIT.exe</strong>. You don't need Python.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== STRAIGHT UP ===== -->
+    <section class="Band">
+        <div class="Chrome"><span>Straight up</span><span>No. 07</span></div>
+        <div class="Compare Reveal">
+            <div class="ComparePanel">
+                <p class="Kicker">What it does</p>
+                <ul class="SlashList">
+                    <li>Opens several official Roblox clients, one per account</li>
+                    <li>Sends them where you choose, with live progress</li>
+                    <li>Runs on your PC, free</li>
+                </ul>
+            </div>
+            <div class="ComparePanel CompareMuted">
+                <p class="Kicker KickerMuted">What it doesn't</p>
+                <ul class="SlashList SlashMuted">
+                    <li>No auto-farming, scripts or exploits</li>
+                    <li>It doesn't play the game for you</li>
+                    <li>Not affiliated with Roblox Corporation</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== PROMO ===== -->
+    <section class="Band" id="Promo">
+        <div class="Chrome"><span>The 45-second version</span><span>No. 08</span></div>
+        <p class="Kicker">Promo</p>
+        <h2 class="H2">see it move.</h2>
+        <div class="VideoFrame Reveal">
+            <video controls preload="none" playsinline poster="Assets/Video/PromoPoster.jpg">
+                <source src="Assets/Video/RammitPromo.mp4" type="video/mp4">
+            </video>
+        </div>
+    </section>
+
+    <!-- ===== FAQ ===== -->
+    <section class="Band" id="Faq">
+        <div class="Chrome"><span>Questions</span><span>No. 09</span></div>
+        <p class="Kicker">FAQ</p>
+        <h2 class="H2">quick answers.</h2>
+        <div class="FaqList">
+            <details>
+                <summary>Is RAMMIT free?</summary>
+                <p>Yes. RAMMIT is a free Windows app.</p>
+            </details>
+            <details>
+                <summary>What do I need to run it?</summary>
+                <p>Windows 10 or 11. <a href="https://github.com/CBlockDigital/RAMMIT/releases/latest/download/RAMMIT-Setup.exe">Download RAMMIT-Setup.exe</a> and run it; it installs RAMMIT and can update or remove it later. Prefer no installer? Grab the zip from the <a href="https://github.com/CBlockDigital/RAMMIT/releases/latest" target="_blank" rel="noopener">releases page</a>, unzip it and run <strong>RAMMIT.exe</strong>. Python isn't needed either way.</p>
+            </details>
+            <details>
+                <summary>Where are my accounts stored?</summary>
+                <p>Only on your own PC, inside the RAMMIT folder.</p>
+            </details>
+            <details>
+                <summary>Does it work with Bloxstrap or Fishstrap?</summary>
+                <p>Yes. Pick Roblox, Bloxstrap or Fishstrap as your launcher in Settings.</p>
+            </details>
+            <details>
+                <summary>Can I see the code?</summary>
+                <p>Yes. RAMMIT is on <a href="https://github.com/CBlockDigital/RAMMIT" target="_blank" rel="noopener">GitHub</a>, along with every release and its SHA-256 checksum.</p>
+            </details>
+            <details>
+                <summary>Can I get everyone into the same server?</summary>
+                <p>Yes. Launch with Place ID + Job ID for an exact server, or with a VIP / private-server link.</p>
+            </details>
+            <details>
+                <summary>Does it farm, auto-play or run scripts?</summary>
+                <p>No. RAMMIT only opens multiple official Roblox clients. What you do in them is up to you.</p>
+            </details>
+            <details>
+                <summary>Is RAMMIT made by Roblox?</summary>
+                <p>No. RAMMIT isn't affiliated with Roblox Corporation.</p>
+            </details>
+        </div>
+    </section>
+
+    <!-- ===== END CARD ===== -->
+    <section class="EndCard">
+        <div class="EndLockup Reveal">
+            <img src="Assets/RAMMIT.png" alt="" width="72" height="72">
+            <span>RAMMIT</span>
+        </div>
+        <p class="EndTagline Reveal">one click. <span class="Accent">every account.</span></p>
+        <div class="EndActions Reveal">
+            <a class="Btn BtnAccent" href="https://github.com/CBlockDigital/RAMMIT/releases/latest/download/RAMMIT-Setup.exe"><i class="Icon IconDownload"></i>Download RAMMIT-Setup.exe</a>
+            <a class="Btn BtnNeutral" href="https://github.com/CBlockDigital/RAMMIT" target="_blank" rel="noopener">View on GitHub</a>
+        </div>
+        <p class="EndNote Reveal">v1.1.0 · Windows 10 / 11 · <a href="https://github.com/CBlockDigital/RAMMIT/releases/latest" target="_blank" rel="noopener">zip &amp; checksums</a></p>
+    </section>
+
+</main>
+
+<footer class="Footer">
+    <span>Free for Windows 10/11 · <a href="https://github.com/CBlockDigital/RAMMIT" target="_blank" rel="noopener">GitHub</a> · Not affiliated with Roblox Corporation.</span>
+    <span class="FooterMono">RAMMIT</span>
+</footer>
+
+<script src="JS/Site.js"></script>
+</body>
+</html>

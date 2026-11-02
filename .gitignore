@@ -3,6 +3,9 @@
 /*
 !/.gitignore
 !/README.md
+!/LICENSE
+!/CONTRIBUTING.md
+!/.github/
 !/Production/
 /Production/*
 !/Production/RAMMIT-Stable/

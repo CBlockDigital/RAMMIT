@@ -1,0 +1,54 @@
+name: Bug report
+description: Something in RAMMIT or the installer doesn't work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! **Never paste your `Config` folder, `Accounts.json`, cookies or `.ROBLOSECURITY` values**: they are your Roblox logins.
+  - type: input
+    id: Version
+    attributes:
+      label: RAMMIT version
+      description: Shown at the bottom of the Settings panel.
+      placeholder: "RAMMIT v1.1.0 · Stable"
+    validations:
+      required: true
+  - type: dropdown
+    id: Part
+    attributes:
+      label: Which part?
+      options:
+        - The app (RAMMIT.exe)
+        - The installer (RAMMIT-Setup.exe)
+        - The website
+    validations:
+      required: true
+  - type: textarea
+    id: Steps
+    attributes:
+      label: What did you do?
+      description: Steps to make it happen again.
+      placeholder: |
+        1. Ticked 3 accounts
+        2. Picked Launch Option "Place ID"
+        3. Pressed LAUNCH 3 SELECTED
+    validations:
+      required: true
+  - type: textarea
+    id: Expected
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: input
+    id: Setup
+    attributes:
+      label: Windows version and launcher
+      placeholder: "Windows 11 23H2, Bloxstrap"
+  - type: textarea
+    id: Log
+    attributes:
+      label: Log
+      description: The end of `Config\RAMMIT.log` (it never contains your cookies). Screenshots help too.
+      render: text

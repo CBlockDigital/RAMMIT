@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and ideas
+    url: https://github.com/CBlockDigital/RAMMIT/discussions
+    about: Ask how something works or share an idea before it becomes a feature request.
+  - name: Report a security problem
+    url: https://github.com/CBlockDigital/RAMMIT/security/advisories/new
+    about: Please report security problems privately, not as a public issue.
+  - name: Website and downloads
+    url: https://rammit-pi.vercel.app
+    about: Screenshots, the promo video and the latest download.

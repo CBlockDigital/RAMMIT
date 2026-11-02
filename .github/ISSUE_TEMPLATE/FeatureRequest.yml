@@ -1,0 +1,22 @@
+name: Feature request
+description: An idea that would make RAMMIT better.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: Problem
+    attributes:
+      label: What are you trying to do?
+      description: The problem or the situation, not the solution yet.
+    validations:
+      required: true
+  - type: textarea
+    id: Idea
+    attributes:
+      label: What would help?
+      description: How you picture it working.
+    validations:
+      required: true
+  - type: textarea
+    id: Alternatives
+    attributes:
+      label: Anything you tried instead?

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../RAMMIT.png">
+    <link rel="stylesheet" href="../CSS/Style.css">
+    <link rel="stylesheet" href="../CSS/Phosphor-Bold.css">
+    <title>RAMMIT</title>
+    <script type="module" src="../JS/Main.js"></script>
+</head>
+<body>
+    <div class="Container">
+        <!-- ROW 1: ACCOUNTS + LAUNCHER CONTROLS -->
+        <div class="LeftPanel">
+            <div class="LeftSection">
+                <div class="SectionHeaderRow">
+                    <div class="SectionHeader">SAVED ACCOUNTS<span class="SelectionCount" id="SelectionCount"></span></div>
+                    <div class="SectionTab"></div>
+                </div>
+                <div class="ListWrapper">
+                    <ul class="ItemList" id="AccountList"></ul>
+                </div>
+            </div>
+            <div class="ListButtons" id="AccountButtons">
+                <button class="BtnAdd" id="AddAccountBtn" title="Sign in to a Roblox account and save it">+ ADD</button>
+                <button class="BtnRemove" id="RemoveAccountBtn" title="Delete every ticked account">- REMOVE</button>
+                <button class="BtnSelect" id="SelectAllBtn" title="Tick or untick every account">SELECT ALL</button>
+            </div>
+        </div>
+        <div class="RightPanel">
+            <div class="Card LauncherCard">
+                <div class="CardHeaderRow">
+                    <div class="SectionHeader">LAUNCHER CONTROLS</div>
+                    <button class="BtnHelp" id="HelpBtn" title="Tutorials">?</button>
+                </div>
+                <button class="BtnLaunch" id="LaunchBtn" title="Launch every ticked account, one after another">LAUNCH SELECTED</button>
+
+                <label class="LaunchOptionLabel">Launch Option</label>
+                <div class="LaunchOptionRow">
+                    <div class="CustomSelect" id="LaunchOptionSelect" data-value="Home">
+                        <div class="CustomSelectTrigger">
+                            <span class="CustomSelectText">Home</span>
+                            <span class="CustomSelectArrow">&#9660;</span>
+                        </div>
+                        <div class="CustomSelectOptions">
+                            <div class="CustomSelectOption" data-value="Home">Home</div>
+                            <div class="CustomSelectOption" data-value="Config">Config</div>
+                            <div class="CustomSelectOption" data-value="Game URL">Game URL</div>
+                            <div class="CustomSelectOption" data-value="Place ID">Place ID</div>
+                            <div class="CustomSelectOption" data-value="Place ID + Job ID">Place ID + Job ID</div>
+                            <div class="CustomSelectOption" data-value="VIP Link">VIP Link</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="LaunchFields"></div>
+
+                <div class="StatusFooter">
+                    <div class="CounterLabel" id="CounterLabel">RUNNING: 0 / 0</div>
+                    <div class="LaunchStatus" id="LaunchStatus"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ROW 2: CONFIGS + SETTINGS -->
+        <div class="Row2Wrapper" id="Row2Wrapper">
+            <div class="LeftPanel ConfigsPanel" id="ConfigsPanel">
+                <div class="LeftSection">
+                    <div class="SectionHeaderRow">
+                        <div class="SectionHeader">LAUNCH CONFIGS</div>
+                        <div class="SectionTab"></div>
+                    </div>
+                    <div class="ListWrapper">
+                        <div class="ConfigListHeader">
+                            <span class="ColName">Name</span>
+                            <span class="ColMethod">Method</span>
+                            <span class="ColParams">Params</span>
+                        </div>
+                        <ul class="ItemList" id="ConfigList"></ul>
+                    </div>
+                </div>
+                <div class="ListButtons">
+                    <button class="BtnAdd" id="AddConfigBtn">+ ADD</button>
+                    <button class="BtnEdit" id="EditConfigBtn">EDIT</button>
+                    <button class="BtnRemove" id="RemoveConfigBtn">- REMOVE</button>
+                </div>
+            </div>
+            <div class="SettingsCollapseToggle" id="SettingsToggle">
+                <i class="ph-bold ph-caret-right"></i>
+            </div>
+            <div class="RightPanel SettingsPanel" id="SettingsPanel">
+                <div class="Card SettingsCard">
+                    <div class="SectionHeader">SETTINGS</div>
+                    <div class="SettingsGrid">
+                        <label>Theme</label>
+                        <div class="ThemeRow" id="ThemeRow">
+                            <div class="ThemePicker" id="ThemePicker">
+                                <span class="ThemeSwatch" id="ActiveThemeSwatch" title="Colours of the current theme"></span>
+                                <div class="CustomSelect" id="ThemeSelect" data-value="Dark">
+                                    <div class="CustomSelectTrigger">
+                                        <span class="CustomSelectText">Dark</span>
+                                        <span class="CustomSelectArrow">&#9660;</span>
+                                    </div>
+                                    <div class="CustomSelectOptions"></div>
+                                </div>
+                            </div>
+                            <button class="BtnIcon" id="ReloadThemesBtn" title="Reload this theme (after editing its files)"><i class="ph-bold ph-arrow-clockwise"></i></button>
+                            <button class="BtnIcon" id="OpenThemesBtn" title="Open the themes folder (Src)"><i class="ph-bold ph-folder-open"></i></button>
+                        </div>
+                        <div class="ThemeWarning" id="ThemeWarning"></div>
+
+                        <label>Launcher</label>
+                        <div class="CustomSelect" id="LauncherSelect" data-value="Roblox">
+                            <div class="CustomSelectTrigger">
+                                <span class="CustomSelectText">Roblox</span>
+                                <span class="CustomSelectArrow">&#9660;</span>
+                            </div>
+                            <div class="CustomSelectOptions">
+                                <div class="CustomSelectOption" data-value="Roblox">Roblox</div>
+                                <div class="CustomSelectOption" data-value="Bloxstrap">Bloxstrap</div>
+                                <div class="CustomSelectOption" data-value="Fishstrap">Fishstrap</div>
+                            </div>
+                        </div>
+
+                        <label>Channel</label>
+                        <div class="ChannelRow">
+                            <input type="text" id="ChannelEntry" maxlength="64" spellcheck="false">
+                            <button class="BtnIcon Check" id="SaveChannelBtn" title="Save channel"><i class="ph-bold ph-check"></i></button>
+                            <button class="BtnIcon Cross" id="ResetChannelBtn" title="Put back the current channel"><i class="ph-bold ph-x"></i></button>
+                        </div>
+
+                        <label>Max Instances</label>
+                        <input type="text" id="MaxInstances" value="1" maxlength="3" inputmode="numeric">
+
+                        <label style="line-height:1.1">Launch Delay<br>(seconds)</label>
+                        <input type="text" id="LaunchDelay" value="3" maxlength="3" inputmode="numeric">
+                    </div>
+
+                    <button class="BtnSave" id="SaveSettingsBtn">SAVE SETTINGS</button>
+                    <div class="SettingsFooter">
+                        <div class="StatusMessage" id="StatusMessage"></div>
+                        <div class="AppVersion" id="AppVersion"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GUIDED TUTORIAL (content lives in JS/TourData.js) -->
+    <div class="TourOverlay" id="TourOverlay" hidden>
+        <div class="TourSpot" id="TourSpot"></div>
+        <div class="TourMenu" id="TourMenu" hidden>
+            <div class="TourMenuTitle">TUTORIALS</div>
+            <div class="TourMenuSub">Pick a topic &mdash; each one walks you through the real controls.</div>
+            <div class="TourMenuList" id="TourMenuList"></div>
+            <div class="TourActions">
+                <button class="TourSkip" id="TourClose">Close</button>
+                <button class="TourBtn Primary" id="TourAll">RUN THEM ALL</button>
+            </div>
+        </div>
+        <div class="TourCard" id="TourCard">
+            <div class="TourStep" id="TourStep"></div>
+            <div class="TourTitle" id="TourTitle"></div>
+            <div class="TourBody" id="TourBody"></div>
+            <div class="TourActions">
+                <button class="TourSkip" id="TourSkip">Skip tour</button>
+                <div class="TourNav">
+                    <button class="TourBtn" id="TourBack">BACK</button>
+                    <button class="TourBtn Primary" id="TourNext">NEXT</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Asked before using a theme whose Theme.json doesn't list this RAMMIT version (JS/Themes.js). -->
+    <div class="TourOverlay Plain" id="ThemeVersionModal" hidden>
+        <div class="TourCard Centered" role="dialog" aria-modal="true" aria-labelledby="ThemeVersionTitle">
+            <div class="TourTitle" id="ThemeVersionTitle">Made for another RAMMIT version</div>
+            <div class="TourBody" id="ThemeVersionText"></div>
+            <div class="TourBody ModalHint" id="ThemeVersionHint"></div>
+            <label class="ModalCheck"><input type="checkbox" id="ThemeVersionRemember"> Don't ask again for this theme</label>
+            <div class="TourActions">
+                <span></span>
+                <div class="TourNav">
+                    <button class="TourBtn" id="ThemeVersionCancel">CANCEL</button>
+                    <button class="TourBtn Primary" id="ThemeVersionUse">USE IT ANYWAY</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

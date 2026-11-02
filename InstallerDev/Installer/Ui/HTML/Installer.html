@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAMMIT Installer</title>
+    <link rel="icon" href="../RAMMIT-Downloader.png">
+    <link rel="stylesheet" href="../CSS/Installer.css">
+    <link rel="stylesheet" href="../CSS/Phosphor-Bold.css">
+    <script type="module" src="../JS/Installer.js"></script>
+</head>
+<!-- Test1's installer page. Same screens, classes and wording; inline handlers and the inline script moved to
+     ../JS/*.js (the CSP forbids them), and new screens built from the same components. -->
+<body class="InstallerBody">
+
+    <!-- BREADCRUMBS (above window, same width, 5px gap via body flex gap) -->
+    <div class="InstBreadcrumbs" id="Breadcrumbs"><div class="Crumb">Loading...</div></div>
+
+    <div class="InstallerWindow">
+
+        <div class="InstallerHeader">
+            <div class="InstallerTitle">RAMMIT</div>
+            <div class="InstallerSub" id="ScreenSub"></div>
+        </div>
+
+        <!-- SCREEN: LOADING (new: replaces the fake values Test1 showed until GitHub answered) -->
+        <div class="InstallerScreen Active" data-screen="Loading">
+            <div class="InstallerMessage">
+                <strong>Getting things ready...</strong> Checking which versions of RAMMIT are available.
+            </div>
+            <ul class="InstStageList">
+                <li class="Active"><span class="StageDot"></span> Checking GitHub for releases</li>
+            </ul>
+        </div>
+
+        <!-- SCREEN: OLDER RAMMIT FOUND (new: a Test1 install is on this PC) -->
+        <div class="InstallerScreen" data-screen="Legacy">
+            <div class="InstallerMessage">
+                An older test version of RAMMIT (<strong id="LegacyVer">...</strong>) is installed in <strong class="Path" id="LegacyPath">...</strong>.<br>
+                What should happen to it? The <strong>first choice</strong> is recommended.
+            </div>
+            <div class="InstallerBtnRow">
+                <button class="BtnInst Install" id="LegacyMoveRemoveBtn">MOVE MY ACCOUNTS, REMOVE OLD VERSION</button>
+                <button class="BtnInst Primary" id="LegacyMoveKeepBtn">MOVE MY ACCOUNTS, KEEP OLD VERSION</button>
+                <button class="BtnInst Danger" id="LegacyRemoveBtn">REMOVE OLD VERSION, MOVE NOTHING</button>
+                <button class="BtnInst Cancel" id="LegacyIgnoreBtn">IGNORE</button>
+            </div>
+            <label class="InstCheckboxRow">
+                <input type="checkbox" id="LegacyDontAsk">
+                <span class="CheckboxBox"><i class="ph-bold ph-check"></i></span>
+                Don't ask again when I press Ignore
+            </label>
+        </div>
+
+        <!-- SCREEN: CONFIRM REMOVING THE OLD VERSION (new, choice 3) -->
+        <div class="InstallerScreen" data-screen="LegacyConfirm">
+            <div class="InstallerMessage">
+                You're about to remove the old version in <strong class="Path" id="LegacyConfirmPath">...</strong>.<br>
+                Its <strong>Config/</strong> folder goes too, so the accounts saved in it are lost.
+            </div>
+            <div class="InstallerBtnRow Row">
+                <button class="BtnInst Cancel" id="LegacyConfirmBackBtn">BACK</button>
+                <button class="BtnInst Danger" id="LegacyConfirmRemoveBtn">REMOVE</button>
+            </div>
+        </div>
+
+        <!-- SCREEN: MENU (not installed) -->
+        <div class="InstallerScreen" data-screen="MenuFresh">
+            <div class="InstallerMessage">
+                RAMMIT is not installed on this system.<br>
+                <span id="KeptFreshLine" hidden>Saved accounts from an earlier install were found in <strong class="Path" id="KeptFreshPath">...</strong>.<br></span>
+                Press <strong>Install</strong> to set it up, or <strong>Cancel</strong> to exit.
+            </div>
+            <div class="InstallerBtnRow">
+                <button class="BtnInst Install" id="FreshInstallBtn">INSTALL</button>
+                <button class="BtnInst Cancel" id="FreshCancelBtn">CANCEL</button>
+            </div>
+        </div>
+
+        <!-- SCREEN: MENU (already installed) -->
+        <div class="InstallerScreen" data-screen="MenuInstalled">
+            <div class="InstallerMessage">
+                RAMMIT is already installed on this system.<br>
+                Installed version: <strong id="InstalledVer">...</strong> - Latest: <strong id="LatestVer">...</strong><br>
+                Choose an action below.
+            </div>
+            <div class="InstallerBtnRow">
+                <button class="BtnInst Update" id="UpdateBtn">UPDATE / DOWNGRADE</button>
+                <button class="BtnInst Repair" id="RepairBtn">REPAIR</button>
+                <button class="BtnInst Uninstall" id="UninstallBtn">UNINSTALL</button>
+                <button class="BtnInst Cancel" id="InstalledCancelBtn">CANCEL</button>
+            </div>
+        </div>
+
+        <!-- SCREEN: VERSION SELECT (install only) -->
+        <div class="InstallerScreen" data-screen="Version">
+            <div class="InstallerMessage">
+                Choose which version of RAMMIT you want to install.<br>
+                The <strong>latest version</strong> is recommended.
+            </div>
+
+            <div>
+                <label class="InstFieldLabel">Install location</label>
+                <div class="InstPathWrap">
+                    <input class="InstallerInput" type="text" value="" placeholder="Loading..." id="InstallPath" spellcheck="false">
+                    <button class="InstPathBtn" id="BrowseBtn" title="Browse...">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256"><path fill="currentColor" d="M216 68h-82.61l-26-29.29a20 20 0 0 0-15-6.71H40a20 20 0 0 0-20 20v148.62A19.41 19.41 0 0 0 39.38 220h177.51A19.13 19.13 0 0 0 236 200.89V88a20 20 0 0 0-20-20M44 56h46.61l10.67 12H44Zm168 140H44V92h168Z"/></svg>
+                    </button>
+                </div>
+                <div class="InstFieldError" id="PathError"></div>
+            </div>
+
+            <div>
+                <label class="InstFieldLabel">Version</label>
+                <div class="CustomSelect InstVersionSelect" id="InstallVersionSelect" data-value="">
+                    <div class="CustomSelectTrigger InstVersionTrigger">
+                        <span class="InstVersionPrefix" data-branch="Stable" title="Stable">S</span>
+                        <span class="InstVersionSep"></span>
+                        <input class="InstVersionInput" type="text" value="" placeholder="Loading..." autocomplete="off" spellcheck="false">
+                    </div>
+                    <div class="CustomSelectOptions"></div>
+                </div>
+            </div>
+
+            <label class="InstCheckboxRow">
+                <input type="checkbox" class="ShowTestVersions">
+                <span class="CheckboxBox"><i class="ph-bold ph-check"></i></span>
+                Show dev versions
+            </label>
+
+            <label class="InstCheckboxRow" id="KeptRow" hidden>
+                <input type="checkbox" id="UseKept" checked>
+                <span class="CheckboxBox"><i class="ph-bold ph-check"></i></span>
+                <span>Bring back my saved accounts from <strong class="Path" id="KeptPath">...</strong></span>
+            </label>
+
+            <div class="InstallerBtnRow Row Spaced">
+                <button class="BtnInst Cancel" id="VersionBackBtn">BACK</button>
+                <button class="BtnInst Install" id="VersionInstallBtn">INSTALL</button>
+            </div>
+        </div>
+
+        <!-- SCREEN: SETTINGS CLASH (new: moving the old version's accounts into a folder that already has some) -->
+        <div class="InstallerScreen" data-screen="ConfigConflict">
+            <div class="InstallerMessage">
+                That folder already has saved accounts.<br>
+                Which ones should RAMMIT use? The other set is saved in <strong>Config.Backup/</strong>.
+            </div>
+            <div class="InstallerBtnRow">
+                <button class="BtnInst Install" id="KeepNewBtn">KEEP THE ONES IN THAT FOLDER</button>
+                <button class="BtnInst Primary" id="UseOldBtn">USE THE OLD VERSION'S ACCOUNTS</button>
+                <button class="BtnInst Cancel" id="ConflictBackBtn">BACK</button>
+            </div>
+        </div>
+
+        <!-- SCREEN: UPDATE / DOWNGRADE (new: every release, newer and older; the installed one is greyed out) -->
+        <div class="InstallerScreen" data-screen="ChangeVersion">
+            <div class="InstallerMessage">
+                Pick a <strong>newer</strong> version to update or an <strong>older</strong> one to downgrade.<br>
+                Your <strong>Config/</strong> folder is backed up first, so going back never loses settings.
+            </div>
+
+            <div>
+                <label class="InstFieldLabel">Version</label>
+                <div class="CustomSelect InstVersionSelect" id="ChangeVersionSelect" data-value="">
+                    <div class="CustomSelectTrigger InstVersionTrigger">
+                        <span class="InstVersionPrefix" data-branch="Stable" title="Stable">S</span>
+                        <span class="InstVersionSep"></span>
+                        <input class="InstVersionInput" type="text" value="" placeholder="Loading..." autocomplete="off" spellcheck="false">
+                    </div>
+                    <div class="CustomSelectOptions"></div>
+                </div>
+                <div class="InstFieldError" id="ChangeVersionError"></div>
+            </div>
+
+            <label class="InstCheckboxRow">
+                <input type="checkbox" class="ShowTestVersions">
+                <span class="CheckboxBox"><i class="ph-bold ph-check"></i></span>
+                Show dev versions
+            </label>
+
+            <div class="InstallerBtnRow" id="UndoRow" hidden>
+                <button class="BtnInst Repair" id="UndoBtn">UNDO LAST CHANGE</button>
+            </div>
+
+            <div class="InstallerBtnRow Row Spaced">
+                <button class="BtnInst Cancel" id="ChangeBackBtn">BACK</button>
+                <button class="BtnInst Install" id="ChangeInstallBtn">UPDATE</button>
+            </div>
+        </div>
+
+        <!-- SCREEN: CONFIRM UNINSTALL -->
+        <div class="InstallerScreen" data-screen="ConfirmUninstall">
+            <div class="InstallerMessage" id="ConfirmUninstallMsg">
+                You're about to uninstall <strong>RAMMIT <span id="UninstallVer">...</span></strong>.<br>
+                <span id="ConfirmUninstallLine">Your saved accounts and configs in <strong>Config/</strong> will be left untouched, and installing again brings them back.</span>
+            </div>
+            <label class="InstCheckboxRow">
+                <input type="checkbox" id="RemoveConfigs">
+                <span class="CheckboxBox"><i class="ph-bold ph-check"></i></span>
+                Uninstall Config/ folder too
+            </label>
+            <div class="InstallerBtnRow Row">
+                <button class="BtnInst Cancel" id="UninstallBackBtn">BACK</button>
+                <button class="BtnInst Danger" id="UninstallConfirmBtn">UNINSTALL</button>
+            </div>
+        </div>
+
+        <!-- SCREEN: RAMMIT IS RUNNING (new: files in use) -->
+        <div class="InstallerScreen" data-screen="Running">
+            <div class="InstResult">
+                <div class="InstResultIcon Accent"><i class="ph-bold ph-warning-circle"></i></div>
+                <div class="InstResultTitle">RAMMIT is still open.</div>
+                <div class="InstResultText">
+                    Close RAMMIT before you <span id="RunningAction">continue</span>, so none of its files are in use.<br>
+                    Roblox windows it launched stay open.
+                </div>
+            </div>
+            <div class="InstallerBtnRow">
+                <button class="BtnInst Danger" id="RunningCloseBtn">CLOSE RAMMIT FOR ME</button>
+                <button class="BtnInst Primary" id="RunningRetryBtn">TRY AGAIN</button>
+                <button class="BtnInst Cancel" id="RunningBackBtn">BACK</button>
+            </div>
+        </div>
+
+        <!-- SCREEN: PROGRESS (install/update/repair/change version) -->
+        <div class="InstallerScreen" data-screen="Progress">
+            <div class="InstallerMessage">
+                <strong id="ProgressHeading">Installing RAMMIT...</strong> Please don't close this window.
+            </div>
+
+            <div class="InstProgressBlock">
+                <div class="InstProgressHeader">
+                    <span class="InstProgressLabel" id="StageLabel">Downloading</span>
+                    <span class="InstProgressPct" id="StagePct">0%</span>
+                </div>
+                <div class="InstProgressBar Stage">
+                    <div class="InstProgressFill" id="StageFill"></div>
+                </div>
+                <div class="InstProgressDetail" id="StageDetail"></div>
+            </div>
+
+            <div class="InstProgressBlock">
+                <div class="InstProgressHeader">
+                    <span class="InstProgressLabel">Overall</span>
+                    <span class="InstProgressPct" id="OverallPct">0%</span>
+                </div>
+                <div class="InstProgressBar">
+                    <div class="InstProgressFill" id="OverallFill"></div>
+                </div>
+            </div>
+
+            <ul class="InstStageList" id="StageList">
+                <li class="Active" data-stage="Download"><span class="StageDot"></span> Downloading files</li>
+                <li data-stage="Unzip"><span class="StageDot"></span> Unzipping archive</li>
+                <li data-stage="Copy"><span class="StageDot"></span> Copying / installing</li>
+                <li data-stage="Finish"><span class="StageDot"></span> Finishing up</li>
+            </ul>
+        </div>
+
+        <!-- SCREEN: PROGRESS (uninstall) -->
+        <div class="InstallerScreen" data-screen="ProgressUninstall">
+            <div class="InstallerMessage">
+                <strong id="UninstHeading">Removing RAMMIT...</strong> Please don't close this window.
+            </div>
+
+            <div class="InstProgressBlock">
+                <div class="InstProgressHeader">
+                    <span class="InstProgressLabel" id="UninstStageLabel">Deleting files</span>
+                    <span class="InstProgressPct" id="UninstPct">0%</span>
+                </div>
+                <div class="InstProgressBar">
+                    <div class="InstProgressFill Danger" id="UninstFill"></div>
+                </div>
+            </div>
+
+            <ul class="InstStageList" id="UninstStageList">
+                <li class="Active" data-stage="Delete"><span class="StageDot"></span> Deleting files</li>
+                <li data-stage="Cleanup"><span class="StageDot"></span> Cleaning up</li>
+            </ul>
+        </div>
+
+        <!-- SCREEN: INSTALL COMPLETE -->
+        <div class="InstallerScreen" data-screen="InstallDone">
+            <div class="InstResult">
+                <div class="InstResultIcon Success"><i class="ph-bold ph-check"></i></div>
+                <div class="InstResultTitle">Thanks for installing RAMMIT.</div>
+                <div class="InstResultText" id="InstallDoneText"></div>
+            </div>
+            <div class="InstallerBtnRow Row">
+                <button class="BtnInst Cancel" id="InstallDoneCloseBtn">CLOSE</button>
+                <button class="BtnInst Success" id="LaunchBtn">LAUNCH RAMMIT</button>
+            </div>
+        </div>
+
+        <!-- SCREEN: UPDATE/DOWNGRADE/REPAIR COMPLETE -->
+        <div class="InstallerScreen" data-screen="ActionDone">
+            <div class="InstResult">
+                <div class="InstResultIcon Success"><i class="ph-bold ph-check"></i></div>
+                <div class="InstResultTitle" id="ActionDoneTitle">Updated successfully.</div>
+                <div class="InstResultText" id="ActionDoneText"></div>
+            </div>
+            <div class="InstallerBtnRow">
+                <button class="BtnInst Success" id="ActionDoneCloseBtn">CLOSE</button>
+            </div>
+        </div>
+
+        <!-- SCREEN: OLD VERSION REMOVED (new, after choice 3) -->
+        <div class="InstallerScreen" data-screen="LegacyDone">
+            <div class="InstResult">
+                <div class="InstResultIcon Success"><i class="ph-bold ph-check"></i></div>
+                <div class="InstResultTitle">Old version removed.</div>
+                <div class="InstResultText" id="LegacyDoneText"></div>
+            </div>
+            <div class="InstallerBtnRow">
+                <button class="BtnInst Success" id="LegacyDoneContinueBtn">CONTINUE</button>
+            </div>
+        </div>
+
+        <!-- SCREEN: UNINSTALL COMPLETE -->
+        <div class="InstallerScreen" data-screen="UninstallDone">
+            <div class="InstResult">
+                <div class="InstResultIcon Sad">
+                    <svg width="48" height="48" viewBox="0 0 45 45" style="enable-background:new 0 0 45 45;" xmlns="http://www.w3.org/2000/svg"><g transform="matrix(1.25,0,0,-1.25,0,45)"><g><g><g transform="translate(36,18)"><path style="fill:#ffcc4d" d="m 0,0 c 0,-9.941 -8.059,-18 -18,-18 -9.94,0 -18,8.059 -18,18 0,9.94 8.06,18 18,18 C -8.059,18 0,9.94 0,0"/></g><g transform="translate(14,19)"><path style="fill:#664500" d="M 0,0 C 0,-1.934 -1.119,-3.5 -2.5,-3.5 -3.881,-3.5 -5,-1.934 -5,0 -5,1.933 -3.881,3.5 -2.5,3.5 -1.119,3.5 0,1.933 0,0"/></g><g transform="translate(27,19)"><path style="fill:#664500" d="M 0,0 C 0,-1.934 -1.119,-3.5 -2.5,-3.5 -3.881,-3.5 -5,-1.934 -5,0 -5,1.933 -3.881,3.5 -2.5,3.5 -1.119,3.5 0,1.933 0,0"/></g><g transform="translate(5.999,22.5)"><path style="fill:#664500" d="m 0,0 c -0.208,0 -0.419,0.065 -0.599,0.2 -0.442,0.331 -0.531,0.958 -0.2,1.4 3.262,4.35 7.616,4.4 7.8,4.4 0.552,0 1,-0.448 1,-1 C 8.001,4.449 7.556,4.002 7.005,4 6.85,3.998 3.436,3.914 0.801,0.4 0.604,0.138 0.304,0 0,0"/></g><g transform="translate(30.001,22.5)"><path style="fill:#664500" d="M 0,0 C -0.305,0 -0.605,0.138 -0.801,0.4 -3.441,3.921 -6.862,3.999 -7.007,4 -7.557,4.006 -8.001,4.456 -7.998,5.005 -7.995,5.556 -7.551,6 -7.001,6 -6.817,6 -2.464,5.95 0.799,1.6 1.131,1.158 1.041,0.531 0.599,0.2 0.419,0.065 0.209,0 0,0"/></g><g transform="translate(23.4854,7.6211)"><path style="fill:#664500" d="m 0,0 c -0.012,0.044 -1.146,4.379 -5.485,4.379 -4.341,0 -5.475,-4.335 -5.485,-4.379 -0.053,-0.213 0.043,-0.431 0.231,-0.544 0.188,-0.112 0.433,-0.086 0.596,0.06 0.01,0.007 1.014,0.863 4.658,0.863 3.589,0 4.617,-0.83 4.656,-0.863 0.095,-0.09 0.219,-0.137 0.344,-0.137 0.084,0 0.169,0.021 0.246,0.064 C -0.043,-0.445 0.055,-0.218 0,0"/></g><g transform="translate(16,5)"><path style="fill:#5dadec" d="m 0,0 c 0,-2.762 -2.238,-5 -5,-5 -2.762,0 -5,2.238 -5,5 0,2.762 4,10 5,10 1,0 5,-7.238 5,-10"/></g></g></g></g></svg>
+                </div>
+                <div class="InstResultTitle">Sorry to see you go.</div>
+                <div class="InstResultText" id="UninstallDoneText"></div>
+            </div>
+            <div class="InstallerBtnRow">
+                <button class="BtnInst Cancel" id="UninstallDoneCloseBtn">CLOSE</button>
+            </div>
+        </div>
+
+        <!-- SCREEN: ERROR (new: replaces Test1's alert() boxes) -->
+        <div class="InstallerScreen" data-screen="Error">
+            <div class="InstResult">
+                <div class="InstResultIcon Danger"><i class="ph-bold ph-x-circle"></i></div>
+                <div class="InstResultTitle" id="ErrorTitle">Something went wrong.</div>
+                <div class="InstResultText" id="ErrorText"></div>
+            </div>
+            <div class="InstErrorDetail" id="ErrorDetail"></div>
+            <div class="InstallerBtnRow Row">
+                <button class="BtnInst Cancel" id="ErrorBackBtn">BACK</button>
+                <button class="BtnInst Cancel" id="ErrorCopyBtn">COPY DETAILS</button>
+                <button class="BtnInst Primary" id="ErrorRetryBtn">RETRY</button>
+            </div>
+        </div>
+
+        <div class="InstFooter">
+            <span>RAMMIT Installer</span>
+            <span id="FooterVersion"></span>
+        </div>
+    </div>
+
+</body>
+</html>

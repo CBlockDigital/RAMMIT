@@ -1,0 +1,20 @@
+{
+    "MainWindow": {
+        "Home": 716,
+        "Config": 716,
+        "Game URL": 897,
+        "Place ID": 897,
+        "Place ID + Job ID": 801,
+        "VIP Link": 759,
+        "PlayerFilterExtra": 50
+    },
+    "WizardWindow": {
+        "Width": 400,
+        "Home": 288,
+        "Game URL": 495,
+        "Place ID": 495,
+        "Place ID + Job ID": 428,
+        "VIP Link": 354,
+        "ExtraPadding": 22
+    }
+}

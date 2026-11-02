@@ -1,0 +1,20 @@
+# Allow-list: only the published parts of this folder are in the repo. Everything else here
+# (History.ctx, Archive, Releases, Videos, Web, QARAMMITBETA, ...) stays local.
+/*
+!/.gitignore
+!/README.md
+!/Production/
+/Production/*
+!/Production/RAMMIT-Stable/
+!/InstallerDev/
+
+# Build output and local data, wherever they appear
+dist/
+build/
+__pycache__/
+*.pyc
+*.log
+Config/
+ThemeRenders/
+App/BuildInfo.py
+/InstallerDev/Screenshots/

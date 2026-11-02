@@ -1,0 +1,837 @@
+/* RAMMIT installer styles.
+ *
+ * Everything from "BASE" down to "SCREEN SLIDE TRANSITIONS" is Test1's installer CSS, copied unchanged:
+ * the :root colours and reset from the top of Test1's Src/CSS/Style.css, its CUSTOM SELECT section (used by the
+ * version picker) and its whole INSTALLER section. The installer always uses this fixed Dark look, because it
+ * runs before any theme has been picked.
+ *
+ * New rules for the screens the new installer adds are at the end, under "ADDITIONS"; they reuse the same
+ * variables and sizes so those screens look native.
+ */
+
+/* ===== BASE (Test1 Style.css top) ===== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+*:focus {
+    outline: none;
+}
+
+:root {
+    --BgDark: #0a0a0a;
+    --BgCard: #141414;
+    --BgInput: #1f1f1f;
+    --BgHover: rgba(255, 255, 255, 0.05);
+    --TextPrimary: #ffffff;
+    --TextSecondary: #888888;
+    --TextMuted: #555555;
+    --Accent: #0078d4;
+    --AccentHover: #1e90ff;
+    --Success: #28a745;
+    --SuccessHover: #218838;
+    --Danger: #dc3545;
+    --DangerHover: #c82333;
+    --Warning: #ffc107;
+    --Border: #252525;
+    --BorderLight: #333333;
+    --BtnEdit: #1a6b3a;
+    --Green2: #1a6b3a;
+    --BtnNeutral: #222222;
+    --ScrollbarThumb: #444444;
+    --ScrollbarThumbHover: #555555;
+    --TextSelectedDim: rgba(255, 255, 255, 0.75);
+    --Radius: 4px;
+}
+
+body {
+    background: var(--BgDark);
+    color: var(--TextPrimary);
+    font-family: 'Segoe UI', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    user-select: none;
+}
+
+
+/* ===== CUSTOM SELECT ===== */
+
+.CustomSelect {
+    position: relative;
+    width: 100%;
+    cursor: pointer;
+}
+
+.CustomSelectTrigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--BgInput);
+    color: var(--TextPrimary);
+    padding: 8px 10px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 13px;
+}
+
+.CustomSelectArrow {
+    font-size: 9px;
+    transition: transform 0.15s ease;
+    transform: rotate(90deg);
+}
+
+.CustomSelect.Open .CustomSelectArrow {
+    transform: rotate(0deg);
+}
+
+.CustomSelectOptions {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--BgDark);
+    z-index: 100;
+    border: 1px solid var(--Border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.CustomSelect.Open .CustomSelectOptions {
+    display: block;
+}
+
+.CustomSelectOption {
+    padding: 8px 10px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 13px;
+    color: var(--TextPrimary);
+    transition: background 0.1s;
+}
+
+.CustomSelectOption:hover {
+    background: var(--Accent);
+}
+
+/* ===== INSTALLER ===== */
+
+.InstallerBody {
+    background: var(--BgDark);
+    color: var(--TextPrimary);
+    font-family: 'Segoe UI', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 20px;
+    gap: 5px;
+}
+
+.InstallerWindow {
+    width: 100%;
+    max-width: 520px;
+    background: var(--BgCard);
+    border-radius: 4px;
+    padding: 28px 30px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    overflow: hidden;
+    position: relative;
+}
+
+.InstallerHeader {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--Border);
+    padding-bottom: 12px;
+}
+
+.InstallerTitle {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--TextPrimary);
+}
+
+.InstallerSub {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--Accent);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    display: none;
+}
+
+.InstallerScreen {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.InstallerScreen.Active {
+    display: flex;
+}
+
+.InstallerMessage {
+    font-size: 13px;
+    color: var(--TextSecondary);
+    line-height: 1.5;
+}
+
+.InstallerMessage strong {
+    color: var(--TextPrimary);
+    font-weight: 600;
+}
+
+/* ===== INSTALLER BUTTONS ===== */
+
+.InstallerBtnRow {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.InstallerBtnRow.Row {
+    flex-direction: row;
+}
+
+.InstallerBtnRow.Row .BtnInst {
+    flex: 1;
+}
+
+.BtnInst {
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    color: var(--TextPrimary);
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: opacity 0.15s, background 0.15s;
+    text-align: center;
+}
+
+.BtnInst:hover {
+    opacity: 0.88;
+}
+
+.BtnInst:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.BtnInst.Install {
+    background: var(--Green2);
+}
+
+.BtnInst.Update {
+    background: var(--Green2);
+}
+
+.BtnInst.Repair {
+    background: var(--Accent);
+}
+
+.BtnInst.Uninstall {
+    background: var(--Danger);
+}
+
+.BtnInst.Cancel {
+    background: var(--BtnNeutral);
+}
+
+.BtnInst.Primary {
+    background: var(--Accent);
+}
+
+.BtnInst.Success {
+    background: var(--Green2);
+}
+
+.BtnInst.Danger {
+    background: var(--Danger);
+}
+
+/* ===== INSTALLER INPUTS ===== */
+
+.InstFieldLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--TextPrimary);
+    margin-bottom: 4px;
+    letter-spacing: 0.3px;
+}
+
+.InstPathWrap {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+}
+
+.InstPathWrap .InstallerInput {
+    flex: 1;
+    padding-right: 36px;
+}
+
+.InstPathBtn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--TextSecondary);
+    cursor: pointer;
+    padding: 0;
+}
+
+.InstPathBtn:hover {
+    color: var(--TextPrimary);
+}
+
+.InstallerInput {
+    width: 100%;
+    background: var(--BgInput);
+    color: var(--TextPrimary);
+    border: none;
+    padding: 9px 11px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 13px;
+    outline: none;
+}
+
+.InstallerInput::placeholder {
+    color: var(--TextSecondary);
+}
+
+/* version select input trigger */
+.InstVersionTrigger {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+/* Branch of the picked version (S = Stable, D = Dev) where Test1 showed "v". Hover = the branch's name. */
+.InstVersionPrefix {
+    width: 12px;
+    margin-right: 8px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--TextSecondary);
+    flex-shrink: 0;
+    user-select: none;
+    cursor: default;
+}
+
+.InstVersionPrefix[data-branch="Dev"],
+.CustomSelectOption .BranchCell[data-branch="Dev"] {
+    color: var(--Warning);
+}
+
+.InstVersionSep {
+    width: 1px;
+    align-self: stretch;
+    background: var(--BorderLight);
+    flex-shrink: 0;
+    margin-right: 8px;
+}
+
+.InstVersionInput {
+    flex: 1;
+    background: transparent;
+    color: var(--TextPrimary);
+    border: none;
+    outline: none;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 13px;
+    padding: 0;
+    cursor: pointer;
+    min-width: 0;
+}
+
+.InstVersionInput:focus {
+    cursor: text;
+}
+
+/* version select dropdown */
+.InstVersionSelect .CustomSelectOptions {
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.InstVersionSelect .CustomSelectOptions::-webkit-scrollbar {
+    width: 10px;
+}
+
+.InstVersionSelect .CustomSelectOptions::-webkit-scrollbar-track {
+    background: var(--BgDark);
+}
+
+.InstVersionSelect .CustomSelectOptions::-webkit-scrollbar-thumb {
+    background: var(--ScrollbarThumb);
+}
+
+.InstVersionSelect .CustomSelectOptions::-webkit-scrollbar-thumb:hover {
+    background: var(--ScrollbarThumbHover);
+}
+
+.CustomSelectOption .VersionTag {
+    color: var(--TextSecondary);
+    font-size: 11px;
+    margin-left: 6px;
+}
+
+/* Like the theme list's swatch column: the list spans the branch cell too, each row's letter sits exactly under
+   the picked one and the version exactly under the typed text (10 px padding - 1 px list border; 12 px cell +
+   8 px + 1 px line + 8 px). */
+.InstVersionSelect .CustomSelectOption {
+    display: grid;
+    grid-template-columns: 12px 1fr;
+    column-gap: 17px;
+    align-items: baseline;
+    padding-left: 9px;
+}
+
+.CustomSelectOption .BranchCell {
+    text-align: center;
+    font-weight: 600;
+    color: var(--TextSecondary);
+}
+
+/* the installed version: listed so you can see where you are, but not pickable */
+.CustomSelectOption.Disabled {
+    color: var(--TextMuted);
+    cursor: default;
+}
+
+.CustomSelectOption.Disabled:hover {
+    background: none;
+}
+
+.CustomSelectOption.Disabled .VersionTag {
+    color: var(--TextMuted);
+}
+
+/* ===== INSTALLER PROGRESS ===== */
+
+.InstProgressBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 10px 0px 0px 0px;
+}
+
+.InstProgressHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 12px;
+}
+
+.InstProgressLabel {
+    font-weight: 600;
+    color: var(--TextPrimary);
+    letter-spacing: 0.3px;
+}
+
+.InstProgressPct {
+    color: var(--Accent);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.InstProgressBar {
+    width: 100%;
+    height: 10px;
+    background: var(--BgInput);
+    overflow: hidden;
+    position: relative;
+}
+
+.InstProgressFill {
+    height: 100%;
+    background: var(--Accent);
+    transition: width 0.2s ease;
+}
+
+.InstProgressBar.Stage .InstProgressFill {
+    background: var(--AccentHover);
+}
+
+.InstProgressFill.Success {
+    background: var(--Success);
+}
+
+.InstProgressFill.Danger {
+    background: var(--Danger);
+}
+
+.InstProgressDetail {
+    font-size: 11px;
+    color: var(--TextSecondary);
+    font-family: 'Consolas', 'Courier New', monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-height: 14px;
+}
+
+/* ===== INSTALLER STAGE LIST ===== */
+
+.InstStageList {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0px 0px 0px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.InstStageList li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--TextMuted);
+}
+
+.InstStageList li .StageDot {
+    display: inline-block;
+    width: 12px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--Danger);
+    flex-shrink: 0;
+    vertical-align: middle;
+}
+
+.InstStageList li.Done {
+    color: var(--TextSecondary);
+}
+
+.InstStageList li.Done .StageDot {
+    background: var(--Success);
+}
+
+.InstStageList li.Active {
+    color: var(--TextPrimary);
+    font-weight: 600;
+}
+
+.InstStageList li.Active .StageDot {
+    background: transparent;
+    position: relative;
+}
+
+.InstStageList li.Active .StageDot::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    aspect-ratio: 1;
+    border: 2px solid var(--BorderLight);
+    border-top-color: var(--Accent);
+    animation: InstSpin 0.8s linear infinite;
+}
+
+@keyframes InstSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* ===== INSTALLER RESULT SCREENS ===== */
+
+.InstResult {
+    text-align: center;
+    padding: 10px 0 4px;
+}
+
+.InstResultIcon {
+    font-size: 48px;
+    line-height: 1;
+    margin-bottom: 12px;
+}
+
+.InstResultIcon.Success {
+    color: var(--Success);
+}
+
+.InstResultIcon.Sad {
+    color: var(--TextSecondary);
+}
+
+.InstResultIcon.Accent {
+    color: var(--Accent);
+}
+
+.InstResultTitle {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--TextPrimary);
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+}
+
+.InstResultText {
+    font-size: 13px;
+    color: var(--TextSecondary);
+    line-height: 1.6;
+    margin-bottom: 18px;
+}
+
+.InstResultText em {
+    color: var(--TextPrimary);
+    font-style: normal;
+}
+
+/* ===== INSTALLER FOOTER ===== */
+
+.InstFooter {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--TextMuted);
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding-top: 4px;
+}
+
+/* ===== INSTALLER BREADCRUMBS ===== */
+
+.InstBreadcrumbs {
+    width: 100%;
+    max-width: 520px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--BgCard);
+    border-radius: 4px;
+    padding: 6px 8px;
+}
+
+.InstBreadcrumbs .Crumb {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: var(--TextMuted);
+    background: var(--BgInput);
+    border: none;
+    cursor: default;
+    font-family: 'Segoe UI', sans-serif;
+    text-transform: uppercase;
+}
+
+.InstBreadcrumbs .Crumb.Done {
+    color: var(--TextSecondary);
+}
+
+.InstBreadcrumbs .Crumb.Active {
+    background: var(--Accent);
+    color: var(--TextPrimary);
+}
+
+.InstBreadcrumbs .CrumbArrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--TextMuted);
+    flex-shrink: 0;
+    user-select: none;
+    padding: 0 2px;
+}
+
+.InstBreadcrumbs .CrumbArrow i {
+    font-size: 14px;
+}
+
+/* ===== INSTALLER CHECKBOX ===== */
+
+.InstCheckboxRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--TextSecondary);
+    cursor: pointer;
+}
+
+.InstCheckboxRow input[type="checkbox"] {
+    display: none;
+}
+
+.InstCheckboxRow .CheckboxBox {
+    width: 16px;
+    height: 16px;
+    background: var(--BgCard);
+    border: 1px solid var(--Accent);
+    border-radius: 2px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.InstCheckboxRow .CheckboxBox i {
+    font-size: 11px;
+    color: var(--Accent);
+}
+
+.InstCheckboxRow input[type="checkbox"]:checked + .CheckboxBox {
+    background: var(--Accent);
+    border-color: var(--Accent);
+}
+
+.InstCheckboxRow input[type="checkbox"]:checked + .CheckboxBox i {
+    color: var(--BgCard);
+}
+
+/* ===== SCREEN SLIDE TRANSITIONS ===== */
+
+@keyframes InstSlideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes InstSlideOutLeft {
+    from { transform: translateX(0);     opacity: 1; }
+    to   { transform: translateX(-100%); opacity: 0; }
+}
+
+@keyframes InstSlideInLeft {
+    from { transform: translateX(-100%); opacity: 0; }
+    to   { transform: translateX(0);     opacity: 1; }
+}
+
+@keyframes InstSlideOutRight {
+    from { transform: translateX(0);    opacity: 1; }
+    to   { transform: translateX(100%); opacity: 0; }
+}
+
+.InstallerScreen.SlideIn {
+    display: flex;
+    animation: InstSlideInRight 0.25s ease both;
+}
+
+.InstallerScreen.SlideOut {
+    display: flex;
+    position: absolute;
+    left: 30px;
+    right: 30px;
+    animation: InstSlideOutLeft 0.25s ease both;
+    pointer-events: none;
+}
+
+.InstallerScreen.SlideInBack {
+    display: flex;
+    animation: InstSlideInLeft 0.25s ease both;
+}
+
+.InstallerScreen.SlideOutBack {
+    display: flex;
+    position: absolute;
+    left: 30px;
+    right: 30px;
+    animation: InstSlideOutRight 0.25s ease both;
+    pointer-events: none;
+}
+
+/* ===== ADDITIONS (new installer) ===== */
+
+/* The card keeps its content height even while the window is still smaller (Test1's overflow: hidden would
+   otherwise let it shrink), so the page can measure what it needs and resize the window to fit. */
+.InstallerWindow,
+.InstBreadcrumbs {
+    flex-shrink: 0;
+}
+
+/* hidden must win over the display: flex of .InstallerBtnRow / .InstCheckboxRow */
+[hidden] {
+    display: none !important;
+}
+
+/* was style="margin-top:8px" on Test1's Version screen button row (inline styles moved out of the HTML) */
+.InstallerBtnRow.Spaced {
+    margin-top: 8px;
+}
+
+/* error screen icon: same size as the other result icons, in the Danger colour */
+.InstResultIcon.Danger {
+    color: var(--Danger);
+}
+
+/* Phosphor icons inside result icons sit on the same line box as Test1's */
+.InstResultIcon i {
+    display: inline-block;
+}
+
+/* error screen: the technical details, in the same monospace as the progress detail line */
+.InstErrorDetail {
+    font-size: 11px;
+    color: var(--TextSecondary);
+    font-family: 'Consolas', 'Courier New', monospace;
+    background: var(--BgInput);
+    padding: 8px 10px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 90px;
+    overflow-y: auto;
+    user-select: text;
+    margin-top: -16px;
+}
+
+.InstErrorDetail:empty {
+    display: none;
+}
+
+/* one-line problem note under a field (bad install folder, same version picked) */
+.InstFieldError {
+    font-size: 12px;
+    color: var(--Danger);
+    margin-top: 6px;
+    line-height: 1.4;
+}
+
+.InstFieldError:empty {
+    display: none;
+}
+
+.CustomSelectOption.Empty {
+    display: block;
+    color: var(--TextSecondary);
+    cursor: default;
+}
+
+.CustomSelectOption.Empty:hover {
+    background: none;
+}
+
+/* emphasised values inside messages, same look as Test1's result-screen <em> */
+.InstallerMessage em {
+    color: var(--TextPrimary);
+    font-style: normal;
+}
+
+/* long paths in messages wrap instead of widening the card */
+.InstallerMessage strong.Path,
+.InstResultText em.Path {
+    word-break: break-all;
+}

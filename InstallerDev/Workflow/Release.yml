@@ -1,0 +1,100 @@
+# DRAFT - moves to .github/workflows/Release.yml in the public repo (Docs/InstallerPlan.md > GitHub Actions).
+# Not tested on GitHub yet. Before using it:
+#   * replace every <PIN: ...> with the full commit SHA of that action release (never a tag)
+#   * the paths assume the repo layout App/, Src/, Tests/, Tools/, Installer/, Installer.spec at the root
+#     (today: Production/RAMMIT-Stable + InstallerDev)
+#   * requirements.txt must pin exact versions with hashes (pip --require-hashes)
+#
+# Tag push v1.2.3  -> checks, build, smoke test, DRAFT release with the three assets.
+# Any other push   -> the same checks and build, no release.
+name: Release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write   # only used by the release step, which runs on tags only
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@<PIN: actions/checkout v4 commit SHA>
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@<PIN: actions/setup-python v5 commit SHA>
+        with:
+          python-version: '3.13.14'
+
+      - uses: actions/setup-node@<PIN: actions/setup-node v4 commit SHA>
+        with:
+          node-version: '<PIN: exact Node version>'
+
+      - name: Install packages (pinned, hashed)
+        run: |
+          python -m pip install --require-hashes -r requirements.txt
+          npm install --no-save --ignore-scripts puppeteer-core@25.14.0
+
+      - name: Checks (pyflakes, unit tests, theme drift, installer tests)
+        run: |
+          python -m pyflakes App Tests Tools RAMMIT.py Installer
+          if ($LASTEXITCODE) { throw "pyflakes" }
+          python -m unittest discover -s Tests -p "Test*.py"
+          if ($LASTEXITCODE) { throw "unit tests" }
+          python Tools/SyncThemes.py --check
+          if ($LASTEXITCODE) { throw "theme drift" }
+
+      - name: Headless UI tests (app + installer)
+        run: |
+          $Chrome = "C:\Program Files\Google\Chrome\Application\chrome.exe"
+          node Tests/TestUi.mjs "$PWD/node_modules" $Chrome "$env:RUNNER_TEMP\UiScratch" "$env:RUNNER_TEMP\Shots"
+          if ($LASTEXITCODE) { throw "app UI tests" }
+          node Installer/Tests/TestUi.mjs "$PWD/node_modules" $Chrome "$env:RUNNER_TEMP\SetupScratch" "$env:RUNNER_TEMP\SetupShots"
+          if ($LASTEXITCODE) { throw "installer UI tests" }
+
+      - name: Tag must equal App/Version.py
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          $Version = (python -c "from App.Version import AppVersion; print(AppVersion)").Trim()
+          if ("v$Version" -ne "${{ github.ref_name }}") { throw "tag ${{ github.ref_name }} != App/Version.py v$Version" }
+
+      - name: Build app zip + .sha256, and RAMMIT-Setup.exe
+        run: |
+          $Channel = if ("${{ github.ref }}".StartsWith("refs/tags/v")) { "Stable" } else { "Dev" }
+          ./Build.ps1 -SkipChecks -Channel $Channel
+          if ($LASTEXITCODE) { throw "Build.ps1" }
+          $env:RAMMIT_VERSION_FILE = "$PWD/App/Version.py"
+          python -m PyInstaller Installer.spec --noconfirm --clean --distpath dist --workpath "$env:RUNNER_TEMP\SetupBuild"
+          if ($LASTEXITCODE) { throw "Installer.spec" }
+
+      - name: Smoke test (app starts headless, installer opens its menu)
+        run: |
+          $Version = (python -c "from App.Version import AppVersion; print(AppVersion)").Trim()
+          $Out = "$env:RUNNER_TEMP\Smoke"
+          Expand-Archive "dist/RAMMIT-$Version.zip" $Out
+          $env:RAMMIT_BASE_DIR = "$env:RUNNER_TEMP\SmokeBase"
+          $App = Start-Process "$Out\RAMMIT\RAMMIT.exe" -PassThru
+          Start-Sleep -Seconds 8
+          if ($App.HasExited) { throw "RAMMIT.exe exited early ($($App.ExitCode))" }
+          Stop-Process -Id $App.Id
+          python Installer/Tests/SmokeExe.py dist/RAMMIT-Setup.exe "$env:RUNNER_TEMP\SetupSmoke.png"
+          if ($LASTEXITCODE) { throw "installer smoke test" }
+
+      - name: Publish draft release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $Version = "${{ github.ref_name }}".TrimStart("v")
+          $Pre = if ($Version.Contains("-")) { "--prerelease" } else { "" }
+          gh release create "${{ github.ref_name }}" --draft $Pre --title "RAMMIT $Version" --generate-notes `
+            "dist/RAMMIT-Setup.exe" "dist/RAMMIT-$Version.zip" "dist/RAMMIT-$Version.zip.sha256"

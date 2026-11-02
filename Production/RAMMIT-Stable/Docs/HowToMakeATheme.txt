@@ -1,0 +1,229 @@
+========================================================
+  RAMMIT  -  How to make your own theme
+========================================================
+
+A theme is just a folder. Every theme RAMMIT can use lives in the
+"Src" folder next to RAMMIT.exe:
+
+    Src\
+      Dark\            the default look            (comes with RAMMIT)
+      Light\           the 2016 Roblox look         (comes with RAMMIT)
+      CBlock\          the CBlock / Industrialist look (comes with RAMMIT)
+      MyCustomTheme\   an example custom theme      (comes with RAMMIT)
+      OceanBlue\       <- your theme goes here, next to the others
+
+Each theme folder is a complete copy of RAMMIT's look - its own HTML,
+CSS, fonts and icons. When you pick a theme, RAMMIT loads ONLY that
+folder. Nothing is mixed between themes.
+
+There is also a short version of this guide inside RAMMIT:
+press the "?" button, then "Making your own theme".
+
+
+--------------------------------------------------------
+ QUICK START (5 minutes)
+--------------------------------------------------------
+
+ 1. Open RAMMIT. In Settings, next to Theme, press the folder
+    button. The "Src" folder opens.
+
+ 2. Copy the "Dark" folder (or "Light" if you want a light theme)
+    and paste it in the same place. Rename the copy, for example
+    "OceanBlue". Use letters, numbers, spaces, - and _ only.
+
+ 3. Open  OceanBlue\Theme.json  with Notepad and change the name:
+
+        {
+            "Name": "Ocean Blue",
+            "Author": "Your Name",
+            "Description": "Deep blue with a teal accent.",
+            "SupportedVersions": ["1.0"]
+        }
+
+    "SupportedVersions" says which RAMMIT versions your theme was made
+    for. The version is at the bottom of the Settings panel
+    (for example "RAMMIT v1.0.0 - Stable").
+        "1.0"    any 1.0.x  (1.0.0, 1.0.1, ...)
+        "1.0.2"  exactly 1.0.2
+        "1.2+"   1.2.0 and everything newer
+    You can list several: ["1.0", "1.1"].
+    If someone picks your theme on a RAMMIT version it doesn't list,
+    RAMMIT asks them first. After a RAMMIT update it opens in Dark and
+    asks before using your theme. Leave the field out and RAMMIT never
+    asks, but shows a small note under the Theme list instead.
+
+ 4. Open  OceanBlue\CSS\Style.css  with Notepad. The top of the file
+    is a list of colours. Change some, for example:
+
+        --Background: #06141f;
+        --Card: #0c2233;
+        --Accent: #14b8a6;
+
+    and save the file.
+
+ 5. Back in RAMMIT, open the Theme list and pick "Ocean Blue".
+    RAMMIT reloads into your theme.
+
+ 6. Keep Notepad open. Every time you save, press the reload button
+    (the circle arrow next to Theme) to see the change.
+
+
+--------------------------------------------------------
+ THE COLOUR LIST (top of CSS\Style.css)
+--------------------------------------------------------
+
+ Write colours as hex (#14b8a6), rgb(20, 184, 166) or
+ rgba(20, 184, 166, 0.5) - the last number is see-through-ness.
+
+   --Background       the window behind everything
+   --Card             the panels (launch panel, settings)
+   --Input            text boxes, drop-downs, list backgrounds
+   --Hover            a list row under the mouse
+   --Text             main text
+   --TextDim          labels, @usernames, placeholders
+   --TextMuted        very faint text
+   --OnAccent         text ON coloured buttons and selected rows
+   --Accent           selected rows, + ADD, highlights
+   --AccentHover      Accent when the mouse is over it
+   --Success          launched marks, CONFIRM, the channel tick
+   --SuccessHover
+   --Danger           - REMOVE, errors, CANCEL
+   --DangerHover
+   --Warning          "launching" marks and warnings
+   --Border           thin lines
+   --BorderLight      slightly brighter lines
+   --EditButton       the LAUNCH and EDIT buttons
+   --NeutralButton    SELECT ALL and SAVE SETTINGS
+   --Scrollbar        scrollbar handle
+   --ScrollbarHover
+   --SelectedTextDim  grey text on a selected row
+   --Scrim            the dark layer behind tutorials
+   --Font             any font installed on your PC,
+                      e.g. 'Bahnschrift', 'Segoe UI', sans-serif
+   --Radius           corner rounding of panels, e.g. 8px
+   --ButtonRadius     corner rounding of buttons and boxes, e.g. 6px
+
+ Tip: light theme?  Start from the "Light" folder - it already has dark
+ text on light panels. Starting from Dark and only changing the
+ background usually leaves white text on white.
+
+
+--------------------------------------------------------
+ GOING FURTHER
+--------------------------------------------------------
+
+ * Extra CSS: anything you add under the "THEME EXTRAS" line at the
+   bottom of Style.css is yours - shadows, gradients, bigger text.
+   Useful class names:
+       .Card  .ListWrapper  .ListItem  .ListItem.Selected
+       .BtnLaunch  .BtnAdd  .BtnEdit  .BtnRemove  .BtnSelect  .BtnSave
+       .CustomSelectTrigger  .CustomSelectOptions  .CustomSelectOption
+       .SectionHeader  .TourCard  .TourMenu
+   Example:
+       .Card { box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45); }
+
+ * The colour swatch: the little square next to the Theme list shows
+   your theme's --Background, --Card, --Accent and --Text colours,
+   read from CSS\Style.css automatically. Comments are ignored, and
+   var(--Something) is followed to its real colour.
+   Renamed your variables? Tell RAMMIT which ones to use in Theme.json:
+
+       "Swatch": {
+           "Background": "--MyBackground",
+           "Card":       "--MyPanel",
+           "Accent":     "--Brand",
+           "Text":       "--Ink"
+       }
+
+   List only the ones you renamed. For each colour RAMMIT looks in this
+   order:
+       1. the normal name in your CSS (--Accent, --Background, ...)
+       2. if that isn't there, the variable "Swatch" links it to
+       3. if neither works, Dark's colour - and a yellow note under the
+          Theme list tells you which one.
+
+   A whole Theme.json with the pointer, for reference:
+
+       {
+           "Name": "Ocean Blue",
+           "Author": "Your Name",
+           "Description": "Deep blue with a teal accent.",
+           "SupportedVersions": ["1.0"],
+           "Swatch": {
+               "Background": "--OceanDeep",
+               "Accent": "--Teal"
+           }
+       }
+
+ * The loading spinner: the spinning arc RAMMIT shows while it starts
+   is drawn by RAMMIT itself before your theme's page loads, so it is
+   NOT in your HTML or CSS and can't be restyled there. It uses two of
+   the swatch colours above:
+       arc         = Accent      (--Accent, or what "Swatch" points at)
+       background  = Background  (--Background, or what "Swatch" points at)
+   The same Background colour also fills the window for the split second
+   before your page appears, so there is no white flash.
+   So the loader always matches your swatch: change --Accent (or point
+   "Swatch" at your own variable) and the arc follows. Any colour works:
+   #14b8a6, rgb(...), hsl(...) or a colour name like "teal".
+
+ * Window size: if you make text or buttons bigger, the window may need
+   to be taller. Edit HeightMap.json in your theme folder:
+
+       "MainWindow":   height of the main window for each Launch Option,
+                       plus "PlayerFilterExtra" - added when the Min/Max
+                       player boxes are showing.
+       "WizardWindow": "Width" of the Add/Edit Config window, its height
+                       for each Method (it opens and snaps to these),
+                       and "ExtraPadding" added below its content when
+                       it re-measures (filters, drop-downs, help).
+
+   Numbers only. A wrong value is ignored (the default is used) and
+   shown in yellow under the Theme list.
+
+ * HTML and pictures: your folder has its own HTML\ and icons, so you
+   can change those too. Pictures and fonts must be files inside your
+   theme folder - RAMMIT never loads anything from the internet.
+
+ * Sharing: zip your theme folder and send it. The other person unzips
+   it into their "Src" folder and picks it in Settings.
+
+
+--------------------------------------------------------
+ PREVIEW PICTURE (optional)
+--------------------------------------------------------
+
+ With the Source folder (inside the RAMMIT-<version>.zip download) and Python installed,
+ one command makes a preview picture of your theme to share:
+
+     python Tools\RenderTheme.py MyTheme
+     python Tools\RenderTheme.py --from "C:\path\to\MyTheme"
+
+ It opens no window: it runs RAMMIT's UI with made-up demo accounts in
+ a hidden Edge (or Chrome) and saves ThemeRenders\MyTheme.png - the
+ main window, the open Theme list, + ADD on hover and the config wizard.
+ Your real accounts and settings are never used.
+
+
+--------------------------------------------------------
+ IF SOMETHING GOES WRONG
+--------------------------------------------------------
+
+ * Window is blank or looks broken: pick "Dark" in the Theme list. If
+   you cannot reach the list, rename or delete your theme folder -
+   RAMMIT falls back to Dark automatically when a theme is missing.
+ * Your theme is not in the list: the folder needs HTML\Index.html
+   inside it (copying Dark or Light gives you that). Folder names may
+   only use letters, numbers, spaces, ( ) . - and _.
+ * Colour did not change: check the line ends with a semicolon (;) and
+   press the reload button after saving.
+
+
+--------------------------------------------------------
+ SAFETY
+--------------------------------------------------------
+
+ A theme folder can contain HTML and JavaScript, which runs inside
+ RAMMIT. Only use themes from people you trust, the same as any other
+ program. RAMMIT blocks themes from loading anything from the internet,
+ and themes can never see your saved Roblox logins.

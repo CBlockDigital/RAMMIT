@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Config Wizard</title>
+    <link rel="icon" href="../RAMMIT.png">
+    <link rel="stylesheet" href="../CSS/Style.css">
+    <script type="module" src="../JS/Wizard.js"></script>
+</head>
+<body class="WizardBody">
+    <div class="CardHeaderRow">
+        <div class="SectionHeader" id="WizardTitle">ADD LAUNCH CONFIG</div>
+        <button class="BtnHelp" id="WizHelpBtn" title="What do these do?">?</button>
+    </div>
+
+    <div class="WizHelp" id="WizHelp" hidden>
+        <div class="WizHelpRow"><b>Name</b><span>What this setup is called in the config list. Saving over an existing name replaces it.</span></div>
+        <div class="WizHelpRow"><b>Method</b><span>The same choices as the launch drop-down: Home, Game URL, Place ID, Place ID + Job ID, or VIP Link.</span></div>
+        <div class="WizHelpRow"><b>Boxes below</b><span>Change with the method &mdash; a game link, a place number, a job id, or a private server link.</span></div>
+        <div class="WizHelpRow"><b>Players / Ping</b><span>Only for Game URL and Place ID. They let RAMMIT choose the server: emptiest, fullest, a player range, or best ping.</span></div>
+        <div class="WizHelpRow"><b>Confirm</b><span>Saves it. Back in the main window, set the launch option to <b>Config</b> and pick it from the list.</span></div>
+    </div>
+
+    <label for="ConfigName">Name</label>
+    <input type="text" id="ConfigName" placeholder="My Config" maxlength="60">
+
+    <label>Method</label>
+    <div class="CustomSelect" id="MethodSelect" data-value="Home">
+        <div class="CustomSelectTrigger">
+            <span class="CustomSelectText">Home</span>
+            <span class="CustomSelectArrow">&#9660;</span>
+        </div>
+        <div class="CustomSelectOptions">
+            <div class="CustomSelectOption" data-value="Home">Home</div>
+            <div class="CustomSelectOption" data-value="Game URL">Game URL</div>
+            <div class="CustomSelectOption" data-value="Place ID">Place ID</div>
+            <div class="CustomSelectOption" data-value="Place ID + Job ID">Place ID + Job ID</div>
+            <div class="CustomSelectOption" data-value="VIP Link">VIP Link</div>
+        </div>
+    </div>
+
+    <div id="DynamicFields"></div>
+
+    <div class="BtnRow">
+        <button class="BtnConfirm" id="ConfirmBtn">CONFIRM</button>
+        <button class="BtnCancel" id="CancelBtn">CANCEL</button>
+    </div>
+    <div class="ErrorMsg" id="ErrorMsg"></div>
+</body>
+</html>

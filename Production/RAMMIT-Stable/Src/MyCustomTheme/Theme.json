@@ -1,0 +1,6 @@
+{
+    "Name": "My Custom Theme",
+    "Author": "RAMMIT example",
+    "Description": "Example custom theme - copy this folder to make your own.",
+    "SupportedVersions": ["1.0"]
+}

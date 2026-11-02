@@ -1,0 +1,1257 @@
+/* =====================================================================
+   THEME: MyCustomTheme (example - a midnight purple look)
+   This folder is a copy of Dark with the colours below changed. Copy it,
+   rename the copy and make it yours: HowToMakeATheme.txt explains how.
+   ===================================================================== */
+
+:root {
+    --Background: #0d0f1a;          /* window behind everything */
+    --Card: #161a2b;                /* panels (launch panel, settings) */
+    --Input: #1f2438;               /* text boxes, drop-downs, list background */
+    --Hover: rgba(139, 124, 255, 0.08);  /* list row under the mouse */
+    --Text: #ffffff;                /* main text */
+    --TextDim: #8f95b2;             /* labels, @usernames, placeholders */
+    --TextMuted: #5a5f7a;           /* faint text (queued marks, version) */
+    --OnAccent: #ffffff;            /* text on coloured buttons and selected rows */
+    --Accent: #7c6cf0;              /* selected rows, + ADD, highlights */
+    --AccentHover: #9a8dff;
+    --Success: #28a745;             /* launched marks, confirm, channel tick */
+    --SuccessHover: #218838;
+    --Danger: #dc3545;              /* - REMOVE, errors, cancel */
+    --DangerHover: #c82333;
+    --Warning: #ffc107;             /* "launching" marks, warnings */
+    --Border: #22273d;
+    --BorderLight: #30364f;
+    --EditButton: #3a8f6a;          /* LAUNCH and EDIT buttons */
+    --NeutralButton: #262b42;       /* SELECT ALL, SAVE SETTINGS */
+    --Scrollbar: #3a4060;
+    --ScrollbarHover: #4a5175;
+    --SelectedTextDim: rgba(255, 255, 255, 0.75);  /* secondary text on a selected row */
+    --Scrim: rgba(0, 0, 0, 0.74);  /* dimming behind tutorials */
+    --Font: 'Segoe UI', sans-serif;
+    --Radius: 8px;                  /* panel corners */
+    --ButtonRadius: 6px;            /* button and text-box corners */
+}
+
+/* =====================================================================
+   LAYOUT - everything below is ordinary CSS using the variables above.
+   ===================================================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+body {
+    background: var(--Background);
+    color: var(--Text);
+    font-family: var(--Font);
+    overflow: hidden;
+    height: 100vh;
+    user-select: none;
+}
+
+.Container {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    grid-template-rows: auto 1fr;
+    zoom: 0.85;
+    padding: 25px;
+    height: 100%;
+    gap: 15px 25px;
+}
+
+/* ===== LEFT PANEL ===== */
+
+.LeftPanel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.SectionHeader {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--Accent);
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+}
+
+/* ===== LEFT SECTION TAB SHAPE ===== */
+
+.LeftSection {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.SectionHeaderRow {
+    display: flex;
+    align-items: flex-end;
+}
+
+.SectionHeaderRow .SectionHeader {
+    margin-bottom: 0;
+    padding-bottom: 8px;
+}
+
+.SectionTab {
+    flex: 1;
+    height: 28px;
+    background: var(--Card);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 4px;
+    margin-left: 8px;
+    position: relative;
+}
+
+.SectionTab::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: -8px;
+    width: 8px;
+    height: 8px;
+    background: radial-gradient(circle at 0% 0%, transparent 8px, var(--Card) 8px);
+}
+
+/* ===== SHARED LIST STYLES ===== */
+
+.ListWrapper {
+    flex: 1;
+    background: var(--Card);
+    border-radius: var(--Radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.LeftSection .ListWrapper {
+    border-radius: var(--Radius) 0 var(--Radius) var(--Radius);
+}
+
+.ItemList {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    list-style: none;
+}
+
+.ItemList::-webkit-scrollbar {
+    width: 10px;
+}
+
+.ItemList::-webkit-scrollbar-track {
+    background: var(--Background);
+}
+
+.ItemList::-webkit-scrollbar-thumb {
+    background: var(--Scrollbar);
+    border-radius: 0;
+}
+
+.ItemList::-webkit-scrollbar-thumb:hover {
+    background: var(--ScrollbarHover);
+}
+
+.ListItem {
+    padding: 10px 15px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.ListItem:hover {
+    background: var(--Hover);
+}
+
+.ListItem.Selected {
+    background: var(--Accent);
+    color: var(--OnAccent);
+}
+
+.ListButtons {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+/* ===== CONFIG LIST COLUMNS ===== */
+
+.ConfigListHeader {
+    display: flex;
+    padding: 9px 15px 9px 15px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--TextDim);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--Border);
+}
+
+.ConfigListHeader .ColParams {
+    font-size: 10px;
+}
+
+.ConfigItem {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: stretch;
+}
+
+.ColName {
+    flex: 0 0 var(--ColNameWidth, 30%);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ColMethod {
+    flex: 0 0 var(--ColMethodWidth, 25%);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ColParams {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--TextDim);
+    font-size: 12px;
+}
+
+.ListItem.Selected .ColParams {
+    color: var(--SelectedTextDim);
+}
+
+/* ===== RIGHT PANEL ===== */
+
+.RightPanel {
+    display: flex;
+    flex-direction: column;
+}
+
+.RightPanel::-webkit-scrollbar {
+    width: 10px;
+}
+
+.RightPanel::-webkit-scrollbar-track {
+    background: var(--Background);
+}
+
+.RightPanel::-webkit-scrollbar-thumb {
+    background: var(--Scrollbar);
+    border-radius: 0;
+}
+
+.RightPanel::-webkit-scrollbar-thumb:hover {
+    background: var(--ScrollbarHover);
+}
+
+/* ===== CARDS ===== */
+
+.Card {
+    background: var(--Card);
+    border-radius: var(--Radius);
+    padding: 20px;
+}
+
+.RightPanel .Card {
+    flex: 0 0 auto;
+    min-height: 0;
+}
+
+.RightPanel .Card.SettingsCard {
+    flex: 1;
+}
+
+.Card.SettingsCard {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ===== LAUNCHER CONTROLS ===== */
+
+.BtnLaunch {
+    width: 100%;
+    padding: 15px;
+    background: var(--EditButton);
+    color: var(--OnAccent);
+    border: none;
+    font-family: var(--Font);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-bottom: 15px;
+    transition: background 0.15s;
+}
+
+.BtnLaunch:hover {
+    background: var(--AccentHover);
+}
+
+.LaunchOptionLabel {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.LaunchOptionRow {
+    margin-bottom: 10px;
+}
+
+.LaunchInput {
+    width: 100%;
+    background: var(--Input);
+    color: var(--Text);
+    border: none;
+    padding: 8px 10px;
+    font-family: var(--Font);
+    font-size: 13px;
+    outline: none;
+    margin-bottom: 8px;
+}
+
+.LaunchInput::placeholder {
+    color: var(--TextDim);
+}
+
+.Card.LauncherCard {
+    display: flex;
+    flex-direction: column;
+}
+
+.StatusFooter {
+    margin-top: auto;
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.CounterLabel {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.LaunchStatus {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--Accent);
+    min-height: 18px;
+}
+
+.LaunchStatus.Error {
+    color: var(--Danger);
+}
+
+.BtnRow {
+    display: flex;
+    gap: 10px;
+}
+
+.BtnAdd, .BtnEdit, .BtnRemove {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    color: var(--OnAccent);
+    font-family: var(--Font);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.BtnAdd {
+    background: var(--Accent);
+}
+
+.BtnEdit {
+    background: var(--EditButton);
+}
+
+.BtnRemove {
+    background: var(--Danger);
+}
+
+.BtnAdd:hover, .BtnEdit:hover, .BtnRemove:hover {
+    opacity: 0.85;
+}
+
+/* ===== ROW 2 COLLAPSIBLE LAYOUT ===== */
+
+.Row2Wrapper {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 0;
+    min-height: 0;
+}
+
+.Row2Wrapper .ConfigsPanel {
+    flex: 1;
+    min-width: 0;
+    transition: flex 0.3s ease;
+}
+
+.Row2Wrapper .SettingsPanel {
+    width: 380px;
+    min-width: 0;
+    overflow: hidden;
+    transition: width 0.3s ease, opacity 0.25s ease, padding 0.3s ease;
+}
+
+.Row2Wrapper .SettingsPanel.Collapsed {
+    width: 0;
+    opacity: 0;
+    padding: 0;
+    pointer-events: none;
+}
+
+.SettingsCollapseToggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 25px;
+    min-width: 25px;
+    cursor: pointer;
+    color: var(--TextDim);
+    font-size: 16px;
+    transition: color 0.15s;
+    margin: 0;
+    user-select: none;
+}
+
+.SettingsCollapseToggle:hover {
+    color: var(--Text);
+}
+
+.SettingsCollapseToggle i {
+    transition: transform 0.3s ease;
+    transform: rotate(0deg);
+}
+
+.SettingsCollapseToggle.Flipped i {
+    transform: rotate(180deg);
+}
+
+
+/* ===== SETTINGS ===== */
+
+.SettingsGrid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px 15px;
+    align-items: center;
+}
+
+.SettingsGrid label {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.SettingsGrid input[type="text"],
+.SettingsGrid input[type="number"] {
+    background: var(--Input);
+    color: var(--Text);
+    border: none;
+    padding: 8px 10px;
+    font-family: var(--Font);
+    font-size: 13px;
+    outline: none;
+    width: 100%;
+}
+
+/* ===== CUSTOM SELECT ===== */
+
+.CustomSelect {
+    position: relative;
+    width: 100%;
+    cursor: pointer;
+}
+
+.CustomSelectTrigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--Input);
+    color: var(--Text);
+    padding: 8px 10px;
+    font-family: var(--Font);
+    font-size: 13px;
+}
+
+.CustomSelectArrow {
+    font-size: 9px;
+    transition: transform 0.15s ease;
+    transform: rotate(90deg);
+}
+
+.CustomSelect.Open .CustomSelectArrow {
+    transform: rotate(0deg);
+}
+
+.CustomSelectOptions {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--Background);
+    z-index: 100;
+    border: 1px solid var(--Border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.CustomSelect.Open .CustomSelectOptions {
+    display: block;
+}
+
+.CustomSelectOption {
+    padding: 8px 10px;
+    font-family: var(--Font);
+    font-size: 13px;
+    color: var(--Text);
+    transition: background 0.1s;
+}
+
+.CustomSelectOption:hover {
+    background: var(--Accent);
+}
+
+.ChannelRow {
+    display: flex;
+    gap: 4px;
+}
+
+.ChannelRow input {
+    flex: 1;
+    background: var(--Input);
+    color: var(--Text);
+    border: none;
+    padding: 8px 10px;
+    font-family: var(--Font);
+    font-size: 13px;
+    outline: none;
+}
+
+.BtnIcon {
+    background: var(--BorderLight);
+    border: none;
+    padding: 3px 6px;
+    font-size: 20px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.BtnIcon:hover {
+    opacity: 0.8;
+}
+
+.BtnIcon.Check {
+    color: var(--Success);
+}
+
+.BtnIcon.Cross {
+    color: var(--Danger);
+}
+
+.BtnSave {
+    width: 100%;
+    padding: 12px;
+    background: var(--NeutralButton);
+    color: var(--Text);
+    border: none;
+    font-family: var(--Font);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: opacity 0.15s;
+}
+
+.BtnSave:hover {
+    opacity: 0.85;
+}
+
+.SettingsFooter {
+    margin-top: auto;
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.StatusMessage {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 0;
+    min-height: 20px;
+}
+
+.StatusMessage.Success {
+    color: var(--Success);
+}
+
+.StatusMessage.Error {
+    color: var(--Danger);
+}
+
+
+/* ===== MULTI-SELECT ACCOUNTS ===== */
+
+.SelectionCount {
+    color: var(--TextDim);
+    font-weight: 600;
+}
+
+.AccountItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.AcctCheck {
+    flex: 0 0 auto;
+    width: 15px;
+    height: 15px;
+    border: 1px solid var(--BorderLight);
+    border-radius: 3px;
+    background: var(--Input);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    line-height: 1;
+    color: transparent;
+    transition: background 0.12s, border-color 0.12s;
+}
+
+.AcctCheck:hover {
+    border-color: var(--AccentHover);
+}
+
+.ListItem.Selected .AcctCheck {
+    background: var(--OnAccent);
+    border-color: var(--OnAccent);
+    color: var(--Accent);
+}
+
+.AcctLabel {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.AcctUser {
+    color: var(--TextDim);
+}
+
+.ListItem.Selected .AcctUser {
+    color: var(--SelectedTextDim);
+}
+
+.AcctStatus {
+    flex: 0 0 auto;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.AcctStatus.Queued { color: var(--TextMuted); }
+.AcctStatus.Launching { color: var(--Warning); }
+.AcctStatus.Ok { color: var(--Success); }
+.AcctStatus.Error { color: var(--Danger); }
+
+.ListItem.Selected .AcctStatus.Queued,
+.ListItem.Selected .AcctStatus.Launching,
+.ListItem.Selected .AcctStatus.Ok,
+.ListItem.Selected .AcctStatus.Error {
+    color: var(--OnAccent);
+}
+
+.BtnSelect {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: var(--NeutralButton);
+    color: var(--Text);
+    font-family: var(--Font);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.BtnSelect:hover {
+    opacity: 0.85;
+}
+
+.BtnLaunch.Cancel {
+    background: var(--Danger);
+}
+
+.BtnLaunch.Cancel:hover {
+    background: var(--DangerHover);
+}
+
+
+/* ===== GUIDED TUTORIAL ===== */
+
+.CardHeaderRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.CardHeaderRow .SectionHeader {
+    margin-bottom: 0;
+}
+
+.BtnHelp {
+    width: 19px;
+    height: 19px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    border: 1px solid var(--BorderLight);
+    background: var(--Input);
+    color: var(--TextDim);
+    font-family: var(--Font);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.BtnHelp:hover {
+    color: var(--Text);
+    border-color: var(--Accent);
+}
+
+.TourOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+}
+
+.TourOverlay.Plain {
+    background: var(--Scrim);
+}
+
+.TourSpot {
+    position: absolute;
+    border-radius: 6px;
+    border: 2px solid var(--Accent);
+    box-shadow: 0 0 0 9999px var(--Scrim);
+    pointer-events: none;
+    transition: top 0.18s ease, left 0.18s ease, width 0.18s ease, height 0.18s ease;
+}
+
+.TourCard {
+    position: absolute;
+    width: 296px;
+    background: var(--Card);
+    border: 1px solid var(--BorderLight);
+    border-radius: 6px;
+    padding: 14px 15px 12px;
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.65);
+}
+
+.TourCard.Centered {
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 330px;
+}
+
+.TourStep {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--TextMuted);
+    margin-bottom: 5px;
+}
+
+.TourTitle {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--Accent);
+    margin-bottom: 7px;
+}
+
+.TourBody {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--Text);
+}
+
+.TourBody b {
+    color: var(--AccentHover);
+}
+
+.TourKeys {
+    margin-top: 9px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.TourKey {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.TourKey kbd {
+    flex: 0 0 auto;
+    min-width: 74px;
+    background: var(--Input);
+    border: 1px solid var(--BorderLight);
+    border-radius: 3px;
+    padding: 2px 5px;
+    font-family: var(--Font);
+    font-size: 10.5px;
+    font-weight: 700;
+    text-align: center;
+    color: var(--Text);
+}
+
+.TourActions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 13px;
+}
+
+.TourNav {
+    display: flex;
+    gap: 7px;
+}
+
+.TourBtn {
+    padding: 7px 13px;
+    border: none;
+    border-radius: 3px;
+    background: var(--NeutralButton);
+    color: var(--Text);
+    font-family: var(--Font);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.TourBtn.Primary {
+    background: var(--Accent);
+    color: var(--OnAccent);
+}
+
+.TourBtn:hover {
+    opacity: 0.85;
+}
+
+.TourBtn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.TourSkip {
+    border: none;
+    background: none;
+    color: var(--TextDim);
+    font-family: var(--Font);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+}
+
+.TourSkip:hover {
+    color: var(--Text);
+}
+
+.TourMenu {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 352px;
+    max-height: calc(100vh - 30px);
+    overflow-y: auto;
+    background: var(--Card);
+    border: 1px solid var(--BorderLight);
+    border-radius: 6px;
+    padding: 16px;
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.65);
+}
+
+.TourMenuTitle {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--Accent);
+    margin-bottom: 4px;
+}
+
+.TourMenuSub {
+    font-size: 11.5px;
+    color: var(--TextDim);
+    line-height: 1.4;
+    margin-bottom: 12px;
+}
+
+.TourMenuItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    background: var(--Input);
+    border: 1px solid transparent;
+    border-radius: var(--Radius);
+    padding: 9px 11px;
+    margin-bottom: 7px;
+    cursor: pointer;
+    color: var(--Text);
+    font-family: var(--Font);
+    transition: border-color 0.15s;
+}
+
+.TourMenuItem:hover {
+    border-color: var(--Accent);
+}
+
+.TourMenuItem .TmText {
+    flex: 1;
+    min-width: 0;
+}
+
+.TourMenuItem .TmName {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 700;
+}
+
+.TourMenuItem .TmDesc {
+    display: block;
+    font-size: 11.5px;
+    line-height: 1.35;
+    color: var(--TextDim);
+    margin-top: 2px;
+}
+
+.TourMenuItem .TmDone {
+    flex: 0 0 auto;
+    width: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--Success);
+}
+
+.TourMenu .TourActions {
+    margin-top: 11px;
+}
+
+/* ===== SMOOTH MOTION ===== */
+
+.ListItem {
+    transition: background 0.15s ease;
+}
+
+.BtnLaunch, .BtnAdd, .BtnEdit, .BtnRemove, .BtnSelect, .BtnSave, .BtnIcon, .TourBtn {
+    transition: background 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
+}
+
+.BtnLaunch:active, .BtnAdd:active, .BtnEdit:active, .BtnRemove:active,
+.BtnSelect:active, .BtnSave:active, .BtnIcon:active, .TourBtn:active {
+    transform: scale(0.97);
+}
+
+.CustomSelect.Open .CustomSelectOptions {
+    animation: RammitDropIn 0.14s ease-out;
+    transform-origin: top center;
+}
+
+@keyframes RammitDropIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.TourCard {
+    transition: top 0.18s ease, left 0.18s ease;
+}
+
+.TourCard:not([hidden]), .TourMenu:not([hidden]) {
+    animation: RammitFadeIn 0.16s ease-out;
+}
+
+@keyframes RammitFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.ItemList, .RightPanel {
+    scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ===== CONFIG WIZARD WINDOW ===== */
+
+body.WizardBody {
+    padding: 20px;
+    overflow: hidden;
+    height: auto;
+}
+
+.WizardBody label {
+    font-size: 12px;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 5px;
+    margin-top: 12px;
+}
+
+.WizardBody input[type="text"] {
+    width: 100%;
+    background: var(--Input);
+    color: var(--Text);
+    border: none;
+    border-radius: var(--ButtonRadius);
+    padding: 8px 10px;
+    font-family: var(--Font);
+    font-size: 13px;
+    outline: none;
+}
+
+.WizardBody input::placeholder { color: var(--TextDim); }
+#DynamicFields { margin-top: 10px; }
+#DynamicFields input { margin-bottom: 8px; }
+#DynamicFields > :last-child { margin-bottom: 10px; }
+/* Same height as Test1's plain-text wizard title (21.3px), so its HeightMap.json values apply 1:1. */
+.WizardBody .CardHeaderRow { min-height: 21.3px; }
+
+.BtnRow button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: var(--ButtonRadius);
+    color: var(--OnAccent);
+    font-family: var(--Font);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.BtnConfirm { background: var(--Success); }
+.BtnCancel { background: var(--Danger); }
+.BtnConfirm:hover, .BtnCancel:hover { opacity: 0.85; }
+
+.WizHelp {
+    background: var(--Card);
+    border: 1px solid var(--BorderLight);
+    border-radius: 4px;
+    padding: 11px 12px;
+    margin-top: 10px;
+}
+
+.WizHelpRow {
+    display: flex;
+    gap: 9px;
+    font-size: 11.5px;
+    line-height: 1.45;
+    margin-bottom: 7px;
+}
+
+.WizHelpRow:last-child { margin-bottom: 0; }
+.WizHelpRow b { flex: 0 0 76px; color: var(--Accent); }
+.WizHelpRow span { color: var(--TextDim); }
+
+.ErrorMsg {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--Danger);
+    margin-top: 10px;
+    min-height: 16px;
+}
+
+/* ===== THEME CONTROLS ===== */
+
+.ThemeRow {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    min-width: 0;
+}
+
+/* Theme picker = [swatch][drop-down]. The list is positioned on .ThemePicker, not on the
+   drop-down, so when it opens it spans the swatch too and keeps the full width. */
+.ThemePicker {
+    --ThemeSwatchSize: 33px;   /* fallback until Themes.js sets it to the button's real height */
+    position: relative;
+    display: flex;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.ThemePicker .CustomSelect {
+    position: static;
+    flex: 1;
+    min-width: 0;
+}
+
+
+.ThemeRow .CustomSelectText {
+    min-width: 0;
+    margin-right: 8px;   /* a cut-off name ("...") never touches the arrow */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* One square split into 4 smaller squares: panel | accent over background | text.
+   Defaults are this page's own colours (= the active theme); list rows set --S0..--S3 from
+   each theme's Style.css (App/Themes.py _Swatch). */
+.ThemeSwatch {
+    --S0: var(--Background);
+    --S1: var(--Card);
+    --S2: var(--Accent);
+    --S3: var(--Text);
+    display: block;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    border: 1px solid var(--BorderLight);
+    border-radius: 2px;
+    background: conic-gradient(var(--S2) 0 25%, var(--S3) 0 50%, var(--S0) 0 75%, var(--S1) 0);
+}
+
+/* Exactly as tall as the picker (the button keeps its natural height, so the row and the
+   HeightMap.json sizes are unchanged), and square. */
+.ThemePicker > .ThemeSwatch {
+    align-self: stretch;               /* height = the picker's height */
+    width: var(--ThemeSwatchSize);     /* = the button's height (set by Themes.js), so it is square */
+}
+
+/* List rows: a swatch column exactly under the active swatch, the name exactly under the
+   button's text (swatch + 6px gap + 10px button padding; -1px for the list border). */
+#ThemeSelect .CustomSelectOption {
+    display: grid;
+    grid-template-columns: var(--ThemeSwatchSize) 1fr;
+    column-gap: 15px;
+    align-items: center;
+    padding-left: 0;
+}
+
+#ThemeSelect .CustomSelectOption .ThemeSwatch {
+    width: 18px;
+    height: 18px;
+    justify-self: center;
+    position: relative;
+    left: -1px;   /* cancels the list's 1px border so it centres exactly under the big swatch */
+}
+
+#ThemeSelect .CustomSelectOption span:last-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ThemeWarning {
+    grid-column: 1 / -1;
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--Warning);
+}
+
+.ThemeWarning:empty { display: none; }
+
+/* Theme version dialog: built from the tour card, plus a hint line and this tick-box row. */
+.ModalHint {
+    margin-top: 8px;
+    color: var(--TextDim);
+}
+
+.ModalCheck {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 11px;
+    font-size: 12px;
+    color: var(--Text);
+    cursor: pointer;
+}
+
+.ModalCheck input {
+    margin: 0;
+    accent-color: var(--Accent);
+}
+
+.AcctLocked {
+    color: var(--Warning);
+    margin-left: 4px;
+}
+
+.AppVersion {
+    font-size: 10px;
+    color: var(--TextMuted);
+    letter-spacing: 0.5px;
+}
+
+.ThemeRow .BtnIcon {
+    color: var(--Text);
+    font-size: 16px;
+    align-self: stretch;
+    border-radius: var(--ButtonRadius);
+}
+
+/* Buttons and text boxes follow the theme's ButtonRadius (0 = square, the Dark look). */
+.BtnAdd, .BtnEdit, .BtnRemove, .BtnSelect, .BtnLaunch, .BtnSave,
+.SettingsGrid input[type="text"], .ChannelRow input, .LaunchInput, .CustomSelectTrigger {
+    border-radius: var(--ButtonRadius);
+}
+
+/* =====================================================================
+   THEME EXTRAS - rules only this theme has. Keep them below this line.
+   ===================================================================== */
+
+/* ---- Extra rules: anything below the variables is ordinary CSS ---- */
+
+
+.Card,
+.ListWrapper {
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+}
+
+.BtnLaunch {
+    box-shadow: 0 0 14px rgba(124, 108, 240, 0.35);
+}

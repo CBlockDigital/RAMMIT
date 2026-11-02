@@ -693,6 +693,8 @@ body {
 .InstCheckboxRow .CheckboxBox i {
     font-size: 11px;
     color: var(--Accent);
+    /* Hide while unticked so the mark is not shown as a ghost check (#2). */
+    visibility: hidden;
 }
 
 .InstCheckboxRow input[type="checkbox"]:checked + .CheckboxBox {
@@ -702,6 +704,7 @@ body {
 
 .InstCheckboxRow input[type="checkbox"]:checked + .CheckboxBox i {
     color: var(--BgCard);
+    visibility: visible;
 }
 
 /* ===== SCREEN SLIDE TRANSITIONS ===== */

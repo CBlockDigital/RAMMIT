@@ -46,6 +46,10 @@ body {
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+    /* No text selection anywhere on the site (also the long-press callout on iOS). */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
 }
 
 /* Paints the safe-area band above the sticky nav on notched phones */

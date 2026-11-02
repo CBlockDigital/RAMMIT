@@ -52,6 +52,12 @@ body {
     -webkit-touch-callout: none;
 }
 
+/* Images (and the logo links) can't be dragged off the page; Firefox is handled in JS/Site.js. */
+img,
+a {
+    -webkit-user-drag: none;
+}
+
 /* Paints the safe-area band above the sticky nav on notched phones */
 body::before {
     content: "";

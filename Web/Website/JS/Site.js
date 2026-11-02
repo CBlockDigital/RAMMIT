@@ -3,6 +3,10 @@
 (function () {
     const ReduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    // ===== NO DRAGGING =====
+    // Images and links can't be dragged out of the page (CSS covers Chromium/Safari; this covers Firefox too).
+    document.addEventListener('dragstart', Event => Event.preventDefault());
+
     // ===== NAV =====
     const Nav = document.getElementById('Nav');
     const UpdateNav = () => Nav.classList.toggle('IsScrolled', window.scrollY > 8);

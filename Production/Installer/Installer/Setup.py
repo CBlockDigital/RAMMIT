@@ -859,6 +859,7 @@ def RunInstall(Version, InstallPath, Report, Release=None, CachedSlot="", Kind="
         if LegacyMode in ("MoveRemove", "MoveKeep") and LegacyMoved:
             Report(StageDetail="Moving accounts and settings")
             Warnings += Legacy.MoveConfig(LegacyMoved, InstallPath, ConfigChoice)
+            RegDeleteValue("LegacyInstallPath")  # dealt with: no OLD VERSION button any more
         if LegacyMode == "MoveRemove" and LegacyMoved:
             Report(StageDetail="Removing the old version")
             Result = Legacy.Remove(LegacyMoved, IncludeConfig=True)

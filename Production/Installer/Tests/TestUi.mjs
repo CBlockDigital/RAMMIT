@@ -225,7 +225,7 @@ try {
     await Open();
     await Shot('08-MenuInstalled', 'MenuInstalled');
     Check('installed menu: versions + buttons (no separate Change version)', (await Text('#InstalledVer')) === 'v1.0.0' && (await Text('#LatestVer')) === 'v1.1.0'
-        && JSON.stringify(await Page.$$eval('[data-screen=MenuInstalled] .BtnInst', Els => Els.map(E => E.textContent))) === '["UPDATE / DOWNGRADE","REPAIR","UNINSTALL","CANCEL"]');
+        && JSON.stringify(await Page.$$eval('[data-screen=MenuInstalled] .BtnInst', Els => Els.filter(E => !E.hidden).map(E => E.textContent))) === '["UPDATE / DOWNGRADE","REPAIR","UNINSTALL","CANCEL"]');  // OLD VERSION is hidden: no old version put off
     await ClickBtn('UpdateBtn');
     await Shot('09-UpdateDowngrade', 'ChangeVersion');
     Check('update/downgrade: crumbs', (await Crumbs()) === 'Menu > Version* > Progress > Done', await Crumbs());

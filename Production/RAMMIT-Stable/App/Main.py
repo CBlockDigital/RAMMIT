@@ -10,7 +10,18 @@ from App.LocalServer import LocalServer
 from App.Log import Logger, Setup as SetupLog
 from App.Version import VersionLabel
 
-WindowWidth, WindowHeight, WindowScale = 900, 700, 0.85
+WindowWidth, WindowScale = 900, 0.85
+
+
+def StartHeight(Bridge):
+    """Opening height from this theme's HeightMap.json for the saved launch option, so the window opens at
+    the right size. The page still resizes on boot (it alone can measure a theme note)."""
+    Map = Themes.LoadHeightMap(Bridge._ActiveThemeId())[0]["MainWindow"]
+    Settings = Bridge._Settings
+    Height = Map.get(Settings.get("LaunchOption"), Map["Home"])
+    if (Settings.get("LaunchParams") or {}).get("PlayerMode") in ("min_only", "max_only", "range"):
+        Height += Map["PlayerFilterExtra"]
+    return max(400, min(Height, 1400))  # same limits as Api.ResizeWindow
 
 
 def Run():
@@ -29,7 +40,7 @@ def Run():
         url=Server.Url("Index.html"),
         js_api=Bridge,
         width=int(WindowWidth * WindowScale),
-        height=int(WindowHeight * WindowScale),
+        height=int(StartHeight(Bridge) * WindowScale),
         resizable=False,
         background_color=Themes.BackgroundColor(Bridge._ActiveThemeId()),
     )

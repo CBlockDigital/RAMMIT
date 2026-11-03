@@ -10,6 +10,7 @@ import os
 import shutil
 import subprocess
 import unittest
+from unittest import mock
 import winreg
 import zipfile
 
@@ -553,7 +554,7 @@ class TestLegacy(InstallerTestCase):
         self.assertEqual(Setup.Classify(self.Old), "Legacy")
         State = InstallerApi.InstallerApi().GetState()
         self.assertFalse(State["Installed"])
-        self.assertEqual(State["Legacy"], {"Path": self.Old, "Version": "1.0.0"})
+        self.assertEqual(State["Legacy"], {"Path": self.Old, "Version": "1.0.0", "Deferred": False})
 
     def test_choice1_move_and_remove_into_another_folder(self):
         Result = self.Install("1.1.0", LegacyMode="MoveRemove", LegacyPath=self.Old)
@@ -612,7 +613,58 @@ class TestLegacy(InstallerTestCase):
         self.assertIsNone(Legacy.Detect())
         with self.assertRaises(Setup.SetupError):  # and its folder still can't be installed over
             Setup.CheckTarget(self.Old)
+
+    def test_Choice4IgnoreWithoutDontAskPutsItOff(self):
+        InstallerApi.InstallerApi().IgnoreLegacy(False)
+        self.assertEqual(Setup.RegRead("LegacyInstallPath"), self.Old)
+        self.assertTrue(Legacy.Detect()["Deferred"])  # the menu opens, with OLD VERSION
+        self.Install("1.1.0")  # a new install takes over InstallPath: the old one is still remembered
+        State = InstallerApi.InstallerApi().GetState()
+        self.assertTrue(State["Installed"])
+        self.assertEqual(State["Legacy"], {"Path": self.Old, "Version": "1.0.0", "Deferred": True})
+        Legacy.RunRemove(self.Old, lambda **_P: None)  # dealt with: forgotten
+        self.assertIsNone(Setup.RegRead("LegacyInstallPath"))
+        self.assertIsNone(Legacy.Detect())
+
+    def test_Choice4DontAskAgainForgetsAPutOffOne(self):
+        Legacy.Ignore(False, self.Old)
+        Legacy.Ignore(True)
+        self.assertIsNone(Setup.RegRead("LegacyInstallPath"))
+        self.assertIsNone(Legacy.Detect())
+
+    def test_Choice2MoveAndKeepForgetsAPutOffOne(self):
+        Legacy.Ignore(False, self.Old)
+        self.Install("1.1.0", LegacyMode="MoveKeep", LegacyPath=self.Old)
+        self.assertIsNone(Setup.RegRead("LegacyInstallPath"))
+        self.assertIsNone(Legacy.Detect())
         self.assertTrue(os.path.isfile(os.path.join(self.Old, "Src", "Version.json")))
+
+    def test_MoveIntoInstalledRammitKeepsTheOldOneAndDoesNotReinstall(self):
+        self.Install("1.1.0")  # RAMMIT installed, the old version put off with Ignore
+        Legacy.Ignore(False, self.Old)
+        Api = InstallerApi.InstallerApi()
+        self.assertEqual(Api.CheckLegacyMove(), {"Ok": True, "NeedsConfigChoice": False})
+        self.assertEqual(Api.StartLegacyMove("Reinstall"), {"Error": "Bad request."})
+        Manifest = Setup.ReadManifest(self.Target)
+        Result = Legacy.RunMove(self.Old, self.Target, "MoveKeep", "KeepNew", NoReport)
+        self.assertEqual((Result["Mode"], Result["InstallPath"]), ("MoveKeep", self.Target))
+        self.assertIn("OldTester", Read(os.path.join(self.Target, "Config", "Accounts.json")))
+        self.assertEqual(Setup.ReadManifest(self.Target), Manifest)  # nothing reinstalled
+        self.assertTrue(os.path.isfile(os.path.join(self.Old, "Src", "Version.json")))  # old one kept
+        self.assertEqual((Setup.RegRead("InstallPath"), Setup.RegRead("Version")), (self.Target, "1.1.0"))
+        self.assertIsNone(Setup.RegRead("LegacyInstallPath"))
+        self.assertIsNone(Legacy.Detect())
+
+    def test_MoveIntoInstalledRammitThenRemoveTheOldOne(self):
+        self.Install("1.1.0")
+        Legacy.Ignore(False, self.Old)
+        Legacy.RunMove(self.Old, self.Target, "MoveRemove", "KeepNew", NoReport)
+        self.assertIn("OldTester", Read(os.path.join(self.Target, "Config", "Accounts.json")))
+        self.assertFalse(os.path.exists(self.Old))
+        self.assertFalse(any(os.path.exists(P) for P in Setup.ShortcutPaths()
+                             if Setup.ReadShortcut(P)[0].lower().endswith("powershell.exe")))
+        self.assertEqual((Setup.RegRead("InstallPath"), Setup.RegRead("Version")), (self.Target, "1.1.0"))
+        self.assertIsNone(Legacy.Detect())
 
     def test_config_clash_keep_new_or_use_old(self):
         self.Install("1.0.0")
@@ -695,6 +747,26 @@ class TestApiSurface(InstallerTestCase):
         self.assertEqual(Api.IgnoreLegacy("1"), {"Error": "Bad request."})
         self.assertIsNone(Api.ResizeInstaller("tall"))
         self.assertIn("Error", Api.Launch())
+
+    def test_ResizeWaitsForLetGoWhileHeld(self):
+        Window = Support.EventWindow()
+        Window.native = mock.Mock(Height=409, DeviceDpi=96)  # 327 logical px at 125%; DeviceDpi stays 96 (pywebview)
+        Api = InstallerApi.InstallerApi()
+        Api._AttachWindow(Window)
+        Api._LastHeight, Api._Frame = 327, 39
+        Api._Dragging = True  # title bar held: only record the height (a resize now would just flicker)
+        Api.ResizeInstaller(411, 288)
+        self.assertIsNone(Window.LastResize)
+        self.assertEqual(Api._LastHeight, 450)
+        with mock.patch.object(InstallerApi.InstallerApi, "_SetHeight") as SetHeight, \
+                mock.patch.object(InstallerApi.InstallerApi, "_WindowScale", return_value=1.25):
+            Api._Dragging = False
+            Api._ReapplyHeight()  # what letting go runs
+            SetHeight.assert_called_once_with(Window.native, round(450 * 1.25))
+            SetHeight.reset_mock()
+            Window.native.Height = round(450 * 1.25)  # already right: nothing to do
+            Api._ReapplyHeight()
+            SetHeight.assert_not_called()
 
 
 class TestUiServer(unittest.TestCase):

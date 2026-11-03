@@ -12,6 +12,7 @@ const Crumbs = {
     // new
     LegacyInstall: ['Old version', 'Version', 'Progress', 'Done'],
     LegacyRemove:  ['Old version', 'Confirm', 'Progress', 'Done'],
+    LegacyMove:    ['Old version', 'Progress', 'Done'],  // choices 1/2 with RAMMIT already installed
 };
 
 const CrumbScreens = {
@@ -21,6 +22,7 @@ const CrumbScreens = {
     Uninstall:     ['MenuInstalled', 'ConfirmUninstall', 'ProgressUninstall', 'UninstallDone'],
     LegacyInstall: ['Legacy', 'Version', 'Progress', 'InstallDone'],
     LegacyRemove:  ['Legacy', 'LegacyConfirm', 'ProgressUninstall', 'LegacyDone'],
+    LegacyMove:    ['Legacy', 'ProgressUninstall', 'LegacyDone'],
 };
 
 const ResultScreens = ['ActionDone', 'InstallDone', 'UninstallDone', 'LegacyDone'];

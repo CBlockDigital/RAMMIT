@@ -18,6 +18,7 @@ import webview
 from App import MultiInstance, Roblox, Storage, Themes
 from App.Log import Logger
 from App.Version import AppChannel, AppName, AppVersion, VersionLabel
+from App.WindowSize import HeldWindow
 
 LockedLoginMessage = "This saved login can't be read on this PC or Windows user. Remove the account and add it again."
 RobloxFirstMessage = "Roblox was already open when RAMMIT started, so only one client can run. Close every Roblox window, then launch again."
@@ -35,6 +36,8 @@ class Api:
         self._Batch = self._EmptyBatch()
         self._MainWindow = None
         self._WizardWindow = None
+        self._MainSizer = None    # App/WindowSize.HeldWindow: resizes that wait while the title bar is held
+        self._WizardSizer = None
         self._WizardEditName = ""
         self._LoginWindow = None
         self._LoginLock = threading.Lock()
@@ -46,6 +49,7 @@ class Api:
 
     def _AttachMainWindow(self, Window):
         self._MainWindow = Window
+        self._MainSizer = HeldWindow(Window)
 
     def _ChosenThemeId(self):
         return self._Settings.get("Theme", Themes.DefaultThemeId)
@@ -209,10 +213,12 @@ class Api:
         Window.events.closed += self._OnWizardClosed
         GuardNavigation(Window, self._Server, "Wizard.html")
         self._WizardWindow = Window
+        self._WizardSizer = HeldWindow(Window)
         return {"Ok": True}
 
     def _OnWizardClosed(self):
         self._WizardWindow = None
+        self._WizardSizer = None
 
     def GetWizardData(self):
         with self._DataLock:
@@ -486,9 +492,9 @@ class Api:
             Height = max(400, min(int(Height), 1400))
         except (TypeError, ValueError):
             return
-        if self._MainWindow:
+        if self._MainSizer:
             try:
-                self._MainWindow.resize(int(900 * 0.85), int(Height * 0.85))
+                self._MainSizer.Resize(int(900 * 0.85), int(Height * 0.85))
             except Exception:
                 pass
 
@@ -497,12 +503,12 @@ class Api:
             Height = max(200, min(int(Height), 1200))
         except (TypeError, ValueError):
             return
-        Window = self._WizardWindow
-        if Window:
+        Window, Sizer = self._WizardWindow, self._WizardSizer
+        if Window and Sizer:
             try:
                 if abs(Height - Window.height) < 2:  # Test1: skip tiny resizes so the window doesn't jitter
                     return
-                Window.resize(Themes.LoadHeightMap(self._ActiveThemeId())[0]["WizardWindow"]["Width"], Height)
+                Sizer.Resize(Themes.LoadHeightMap(self._ActiveThemeId())[0]["WizardWindow"]["Width"], Height)
             except Exception:
                 pass
 

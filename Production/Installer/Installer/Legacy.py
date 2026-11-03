@@ -10,7 +10,8 @@ The four choices on the "Older RAMMIT found" screen map to:
   1. MoveRemove  copy Config\\ files into the new install, then Remove(IncludeConfig=True)
   2. MoveKeep    copy Config\\ files into the new install, leave the old one alone
   3. Remove      Remove(IncludeConfig=True) without copying (the UI asks to confirm first)
-  4. Ignore      nothing; with "don't ask again" the registry gets IgnoreLegacyInstall=1
+  4. Ignore      with "don't ask again" the registry gets IgnoreLegacyInstall=1; without it, LegacyInstallPath=<folder>,
+                 and later runs open the menu with an OLD VERSION button instead of this screen
 
 Only names Test1 is known to ship are ever deleted. Account files are copied as files and never read
 (they hold login cookies); "has accounts" is judged by file size alone.
@@ -51,13 +52,16 @@ def ReadVersion(Folder):
 
 
 def Detect():
-    """{Path, Version, Shortcuts} for a Test1 install the registry points at, unless the user said ignore it."""
-    Folder = Setup.RegRead("InstallPath")
-    if not Folder or not os.path.isdir(Folder) or Setup.RegRead("IgnoreLegacyInstall") == "1":
+    """{Path, Version, Shortcuts, Deferred} for a Test1 install the registry points at (InstallPath, or LegacyInstallPath
+    once the user pressed Ignore), unless the user said never ask again. Deferred = it was put off with Ignore."""
+    if Setup.RegRead("IgnoreLegacyInstall") == "1":
         return None
-    if not IsLegacyFolder(Folder):
-        return None
-    return {"Path": Folder, "Version": ReadVersion(Folder), "Shortcuts": FindShortcuts()}
+    PutOff = Setup.RegRead("LegacyInstallPath")
+    for Folder in (Setup.RegRead("InstallPath"), PutOff):
+        if Folder and os.path.isdir(Folder) and IsLegacyFolder(Folder):
+            return {"Path": Folder, "Version": ReadVersion(Folder), "Shortcuts": FindShortcuts(),
+                    "Deferred": bool(PutOff) and Paths.SamePath(Folder, PutOff)}
+    return None
 
 
 def UnknownEntries(Folder):
@@ -157,8 +161,9 @@ def RemoveShortcuts():
 
 
 def ClearRegistry(Folder):
-    """Test1's values: Version, ConfigPath, CleanupPath, and InstallPath while it still points at the old folder."""
-    for Name in ("Version", "ConfigPath", "CleanupPath"):
+    """Test1's values: Version, ConfigPath, CleanupPath, and InstallPath while it still points at the old folder;
+    plus LegacyInstallPath (the old version is dealt with)."""
+    for Name in ("Version", "ConfigPath", "CleanupPath", "LegacyInstallPath"):
         Setup.RegDeleteValue(Name)
     Current = Setup.RegRead("InstallPath")
     if Current and Folder and Paths.SamePath(Current, Folder):
@@ -166,9 +171,14 @@ def ClearRegistry(Folder):
     Setup.TidyRegistry()
 
 
-def Ignore(DontAskAgain):
+def Ignore(DontAskAgain, Folder=""):
+    """Ticked: never ask again. Unticked: remember the folder, so it stays reachable from the menu (even after a new
+    install takes over InstallPath) without blocking the way in."""
     if DontAskAgain:
         Setup.RegWrite("IgnoreLegacyInstall", "1")
+        Setup.RegDeleteValue("LegacyInstallPath")
+    elif Folder:
+        Setup.RegWrite("LegacyInstallPath", Folder)
 
 
 def RunRemove(Folder, Report):
@@ -184,3 +194,25 @@ def RunRemove(Folder, Report):
     Report(Pct=100)
     Logger.info("Old version removed from %s (left: %d)", Folder, len(Result["Left"]))
     return {"Path": Folder, "Left": Result["Left"]}
+
+
+def RunMove(Folder, InstallPath, Mode, Choice, Report):
+    """Choices 1 and 2 when RAMMIT is already installed: nothing is reinstalled, only the old version's accounts and
+    settings come across (MoveConfig, same rules as an install). MoveRemove then removes the old version like choice 3.
+    The registry's InstallPath and Version belong to the installed RAMMIT, so only Test1's own values go."""
+    if Setup.FindRunning([Folder, InstallPath]):
+        raise Setup.SetupError("RAMMIT is running. Close it first.", Running=True)
+    Report(Label="Moving accounts and settings", Pct=10, ActiveStage=0)
+    Warnings = MoveConfig(Folder, InstallPath, Choice)
+    Left = []
+    if Mode == "MoveRemove":
+        Report(Label="Removing the old version", Pct=50)
+        Left = Remove(Folder, IncludeConfig=True)["Left"]
+        RemoveShortcuts()
+    Report(Pct=100, ActiveStage=1)
+    Report(Label="Cleaning up")
+    for Name in ("ConfigPath", "CleanupPath", "LegacyInstallPath"):
+        Setup.RegDeleteValue(Name)
+    Report(Pct=100)
+    Logger.info("Old version's config moved into %s (%s)", InstallPath, Mode)
+    return {"Path": Folder, "InstallPath": InstallPath, "Mode": Mode, "Left": Left, "Warnings": Warnings}

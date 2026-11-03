@@ -42,6 +42,7 @@
     --BorderLight: #333333;
     --BtnEdit: #1a6b3a;
     --Green2: #1a6b3a;
+    --Legacy: #4b3f8f;  /* OLD VERSION button: muted violet */
     --BtnNeutral: #222222;
     --ScrollbarThumb: #444444;
     --ScrollbarThumbHover: #555555;
@@ -252,6 +253,10 @@ body {
 
 .BtnInst.Primary {
     background: var(--Accent);
+}
+
+.BtnInst.Legacy {
+    background: var(--Legacy);
 }
 
 .BtnInst.Success {
@@ -693,6 +698,8 @@ body {
 .InstCheckboxRow .CheckboxBox i {
     font-size: 11px;
     color: var(--Accent);
+    /* hidden, not display: none, so the box keeps its size while unticked (#2) */
+    visibility: hidden;
 }
 
 .InstCheckboxRow input[type="checkbox"]:checked + .CheckboxBox {
@@ -702,6 +709,7 @@ body {
 
 .InstCheckboxRow input[type="checkbox"]:checked + .CheckboxBox i {
     color: var(--BgCard);
+    visibility: visible;
 }
 
 /* ===== SCREEN SLIDE TRANSITIONS ===== */

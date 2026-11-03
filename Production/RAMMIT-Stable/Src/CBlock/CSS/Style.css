@@ -1,6 +1,6 @@
 /* =====================================================================
    THEME: CBlock
-   The look of the Industrialist Simulator website: near-black panels on
+   The look of the CBlock website: near-black panels on
    black, one deep violet accent (#5d1fa9), thin indigo borders, flat.
    Same variables as Dark - see HowToMakeATheme.txt next to RAMMIT.exe.
    ===================================================================== */
@@ -32,6 +32,7 @@
     --Font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     --Radius: 8px;                  /* panel corners */
     --ButtonRadius: 4px;            /* button and text-box corners */
+    --TooltipRadius: 4px;           /* tooltip corners (other themes: square) */
 }
 
 /* =====================================================================
@@ -1152,7 +1153,13 @@ body.WizardBody {
     box-sizing: border-box;
     border: 1px solid var(--BorderLight);
     border-radius: 2px;
-    background: conic-gradient(var(--S2) 0 25%, var(--S3) 0 50%, var(--S0) 0 75%, var(--S1) 0);
+    /* Three half-size layers over --S1, not a conic-gradient: its hard stops come out jagged at
+       fractional sizes and DPI scaling, these straight edges stay crisp. */
+    background:
+        linear-gradient(var(--S2), var(--S2)) right top / 50% 50% no-repeat,
+        linear-gradient(var(--S3), var(--S3)) right bottom / 50% 50% no-repeat,
+        linear-gradient(var(--S0), var(--S0)) left bottom / 50% 50% no-repeat,
+        var(--S1);
 }
 
 /* Exactly as tall as the picker (the button keeps its natural height, so the row and the
@@ -1241,12 +1248,39 @@ body.WizardBody {
     border-radius: var(--ButtonRadius);
 }
 
+/* Tooltips (JS/Tooltip.js): follow the cursor, flip to its other side at the window's edges. Outside .Container, so
+   not zoomed. Square unless the theme sets --TooltipRadius. Width is the text's own (max-content), so measuring it
+   does not depend on where it currently sits; long text wraps, and "\n" starts a new line. */
+.Tooltip {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 9999;
+    width: max-content;
+    max-width: min(320px, calc(100vw - 8px));
+    padding: 4px 8px;
+    background: var(--Card);
+    border: 1px solid var(--BorderLight);
+    border-radius: var(--TooltipRadius, 0px);
+    color: var(--Text);
+    font-family: var(--Font);
+    font-size: 11px;
+    white-space: pre-line;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.Tooltip.Visible {
+    opacity: 1;
+}
+
 /* =====================================================================
    THEME EXTRAS - rules only this theme has. Keep them below this line.
    ===================================================================== */
 
 /* CBlock: flat panels, 1px indigo rings, outlined buttons that invert on hover (the
-   Industrialist site's .Btn / .Field / .DropdownToggle look). Nothing here changes a size:
+   CBlock site's .Btn / .Field / .DropdownToggle look). Nothing here changes a size:
    rings are inset box-shadows or outlines, so HeightMap.json still fits. */
 
 /* Panels: the site's 1px #18122a border, drawn inside the box. */

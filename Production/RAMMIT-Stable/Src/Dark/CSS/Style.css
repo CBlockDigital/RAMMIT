@@ -1154,7 +1154,13 @@ body.WizardBody {
     box-sizing: border-box;
     border: 1px solid var(--BorderLight);
     border-radius: 2px;
-    background: conic-gradient(var(--S2) 0 25%, var(--S3) 0 50%, var(--S0) 0 75%, var(--S1) 0);
+    /* Three half-size layers over --S1, not a conic-gradient: its hard stops come out jagged at
+       fractional sizes and DPI scaling, these straight edges stay crisp. */
+    background:
+        linear-gradient(var(--S2), var(--S2)) right top / 50% 50% no-repeat,
+        linear-gradient(var(--S3), var(--S3)) right bottom / 50% 50% no-repeat,
+        linear-gradient(var(--S0), var(--S0)) left bottom / 50% 50% no-repeat,
+        var(--S1);
 }
 
 /* Exactly as tall as the picker (the button keeps its natural height, so the row and the
@@ -1241,6 +1247,33 @@ body.WizardBody {
 .BtnAdd, .BtnEdit, .BtnRemove, .BtnSelect, .BtnLaunch, .BtnSave,
 .SettingsGrid input[type="text"], .ChannelRow input, .LaunchInput, .CustomSelectTrigger {
     border-radius: var(--ButtonRadius);
+}
+
+/* Tooltips (JS/Tooltip.js): follow the cursor, flip to its other side at the window's edges. Outside .Container, so
+   not zoomed. Square unless the theme sets --TooltipRadius. Width is the text's own (max-content), so measuring it
+   does not depend on where it currently sits; long text wraps, and "\n" starts a new line. */
+.Tooltip {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 9999;
+    width: max-content;
+    max-width: min(320px, calc(100vw - 8px));
+    padding: 4px 8px;
+    background: var(--Card);
+    border: 1px solid var(--BorderLight);
+    border-radius: var(--TooltipRadius, 0px);
+    color: var(--Text);
+    font-family: var(--Font);
+    font-size: 11px;
+    white-space: pre-line;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.Tooltip.Visible {
+    opacity: 1;
 }
 
 /* =====================================================================

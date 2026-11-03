@@ -444,6 +444,30 @@ class TestApi(unittest.TestCase):
         self.assertEqual(self.Api.GetHeightMap()["WizardWindow"]["Width"], 400)
         self.assertIn("Error", self.Api.UpdateSetting("Theme", "../../Config"))
 
+    def test_MainWindowOpensAtHeightMapHeight(self):
+        from App import Main
+        Map = Themes.LoadHeightMap("Dark")[0]["MainWindow"]
+        self.assertEqual(Main.StartHeight(self.Api), Map["Home"])
+        self.Api.UpdateSettings({"LaunchOption": "Game URL", "LaunchParams": {"PlayerMode": "range"}})
+        self.assertEqual(Main.StartHeight(self.Api), Map["Game URL"] + Map["PlayerFilterExtra"])
+
+    def test_ResizeWaitsForLetGoWhileWindowIsHeld(self):
+        from App import WindowSize
+        Window = mock.MagicMock()
+        Window.native = mock.Mock(Height=595, DeviceDpi=96)  # 476 logical px at 125%; DeviceDpi stays 96 (pywebview)
+        self.Api._AttachMainWindow(Window)
+        Sizer = self.Api._MainSizer
+        Sizer._Dragging = True  # title bar held: only record the height (Windows would undo a resize now)
+        self.Api.ResizeWindow(800)
+        Window.resize.assert_not_called()
+        with mock.patch.object(WindowSize.HeldWindow, "_SetHeight") as SetHeight, \
+                mock.patch.object(WindowSize.HeldWindow, "_WindowScale", return_value=1.25):
+            Sizer._Dragging = False
+            Sizer._ReapplyHeight()  # what letting go runs
+            SetHeight.assert_called_once_with(Window.native, round(int(800 * 0.85) * 1.25))
+        self.Api.ResizeWindow(716)  # not held: straight through
+        Window.resize.assert_called_once_with(int(900 * 0.85), int(716 * 0.85))
+
     def test_FindLoginCookie(self):
         Morsel = mock.Mock(value="tok")
         self.assertEqual(ApiModule.Api._FindLoginCookie([{"other": mock.Mock(value="x"), ".ROBLOSECURITY": Morsel}]), "tok")

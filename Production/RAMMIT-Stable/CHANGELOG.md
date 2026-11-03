@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.2 (2026-11)
+
+- **Installer:** the window no longer stays at the Loading screen's height. Grabbing or dragging the title bar while the screen changed undid the resize; a resize that arrives while the window is held now waits and is applied once when you let go.
+- **Installer:** the window opens at the Loading screen's real height (`HeightMap.json` Loading 327 → 323), so it no longer shrinks a few pixels right after opening, and the space above and below the card is even.
+- **Installer:** pressing **Ignore** on the "older test version" screen without ticking "Don't ask again" now puts it off instead of asking every time: the menu opens as normal, with an **OLD VERSION** button and a line saying where the old version is. It stays reachable after installing the new RAMMIT, and goes away once the old version is moved or removed.
+- **Installer:** with RAMMIT already installed, the old version's screen keeps all four choices. The two "move my accounts" choices then copy its accounts and settings into the installed RAMMIT without reinstalling it, and the first one removes the old version afterwards.
+- **Installer:** the "Uninstall Config/ folder too" tick box no longer shows its check mark while unticked (#2).
+- **Tooltips:** every button and setting has a tooltip, drawn in the theme's own colours instead of the plain Windows one. It follows the cursor and flips to the other side near the window's edges. CBlock's are rounded; a custom theme can set `--TooltipRadius`.
+- The main window opens at its `HeightMap.json` height for the saved launch option, instead of opening shorter and resizing once the page has loaded.
+- The main window and the config window keep the right height when you grab or drag their title bar while they resize: the resize waits and is applied when you let go (the same fix as the installer's).
+- The theme colour swatch next to the Theme drop-down has straight edges instead of jagged ones.
+
 ## 1.1.1 (2026-11)
 
 - **Installer:** uninstalling now removes the Desktop and Start Menu shortcuts even when Windows writes the folder with its short name (e.g. `C:\Users\JOHNSM~1\...` instead of `C:\Users\John Smith\...`). Before, the shortcuts were left behind in that case.
@@ -49,7 +61,7 @@ Full audit; details in [SECURITY.md](SECURITY.md).
 - Config wizard uses Test1's tuned per-method heights and sizing logic (`HeightMap.json` › `WizardWindow`).
 
 ### Added
-- **CBlock theme** (`Src\CBlock`): the Industrialist Simulator / CBlock website look. It has the same layout as Dark, with black and near-black panels, one violet accent (`#5d1fa9`) and thin indigo rings. Fields use the site's `.Field` style. Buttons follow the site: `.Btn.Filled` for the main actions (LAUNCH, CONFIRM) and outlined `.Btn` for the secondary ones (ADD, EDIT, REMOVE, CANCEL), each inverting on hover. Panel titles are uppercase and use a lighter violet for readability. Sizes are unchanged, so the height map holds.
+- **CBlock theme** (`Src\CBlock`): the CBlock website look. It has the same layout as Dark, with black and near-black panels, one violet accent (`#5d1fa9`) and thin indigo rings. Fields use the site's `.Field` style. Buttons follow the site: `.Btn.Filled` for the main actions (LAUNCH, CONFIRM) and outlined `.Btn` for the secondary ones (ADD, EDIT, REMOVE, CANCEL), each inverting on hover. Panel titles are uppercase and use a lighter violet for readability. Sizes are unchanged, so the height map holds.
 
 ### Changed
 - Launchers: **Fishstrap** replaces Voidstrap (Roblox / Bloxstrap / Fishstrap, as in Test1). A saved "Voidstrap" setting falls back to Roblox.

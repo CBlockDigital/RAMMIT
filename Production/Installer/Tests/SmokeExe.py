@@ -37,7 +37,7 @@ try:
         Rect = win32gui.GetWindowRect(Hwnd)
         StartHeight = Rect[3] - Rect[1]
         # The release list was fetched, the menu shown, and the window resized so its client area is exactly the
-        # 371 logical px the menu page measures (start size from HeightMap.json is 327 incl. the frame).
+        # 371 logical px the menu page measures (start size from HeightMap.json is 323 incl. the frame).
         Scale = ctypes.windll.user32.GetDpiForWindow(Hwnd) / 96
         Grown = Support.WaitUntil(lambda: any("/repos/" in P for P in Server.Requests)
                                   and abs(win32gui.GetClientRect(Hwnd)[3] / Scale - 371) <= 2, 60, 0.2)

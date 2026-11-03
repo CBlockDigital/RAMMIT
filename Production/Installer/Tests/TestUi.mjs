@@ -295,8 +295,11 @@ try {
     await Hook('StartScreen', { Screen: '' });
     Check('/Uninstall opens straight at the confirm screen (Settings > Apps)', (await Crumbs()) === 'Menu > Confirm* > Progress > Goodbye'
         && (await Text('#ConfirmUninstallMsg')).startsWith("You're about to uninstall RAMMIT v1.1.0."));
+    const CheckIconVisibility = () => Page.$eval('[data-screen=ConfirmUninstall] .CheckboxBox i', E => getComputedStyle(E).visibility);
+    Check('unticked check icon is hidden (#2)', (await CheckIconVisibility()) === 'hidden');
     await Page.click('[data-screen=ConfirmUninstall] .InstCheckboxRow');
     Check('tick box changes the warning (Test1)', /also remove your Config\/ folder/.test(await Text('#ConfirmUninstallMsg')));
+    Check('ticked check icon is visible (#2)', (await CheckIconVisibility()) === 'visible');
     await Page.click('[data-screen=ConfirmUninstall] .InstCheckboxRow');
     await Hook('Accounts', { Path: DefaultPath });  // RAMMIT has run once: there is a Config folder to keep
     await Hook('SlowUninstall', { Delay: 0.4 });

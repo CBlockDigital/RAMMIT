@@ -1,0 +1,412 @@
+/* Brand pack page. Builds on ../CSS/Site.css (same tokens, panels, buttons). */
+
+.BrandHero {
+    max-width: calc(var(--MaxW) + 2 * var(--PadX));
+    margin: 0 auto;
+    padding: clamp(40px, 6vw, 72px) var(--PadX) clamp(40px, 5vw, 64px);
+}
+
+.BrandHero h1 {
+    font-size: clamp(40px, 4.4vw, 58px);
+    font-weight: 700;
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+}
+
+.BrandHero .Lead {
+    max-width: 46ch;
+}
+
+/* ===== LOGO ===== */
+
+.LogoGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 20px;
+}
+
+.LogoTile figcaption {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 12px;
+    font-size: 15px;
+    color: var(--TextDim);
+}
+
+.LogoStage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 220px;
+    padding: 32px;
+    border: 1px solid var(--Border);
+}
+
+.LogoStage img {
+    max-height: 100%;
+    width: auto;
+}
+
+.WordmarkImg {
+    max-width: 70%;
+    height: auto;
+}
+
+.StageDark { background: var(--Background); }
+.StageCard { background: #2a2a2a; }
+.StageLight { background: #ffffff; border-color: #ffffff; }
+
+.FileLinks a {
+    color: var(--AccentHover);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.FileLinks a + a {
+    margin-left: 14px;
+}
+
+.FileLinksBlock {
+    margin-top: 20px;
+    color: var(--TextDim);
+}
+
+.FileLinksBlock a:first-child {
+    margin-left: 10px;
+}
+
+.RulesSplit {
+    margin-top: clamp(40px, 5vw, 64px);
+    padding-top: clamp(32px, 4vw, 48px);
+    border-top: 1px solid var(--Border);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+/* The dashed box marks the clear space: a quarter of the icon's height on every side */
+.ClearSpace {
+    display: inline-block;
+    margin-top: 24px;
+    padding: 25px;
+    background: var(--Background);
+    outline: 1px dashed var(--AccentHover);
+    outline-offset: -1px;
+}
+
+.ClearSpace img {
+    width: 300px;
+    height: 100px;
+}
+
+.DontGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    gap: 16px;
+    margin-top: 14px;
+}
+
+.DontStage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 104px;
+    background: var(--Background);
+    border: 1px solid var(--Border);
+    overflow: hidden;
+}
+
+.DontStage::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(to top right, transparent calc(50% - 1.5px), var(--Danger) calc(50% - 1.5px), var(--Danger) calc(50% + 1.5px), transparent calc(50% + 1.5px));
+}
+
+/* Light grey rather than white, so the faint white mark still shows */
+.DontStage.StageLight {
+    background: #e6e6e6;
+}
+
+.DontGrid figcaption {
+    margin-top: 6px;
+    font-size: 14px;
+    color: var(--TextDim);
+}
+
+.DontRotate { transform: rotate(-20deg); }
+.DontRecolour { filter: hue-rotate(140deg); }
+.DontStretch { transform: scaleX(1.6); }
+.DontGlow { filter: drop-shadow(0 0 14px #1e90ff); }
+
+.DontNote {
+    margin-top: 18px;
+}
+
+/* ===== COLOUR (rows drawn like the app's settings) ===== */
+
+.SwatchList {
+    border-top: 1px solid var(--Border);
+}
+
+.Swatch {
+    display: grid;
+    grid-template-columns: 44px 150px 140px minmax(0, 1fr);
+    gap: 16px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--Border);
+}
+
+.Chip {
+    width: 44px;
+    height: 32px;
+    border: 1px solid var(--BorderLight);
+}
+
+.SwatchName {
+    font-weight: 600;
+}
+
+.Swatch code,
+.CopyButton {
+    font-family: Consolas, ui-monospace, monospace;
+}
+
+.Swatch code {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--Input);
+    padding: 6px 6px 6px 12px;
+    font-size: 15px;
+}
+
+.Swatch p {
+    color: var(--TextDim);
+}
+
+.SwatchBrand {
+    padding: 16px 0;
+}
+
+.SwatchBrand .Chip {
+    height: 44px;
+}
+
+/* ===== COPY BUTTONS (text selection is off site-wide) ===== */
+
+.CopyButton {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    background: var(--NeutralButton);
+    border: none;
+    color: var(--Text);
+    font-family: var(--Font);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.CopyButton:hover {
+    background: var(--BorderLight);
+}
+
+.CopyButton.IsCopied {
+    background: var(--EditButton);
+}
+
+.CopyButton:focus-visible {
+    outline: 2px solid var(--AccentHover);
+    outline-offset: 2px;
+}
+
+/* ===== TYPE ===== */
+
+.TypeList {
+    border-top: 1px solid var(--Border);
+}
+
+.TypeRow {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 20px;
+    align-items: center;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--Border);
+}
+
+.TypeMeta {
+    font-size: 14px;
+    color: var(--TextDim);
+}
+
+.TypeHead {
+    font-size: clamp(28px, 3vw, 40px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+.TypeBody {
+    color: var(--TextDim);
+}
+
+.TypeBtn {
+    padding: 10px 22px;
+    font-size: 15px;
+}
+
+.TypeLabel {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--Accent);
+}
+
+/* ===== WORDING ===== */
+
+.CopyList {
+    border-top: 1px solid var(--Border);
+}
+
+.CopyRow {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr) auto;
+    gap: 20px;
+    align-items: start;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--Border);
+}
+
+.CopyName {
+    font-weight: 600;
+}
+
+.CopyText {
+    color: var(--TextDim);
+    max-width: 70ch;
+}
+
+.CopyRow .CopyButton {
+    padding: 6px 12px;
+}
+
+.AvoidHead {
+    margin-top: 36px;
+}
+
+.AvoidList {
+    list-style: none;
+    margin: 6px 0 16px;
+}
+
+.AvoidList li {
+    position: relative;
+    padding-left: 22px;
+    color: var(--TextDim);
+}
+
+/* The same red cross the app uses on its cancel button */
+.AvoidList li::before {
+    content: '\00D7';
+    position: absolute;
+    left: 0;
+    font-weight: 700;
+    color: var(--Danger);
+}
+
+/* ===== SOCIAL ===== */
+
+.SocialGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+}
+
+.SocialFull {
+    grid-column: 1 / -1;
+}
+
+.SocialTile figcaption {
+    margin-top: 10px;
+    font-size: 15px;
+    color: var(--TextDim);
+}
+
+.SocialTile figcaption a {
+    color: var(--AccentHover);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.ShotsHead {
+    margin-top: clamp(32px, 4vw, 48px);
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 960px) {
+    .LogoGrid,
+    .RulesSplit,
+    .SocialGrid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 720px) {
+    .LogoStage {
+        height: 170px;
+        padding: 24px;
+    }
+
+    .ClearSpace {
+        padding: 16px;
+    }
+
+    .ClearSpace img {
+        width: 210px;
+        height: 70px;
+    }
+
+    .Swatch {
+        grid-template-columns: 44px minmax(0, 1fr) auto;
+        row-gap: 4px;
+    }
+
+    .Swatch p {
+        grid-column: 2 / -1;
+        font-size: 15px;
+    }
+
+    .TypeRow {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 6px;
+    }
+
+    .CopyRow {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 6px 14px;
+    }
+
+    .CopyText {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+
+    .FileLinks a {
+        display: inline-block;
+        margin: 4px 14px 4px 0;
+    }
+
+    .FileLinks a + a,
+    .FileLinksBlock a:first-child {
+        margin-left: 0;
+    }
+}

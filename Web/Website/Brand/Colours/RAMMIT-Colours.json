@@ -1,0 +1,110 @@
+{
+  "BrandBlue": {
+    "Hex": "#335FFF",
+    "Rgb": [
+      51,
+      95,
+      255
+    ],
+    "Use": "The logo background. Logo only, never UI."
+  },
+  "Background": {
+    "Hex": "#0A0A0A",
+    "Rgb": [
+      10,
+      10,
+      10
+    ],
+    "Use": "Page and window background."
+  },
+  "Card": {
+    "Hex": "#141414",
+    "Rgb": [
+      20,
+      20,
+      20
+    ],
+    "Use": "Panels."
+  },
+  "Input": {
+    "Hex": "#1F1F1F",
+    "Rgb": [
+      31,
+      31,
+      31
+    ],
+    "Use": "Text boxes, drop-downs."
+  },
+  "Border": {
+    "Hex": "#252525",
+    "Rgb": [
+      37,
+      37,
+      37
+    ],
+    "Use": "Dividers, 1 px borders."
+  },
+  "Text": {
+    "Hex": "#FFFFFF",
+    "Rgb": [
+      255,
+      255,
+      255
+    ],
+    "Use": "Main text."
+  },
+  "TextDim": {
+    "Hex": "#888888",
+    "Rgb": [
+      136,
+      136,
+      136
+    ],
+    "Use": "Secondary text, labels."
+  },
+  "Accent": {
+    "Hex": "#0078D4",
+    "Rgb": [
+      0,
+      120,
+      212
+    ],
+    "Use": "Selected rows, + ADD, panel labels."
+  },
+  "AccentHover": {
+    "Hex": "#1E90FF",
+    "Rgb": [
+      30,
+      144,
+      255
+    ],
+    "Use": "Links, hover states."
+  },
+  "Launch": {
+    "Hex": "#1A6B3A",
+    "Rgb": [
+      26,
+      107,
+      58
+    ],
+    "Use": "LAUNCH and Download buttons only."
+  },
+  "Success": {
+    "Hex": "#28A745",
+    "Rgb": [
+      40,
+      167,
+      69
+    ],
+    "Use": "Launched, confirm."
+  },
+  "Danger": {
+    "Hex": "#DC3545",
+    "Rgb": [
+      220,
+      53,
+      69
+    ],
+    "Use": "- REMOVE, errors."
+  }
+}

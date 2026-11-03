@@ -56,8 +56,8 @@ async function LaunchSelected() {
     const Names = SelectedInListOrder();
     if (!Names.length) { ShowLaunchError('No account selected.'); return; }
     SetLaunchStatus(Names.length > 1 ? `Launching 1 / ${Names.length}...` : 'Launching...');
-    State.AccountStatus = {};
-    ApplyAccountStatus();
+    LastResults = {};
+    RenderAccountStatus();
     const Option = GetSelectValue(ById('LaunchOptionSelect'));
     const Result = await Api.LaunchAccounts(Names, Option, Form.GetParams(), State.SelectedConfig);
     if (Result && Result.Error) { ShowLaunchError(Result.Error); return; }
@@ -87,19 +87,36 @@ function SetBatchRunning(Running) {
     else ApplySelection();
 }
 
+// Row marks come from two places: the batch's results (queued / launching / skipped / error) and, once an account's
+// launch went through, its client's live state from GetCounter (App/MultiInstance.ClientTracker): "•••" while Roblox
+// starts, "✓" once its game window is open, nothing again once that window closes.
 const StatusCells = {
-    ok: { State: 'Ok', Text: '✓' }, launching: { State: 'Launching', Text: '•••' },
+    launching: { State: 'Launching', Text: '•••' },
     queued: { State: 'Queued', Text: '…' }, skipped: { State: 'Queued', Text: '–' },
 };
+const LiveCells = {
+    starting: { State: 'Launching', Text: '•••', Title: 'Roblox is starting' },
+    running: { State: 'Ok', Text: '✓', Title: 'Open in Roblox' },
+};
+let LastResults = {};   // username -> the batch's result for it
+let LiveAccounts = {};  // username -> "starting" / "running"
 
-function ApplyProgress(Progress) {
+function RenderAccountStatus() {
     State.AccountStatus = {};
-    Object.entries(Progress.Results || {}).forEach(([Name, Value]) => {
+    Object.entries(LastResults).forEach(([Name, Value]) => {
         const Text = String(Value);
-        if (StatusCells[Text]) State.AccountStatus[Name] = StatusCells[Text];
+        if (Text === 'ok') {  // launched: the live state decides; until the first counter tick, it's starting
+            if (State.BatchRunning) State.AccountStatus[Name] = LiveCells.starting;
+        } else if (StatusCells[Text]) State.AccountStatus[Name] = StatusCells[Text];
         else if (Text.startsWith('error:')) State.AccountStatus[Name] = { State: 'Error', Text: '✗', Title: Text.slice(6) };
     });
+    Object.entries(LiveAccounts).forEach(([Name, Live]) => { if (LiveCells[Live]) State.AccountStatus[Name] = LiveCells[Live]; });
     ApplyAccountStatus();
+}
+
+function ApplyProgress(Progress) {
+    LastResults = Progress.Results || {};
+    RenderAccountStatus();
     if (Progress.Running) SetLaunchStatus(`Launching ${Math.min(Progress.Done + 1, Progress.Total)} / ${Progress.Total}...`);
 }
 
@@ -126,6 +143,8 @@ export async function UpdateCounter() {
         Label.textContent = `RUNNING: ${Counter.Running} / ${Counter.Max}` + (Counter.MultiReady === false ? ' ⚠' : '');
         Label.title = Counter.MultiReady === false
             ? 'Roblox was already open when RAMMIT started, so only one client can run. Close every Roblox window and RAMMIT will take over on the next launch.' : '';
+        LiveAccounts = Counter.Accounts || {};
+        RenderAccountStatus();
     } catch (_) { /* backend busy - next tick */ }
 }
 

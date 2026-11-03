@@ -32,7 +32,7 @@ class Api:
         self._Settings = Storage.LoadSettings()
         self._Configs = Storage.LoadConfigs()
         self._DataLock = threading.RLock()
-        self._TrackedPids = set()
+        self._Clients = MultiInstance.ClientTracker()  # which running client is which account (holds launch tickets)
         self._Batch = self._EmptyBatch()
         self._MainWindow = None
         self._WizardWindow = None
@@ -312,7 +312,7 @@ class Api:
             return {"Error": "Player counts must be whole numbers."}
 
         with MultiInstance.LaunchLock:
-            Running = MultiInstance.CountRunning(self._TrackedPids)
+            Running = MultiInstance.CountRunning(self._Clients)
             if Running >= self._Settings["MaxInstances"]:
                 return {"Error": "Instance limit reached."}
             if not MultiInstance.HoldMutex() and Running > 0:
@@ -339,8 +339,8 @@ class Api:
                 LaunchUrl = Roblox.BuildLaunchUrl(Ticket, PlaceId, JobId, LinkCode)
             except ValueError as Error:
                 return {"Error": str(Error)}
-            Proc = subprocess.Popen([Exe, LaunchUrl], creationflags=subprocess.CREATE_NO_WINDOW)
-            self._TrackedPids.add(Proc.pid)
+            self._Clients.Expect(Ticket, Account["Username"])  # before the client exists, so no scan can miss it
+            subprocess.Popen([Exe, LaunchUrl], creationflags=subprocess.CREATE_NO_WINDOW)
             Logger.info("Launched %s (%s)", Username, Option)
             return {"Ok": True}
 
@@ -415,8 +415,11 @@ class Api:
         return Roblox.GetGameMaxPlayers(PlaceId) if Roblox.IsPlaceId(PlaceId) else 0
 
     def GetCounter(self):
-        return {"Running": MultiInstance.CountRunning(self._TrackedPids), "Max": self._Settings["MaxInstances"],
-                "MultiReady": MultiInstance.IsReady()}
+        """Running count, plus each launched account's live state: {"Accounts": {Username: "starting" / "running"}}
+        (a closed client's account is simply absent)."""
+        Running = MultiInstance.CountRunning(self._Clients)
+        return {"Running": Running, "Max": self._Settings["MaxInstances"], "MultiReady": MultiInstance.IsReady(),
+                "Accounts": self._Clients.Accounts()}
 
     # ------------------------------------------------------------ settings
 

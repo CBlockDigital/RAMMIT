@@ -410,7 +410,38 @@ class TestApi(unittest.TestCase):
         Args = Popen.call_args[0][0]
         self.assertEqual(Args[0], "C:\\R.exe")
         self.assertIn("placeId=123", Args[1])
-        self.assertIn(4242, self.Api._TrackedPids)
+        self.assertEqual([Name for _Ticket, Name, _At in self.Api._Clients._Expected], ["B"])  # waiting for its client
+
+    def test_ClientTrackerMatchesClientsToAccountsByTicket(self):
+        from App import MultiInstance
+        Tracker = MultiInstance.ClientTracker()
+        Tracker.Expect("TICKETA", "A")
+        Tracker.Expect("TICKETB", "B")
+        Lines = {10: "RobloxPlayerBeta.exe roblox-player:1+launchmode:play+gameinfo:TICKETA+launchtime:1",
+                 11: "RobloxPlayerBeta.exe roblox-player:1+launchmode:play+gameinfo:TICKETB+launchtime:2",
+                 12: "RobloxPlayerBeta.exe --launch-to-tray"}  # a closed game's tray process: no ticket, never counted
+
+        def Scan(Players, Windows):
+            with mock.patch.object(MultiInstance, "_PlayerPids", return_value=set(Players)), \
+                    mock.patch.object(MultiInstance, "_GameWindowPids", return_value=set(Windows)), \
+                    mock.patch.object(MultiInstance, "_CommandLine", side_effect=lambda Pid: Lines[Pid]):
+                return Tracker.Scan(), Tracker.Accounts()
+
+        self.assertEqual(Scan([], []), (2, {"A": "starting", "B": "starting"}))  # launched, no client yet
+        self.assertEqual(Scan([10, 11], [10]), (2, {"A": "running", "B": "starting"}))  # B's window not shown yet
+        self.assertEqual(Scan([10, 11], [10, 11]), (2, {"A": "running", "B": "running"}))
+        self.assertEqual(Scan([11, 12], [11]), (1, {"B": "running"}))  # A closed: its game window and process are gone
+        self.assertEqual(Scan([12], []), (0, {}))
+
+    def test_OnlyGameWindowsCount(self):
+        # Roblox's tray right-click menu (SystrayContextMenu) is a visible window too, and a hidden game window isn't open yet.
+        from App import MultiInstance
+        Windows = {1: ("WINDOWSCLIENT", True, 11), 2: ("SystrayContextMenu", True, 12), 3: ("WINDOWSCLIENT", False, 13)}
+        with mock.patch.object(MultiInstance.win32gui, "EnumWindows", side_effect=lambda Fn, _X: [Fn(H, None) for H in Windows]), \
+                mock.patch.object(MultiInstance.win32gui, "IsWindowVisible", side_effect=lambda H: Windows[H][1]), \
+                mock.patch.object(MultiInstance.win32gui, "GetClassName", side_effect=lambda H: Windows[H][0]), \
+                mock.patch.object(MultiInstance.win32process, "GetWindowThreadProcessId", side_effect=lambda H: (0, Windows[H][2])):
+            self.assertEqual(MultiInstance._GameWindowPids(), {11})
 
     def test_RobloxAlreadyRunningGivesClearError(self):
         self.Api._Settings["MaxInstances"] = 5

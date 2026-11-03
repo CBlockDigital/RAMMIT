@@ -89,7 +89,7 @@ webview.create_window = FakeWindow
 ApiModule.webview.create_window = FakeWindow
 ApiModule.subprocess = types.SimpleNamespace(Popen=FakePopen, CREATE_NO_WINDOW=0)
 MultiInstance.Enable = MultiInstance.LockCookieFile = MultiInstance.HoldMutex = MultiInstance.IsReady = lambda: True
-MultiInstance.CountRunning = lambda _Tracker=None: Fake["Running"]
+MultiInstance.CountRunning = lambda _Tracker=None, IncludeStarting=True: Fake["Running"]
 # No real clients here: every account RAMMIT launched counts as open (its row shows the running mark).
 MultiInstance.ClientTracker.Accounts = lambda Self: {Name: "running" for _Ticket, Name, _At in Self._Expected}
 Roblox.GetAuthTicket = lambda _Cookie: "FAKETICKET0123"

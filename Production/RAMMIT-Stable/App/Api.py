@@ -417,7 +417,7 @@ class Api:
     def GetCounter(self):
         """Running count, plus each launched account's live state: {"Accounts": {Username: "starting" / "running"}}
         (a closed client's account is simply absent)."""
-        Running = MultiInstance.CountRunning(self._Clients)
+        Running = MultiInstance.CountRunning(self._Clients, IncludeStarting=False)  # the label: open game windows only
         return {"Running": Running, "Max": self._Settings["MaxInstances"], "MultiReady": MultiInstance.IsReady(),
                 "Accounts": self._Clients.Accounts()}
 

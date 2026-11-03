@@ -56,6 +56,8 @@ async function LaunchSelected() {
     const Names = SelectedInListOrder();
     if (!Names.length) { ShowLaunchError('No account selected.'); return; }
     SetLaunchStatus(Names.length > 1 ? `Launching 1 / ${Names.length}...` : 'Launching...');
+    Waiting = null;
+    LastProgress = null;
     LastResults = {};
     RenderAccountStatus();
     const Option = GetSelectValue(ById('LaunchOptionSelect'));
@@ -114,14 +116,44 @@ function RenderAccountStatus() {
     ApplyAccountStatus();
 }
 
+// The status line only says "Launched" once the game windows are open (as RAMMIT's earlier test builds did): while an account
+// is being launched, or its window isn't open yet, it says "Launching X / Y..."; in the launch delay after an account
+// whose window is already open, "Launched X/Y". After the last launch it waits for the windows, then ShowLaunchDone
+// (which clears itself); it gives up waiting after WindowWait.
+const WindowWait = 30000;
+let LastProgress = null;
+let Waiting = null;  // { Names, Ok, Total, Since } after a batch, until its windows are open
+
+const IsOpen = Name => LiveAccounts[Name] === 'running';
+
+function BatchStatusText(Progress) {
+    const Results = Progress.Results || {};
+    if (Object.values(Results).includes('launching')) return `Launching ${Math.min(Progress.Done + 1, Progress.Total)} / ${Progress.Total}...`;
+    const Last = Object.keys(Results).filter(Name => Results[Name] === 'ok').pop();
+    return Last && IsOpen(Last) ? `Launched ${Progress.Done}/${Progress.Total}` : `Launching ${Progress.Done} / ${Progress.Total}...`;
+}
+
+function RenderLaunchStatus() {
+    if (State.BatchRunning && LastProgress) { SetLaunchStatus(BatchStatusText(LastProgress)); return; }
+    if (!Waiting) return;
+    if (Waiting.Names.every(IsOpen) || Date.now() - Waiting.Since > WindowWait) {
+        ShowLaunchDone(`Launched ${Waiting.Ok}/${Waiting.Total}`);
+        Waiting = null;
+    } else {
+        SetLaunchStatus(`Launching ${Waiting.Total} / ${Waiting.Total}...`);
+    }
+}
+
 function ApplyProgress(Progress) {
     LastResults = Progress.Results || {};
+    LastProgress = Progress;
     RenderAccountStatus();
-    if (Progress.Running) SetLaunchStatus(`Launching ${Math.min(Progress.Done + 1, Progress.Total)} / ${Progress.Total}...`);
+    if (Progress.Running) RenderLaunchStatus();
 }
 
 function FinishBatch(Progress) {
-    const Values = Object.values(Progress.Results || {}).map(String);
+    const Results = Progress.Results || {};
+    const Values = Object.values(Results).map(String);
     const Ok = Values.filter(V => V === 'ok').length;
     const Errors = Values.filter(V => V.startsWith('error:'));
     if (Errors.length || Progress.Message) {
@@ -130,7 +162,8 @@ function FinishBatch(Progress) {
         if (Errors.length) Text += ` — ${Errors.length} failed: ${Errors[0].slice(6)}`;
         ShowLaunchError(Text);
     } else {
-        ShowLaunchDone(`Launched ${Ok}/${Progress.Total}`);
+        Waiting = { Names: Object.keys(Results).filter(Name => Results[Name] === 'ok'), Ok, Total: Progress.Total, Since: Date.now() };
+        RenderLaunchStatus();
     }
     UpdateCounter();
 }
@@ -145,6 +178,7 @@ export async function UpdateCounter() {
             ? 'Roblox was already open when RAMMIT started, so only one client can run. Close every Roblox window and RAMMIT will take over on the next launch.' : '';
         LiveAccounts = Counter.Accounts || {};
         RenderAccountStatus();
+        RenderLaunchStatus();
     } catch (_) { /* backend busy - next tick */ }
 }
 

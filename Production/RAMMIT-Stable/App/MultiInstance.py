@@ -136,8 +136,9 @@ class ClientTracker:
         with self._Lock:
             self._Expected.append((Ticket, Username, time.monotonic()))
 
-    def Scan(self):
-        """Number of running clients (game windows + launches still starting); also refreshes Accounts()."""
+    def Scan(self, IncludeStarting=True):
+        """Number of running clients: game windows, plus launches still starting unless IncludeStarting is False (the
+        instance limit counts them, so a batch can't overshoot; the counter label doesn't). Also refreshes Accounts()."""
         PlayerPids, WindowPids = _PlayerPids(), _GameWindowPids()
         with self._Lock:
             Now = time.monotonic()
@@ -164,7 +165,7 @@ class ClientTracker:
                         Accounts.setdefault(Username, "starting")
             Starting = len(self._Expected) + sum(1 for Pid, Username in self._Owners.items() if Username and Pid not in WindowPids)
             self._Last = Accounts
-            return len(WindowPids & PlayerPids) + Starting
+            return len(WindowPids & PlayerPids) + (Starting if IncludeStarting else 0)
 
     def Accounts(self):
         """{Username: "starting" or "running"} for RAMMIT's own launches, as of the last Scan(). Closed ones are absent."""
@@ -172,6 +173,7 @@ class ClientTracker:
             return dict(self._Last)
 
 
-def CountRunning(Tracker=None):
-    """Number of running Roblox clients: processes with a visible game window, plus Tracker's launches still starting."""
-    return (Tracker or ClientTracker()).Scan()
+def CountRunning(Tracker=None, IncludeStarting=True):
+    """Number of running Roblox clients: processes with a visible game window, plus (unless IncludeStarting is False)
+    Tracker's launches still starting."""
+    return (Tracker or ClientTracker()).Scan(IncludeStarting)

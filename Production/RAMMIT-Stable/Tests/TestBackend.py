@@ -410,29 +410,39 @@ class TestApi(unittest.TestCase):
         Args = Popen.call_args[0][0]
         self.assertEqual(Args[0], "C:\\R.exe")
         self.assertIn("placeId=123", Args[1])
-        self.assertEqual([Name for _Ticket, Name, _At in self.Api._Clients._Expected], ["B"])  # waiting for its client
+        self.assertEqual(self.Api._Clients._Owners[4242]["User"], "B")  # the started process belongs to the account
+        self.assertEqual(self.Api._Clients._Expected, [])
 
-    def test_ClientTrackerMatchesClientsToAccountsByTicket(self):
+    def test_ClientTrackerFollowsLaunchesToTheirGameWindows(self):
+        # As seen on a real PC: the process RAMMIT starts can hand the game to a "--launch-to-tray" child that opens the
+        # window; a game that closes leaves a tray child too, which must not take the account over.
         from App import MultiInstance
         Tracker = MultiInstance.ClientTracker()
         Tracker.Expect("TICKETA", "A")
-        Tracker.Expect("TICKETB", "B")
-        Lines = {10: "RobloxPlayerBeta.exe roblox-player:1+launchmode:play+gameinfo:TICKETA+launchtime:1",
-                 11: "RobloxPlayerBeta.exe roblox-player:1+launchmode:play+gameinfo:TICKETB+launchtime:2",
-                 12: "RobloxPlayerBeta.exe --launch-to-tray"}  # a closed game's tray process: no ticket, never counted
+        Tracker.Started("TICKETA", 20)  # A: RAMMIT started pid 20
+        Tracker.Expect("TICKETB", "B")  # B: its process is only found by its ticket (pid 30)
+        Lines = {20: "RobloxPlayerBeta.exe roblox-player:1+launchmode:play+gameinfo:TICKETA+launchtime:1",
+                 21: "RobloxPlayerBeta.exe --launch-to-tray", 22: "RobloxPlayerBeta.exe --launch-to-tray",
+                 30: "RobloxPlayerBeta.exe roblox-player:1+launchmode:play+gameinfo:TICKETB+launchtime:2"}
+        Parents = {20: 1, 21: 20, 22: 21, 30: 1}
+        Players = set()
 
-        def Scan(Players, Windows, IncludeStarting=True):
-            with mock.patch.object(MultiInstance, "_PlayerPids", return_value=set(Players)), \
+        def Scan(Running, Windows, IncludeStarting=True):
+            Players.clear()
+            Players.update(Running)
+            with mock.patch.object(MultiInstance, "_PlayerPids", return_value=set(Running)), \
                     mock.patch.object(MultiInstance, "_GameWindowPids", return_value=set(Windows)), \
-                    mock.patch.object(MultiInstance, "_CommandLine", side_effect=lambda Pid: Lines[Pid]):
+                    mock.patch.object(MultiInstance, "_CommandLine", side_effect=lambda Pid: Lines[Pid]), \
+                    mock.patch.object(MultiInstance, "_ParentPid", side_effect=lambda Pid: Parents[Pid]), \
+                    mock.patch.object(MultiInstance, "_Alive", side_effect=lambda Pid: Pid in Players):
                 return Tracker.Scan(IncludeStarting), Tracker.Accounts()
 
-        self.assertEqual(Scan([], []), (2, {"A": "starting", "B": "starting"}))  # launched, no client yet: counts for the limit
-        self.assertEqual(Scan([], [], IncludeStarting=False)[0], 0)  # but not on the counter label
-        self.assertEqual(Scan([10, 11], [10]), (2, {"A": "running", "B": "starting"}))  # B's window not shown yet
-        self.assertEqual(Scan([10, 11], [10, 11]), (2, {"A": "running", "B": "running"}))
-        self.assertEqual(Scan([11, 12], [11]), (1, {"B": "running"}))  # A closed: its game window and process are gone
-        self.assertEqual(Scan([12], []), (0, {}))
+        self.assertEqual(Scan([20], []), (2, {"A": "starting", "B": "starting"}))  # no windows yet: count for the limit
+        self.assertEqual(Scan([20], [], IncludeStarting=False)[0], 0)  # but not on the counter label
+        self.assertEqual(Scan([21], [21]), (2, {"A": "running", "B": "starting"}))  # 20 handed A to 21, which opened it
+        self.assertEqual(Scan([21, 30], [21, 30]), (2, {"A": "running", "B": "running"}))  # B found by its ticket
+        self.assertEqual(Scan([22, 30], [30]), (1, {"B": "running"}))  # A closed; its tray child 22 isn't A
+        self.assertEqual(Scan([22], []), (0, {}))
 
     def test_OnlyGameWindowsCount(self):
         # Roblox's tray right-click menu (SystrayContextMenu) is a visible window too, and a hidden game window isn't open yet.

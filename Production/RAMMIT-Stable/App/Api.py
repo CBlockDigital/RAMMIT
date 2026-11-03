@@ -340,7 +340,8 @@ class Api:
             except ValueError as Error:
                 return {"Error": str(Error)}
             self._Clients.Expect(Ticket, Account["Username"])  # before the client exists, so no scan can miss it
-            subprocess.Popen([Exe, LaunchUrl], creationflags=subprocess.CREATE_NO_WINDOW)
+            Proc = subprocess.Popen([Exe, LaunchUrl], creationflags=subprocess.CREATE_NO_WINDOW)
+            self._Clients.Started(Ticket, Proc.pid)
             Logger.info("Launched %s (%s)", Username, Option)
             return {"Ok": True}
 

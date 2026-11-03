@@ -12,10 +12,11 @@ before every launch; once every Roblox window is closed it succeeds.
 Counting and tracking (ClientTracker): a client is a RobloxPlayerBeta.exe that owns a visible
 WINDOWSCLIENT window (the game). Other visible windows don't count: closing a game starts a
 "--launch-to-tray" RobloxPlayerBeta that only has a tray icon, and its right-click menu is a
-visible window too. Each launch's one-time ticket travels in the roblox-player: link on the
-game process's command line, so matching it tells which account a client belongs to (and so
-which one closed). Launches still starting (no game window for ~9 s) are counted too, or a
-batch launch would overshoot MaxInstances. Tickets stay in memory and are never logged.
+visible window too. Which account a client belongs to comes from the process RAMMIT started and
+its children (Roblox may hand a launch to a child that opens the window), or the launch's
+one-time ticket on the command line; so RAMMIT also knows which account closed. Launches still
+starting (no game window for ~9 s) count towards MaxInstances, or a batch launch would
+overshoot it. Tickets stay in memory and are never logged.
 """
 import msvcrt
 import os
@@ -123,18 +124,46 @@ def _CommandLine(Pid):
         return ""
 
 
+def _ParentPid(Pid):
+    try:
+        return psutil.Process(Pid).ppid()
+    except (psutil.Error, OSError):
+        return None
+
+
+def _Alive(Pid):
+    return psutil.pid_exists(Pid)
+
+
+GoneKeep = 60  # seconds a finished launch process is remembered, so a client it started can still take over its account
+
+
 class ClientTracker:
-    """Which account each running Roblox client belongs to. Keep it in a _-prefixed Api attribute: it holds tickets."""
+    """Which account each running Roblox client belongs to. Keep it in a _-prefixed Api attribute: it holds tickets.
+
+    The process RAMMIT starts belongs to the account (Started). A Roblox process whose parent belongs to an account that
+    hasn't shown its game window yet takes that account over: Roblox can hand a launch to a "--launch-to-tray" child
+    that opens the window, and Bloxstrap / Fishstrap start Roblox as a child. Failing that, the launch ticket on the
+    command line. A child started after the window was shown (the tray process a closed game leaves) takes nothing."""
 
     def __init__(self):
         self._Lock = threading.Lock()
-        self._Expected = []  # (launch ticket, Username, time launched) per launch; dropped once matched or after StartTimeout
-        self._Owners = {}    # player pid -> Username, or None for a client that isn't one of RAMMIT's launches
+        self._Expected = []  # (launch ticket, Username, time launched) per launch whose process isn't known yet
+        self._Owners = {}    # pid -> {"User": Username or None, "Since", "Shown": had a game window, "Gone": time or None}
         self._Last = {}      # Username -> "starting" / "running", from the last Scan()
 
     def Expect(self, Ticket, Username):
         with self._Lock:
             self._Expected.append((Ticket, Username, time.monotonic()))
+
+    def Started(self, Ticket, Pid):
+        """The process RAMMIT started for the launch Expect()ed with Ticket."""
+        with self._Lock:
+            for Entry in self._Expected:
+                if Entry[0] == Ticket:
+                    self._Expected.remove(Entry)
+                    self._Owners[Pid] = {"User": Entry[1], "Since": Entry[2], "Shown": False, "Gone": None}
+                    break
 
     def Scan(self, IncludeStarting=True):
         """Number of running clients: game windows, plus launches still starting unless IncludeStarting is False (the
@@ -142,29 +171,37 @@ class ClientTracker:
         PlayerPids, WindowPids = _PlayerPids(), _GameWindowPids()
         with self._Lock:
             Now = time.monotonic()
-            for Pid in list(self._Owners):
-                if Pid not in PlayerPids:
+            for Pid, Info in list(self._Owners.items()):
+                if Info["Gone"] is None and Pid not in PlayerPids and not _Alive(Pid):
+                    Info["Gone"] = Now
+                if Info["Gone"] is not None and Now - Info["Gone"] > GoneKeep:
                     del self._Owners[Pid]
+                elif Pid in WindowPids:
+                    Info["Shown"] = True
             for Pid in PlayerPids - set(self._Owners):
-                Line = _CommandLine(Pid)
-                Owner = None
-                for Entry in self._Expected:
-                    if "gameinfo:" + Entry[0] in Line:
-                        Owner = Entry[1]
-                        self._Expected.remove(Entry)
-                        break
-                if Owner or Pid in WindowPids or not Line:  # tray and helper processes get looked at again later
-                    self._Owners[Pid] = Owner
+                Owner, Since = None, Now
+                Parent = self._Owners.get(_ParentPid(Pid))
+                if Parent and Parent["User"] and not Parent["Shown"]:
+                    Owner, Since = Parent["User"], Parent["Since"]
+                else:
+                    Line = _CommandLine(Pid)
+                    for Entry in self._Expected:
+                        if "gameinfo:" + Entry[0] in Line:
+                            Owner, Since = Entry[1], Entry[2]
+                            self._Expected.remove(Entry)
+                            break
+                self._Owners[Pid] = {"User": Owner, "Since": Since, "Shown": Pid in WindowPids, "Gone": None}
             self._Expected = [Entry for Entry in self._Expected if Now - Entry[2] <= StartTimeout]
             Accounts = {Username: "starting" for _Ticket, Username, _At in self._Expected}
-            for Pid, Username in self._Owners.items():
-                if Username:
-                    if Pid in WindowPids:
-                        Accounts[Username] = "running"
-                    else:
-                        Accounts.setdefault(Username, "starting")
-            Starting = len(self._Expected) + sum(1 for Pid, Username in self._Owners.items() if Username and Pid not in WindowPids)
+            for Pid, Info in self._Owners.items():
+                if not Info["User"] or Info["Gone"] is not None:
+                    continue
+                if Pid in WindowPids:
+                    Accounts[Info["User"]] = "running"
+                elif not Info["Shown"] and Now - Info["Since"] <= StartTimeout:
+                    Accounts.setdefault(Info["User"], "starting")
             self._Last = Accounts
+            Starting = sum(1 for State in Accounts.values() if State == "starting")
             return len(WindowPids & PlayerPids) + (Starting if IncludeStarting else 0)
 
     def Accounts(self):

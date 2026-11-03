@@ -82,7 +82,9 @@ class FakeProc:
 def FakePopen(Args, **_Kw):
     Fake["Launches"].append(Args[1])
     Fake["Running"] += 1
-    return FakeProc()
+    Proc = FakeProc()
+    Proc.pid = FakeProc.pid - len(Fake["Launches"])  # one pid per launch, like real ones
+    return Proc
 
 
 webview.create_window = FakeWindow
@@ -91,7 +93,7 @@ ApiModule.subprocess = types.SimpleNamespace(Popen=FakePopen, CREATE_NO_WINDOW=0
 MultiInstance.Enable = MultiInstance.LockCookieFile = MultiInstance.HoldMutex = MultiInstance.IsReady = lambda: True
 MultiInstance.CountRunning = lambda _Tracker=None, IncludeStarting=True: Fake["Running"]
 # No real clients here: every account RAMMIT launched counts as open (its row shows the running mark).
-MultiInstance.ClientTracker.Accounts = lambda Self: {Name: "running" for _Ticket, Name, _At in Self._Expected}
+MultiInstance.ClientTracker.Accounts = lambda Self: {Info["User"]: "running" for Info in Self._Owners.values() if Info["User"]}
 Roblox.GetAuthTicket = lambda _Cookie: "FAKETICKET0123"
 Roblox.FindLauncherPath = lambda _L: r"C:\Fake\RobloxPlayerBeta.exe"
 Roblox.FetchServers = lambda _P, _C=None, MaxPages=10: [dict(S) for S in FakeServers]

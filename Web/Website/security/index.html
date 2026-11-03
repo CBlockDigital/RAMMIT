@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Security policy · RAMMIT</title>
+    <meta name="description" content="How to report a security problem in RAMMIT privately, what is in scope, which versions get fixes, and how to verify a download.">
+    <meta name="theme-color" content="#0a0a0a">
+    <link rel="icon" href="/Assets/RAMMIT.ico">
+    <link rel="stylesheet" href="/CSS/Site.css">
+</head>
+<body>
+
+<a class="SkipLink" href="#Content">Skip to content</a>
+
+<!-- ===== NAV ===== -->
+<header class="Nav" id="Nav">
+    <div class="NavInner">
+        <a class="Brand" href="/" aria-label="RAMMIT home">
+            <img src="/Assets/RAMMIT.png" alt="" width="28" height="28">
+            <span>RAMMIT</span>
+        </a>
+        <nav class="NavLinks" aria-label="Sections">
+            <a href="/#HowItWorks">How it works</a>
+            <a href="/#LaunchOptions">Launch options</a>
+            <a href="/#Settings">Settings</a>
+            <a href="/#Faq">FAQ</a>
+            <a href="https://github.com/CBlockDigital/RAMMIT" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+        <a class="Btn BtnLaunch BtnSmall" href="https://github.com/CBlockDigital/RAMMIT/releases/latest/download/RAMMIT-Setup.exe">Download</a>
+    </div>
+</header>
+
+<main id="Content" class="LegalLayout">
+
+    <aside class="LegalSide">
+        <p class="LegalSideLabel" id="LegalNavLabel">Legal</p>
+        <nav class="LegalNav" aria-labelledby="LegalNavLabel">
+            <ul>
+                <li><a href="/legal/">Overview</a></li>
+                <li><a href="/privacy/">Privacy Policy</a></li>
+                <li><a href="/terms/">Terms of Use</a></li>
+                <li><a href="/disclaimer/">Software Disclaimer</a></li>
+                <li><a href="/notices/">Copyright and trademarks</a></li>
+                <li><a href="/security/" aria-current="page">Security policy</a></li>
+                <li><a href="/support/">Support and contact</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <article class="LegalDoc" aria-labelledby="DocTitle">
+        <div class="PanelHead"><p class="PanelLabel">Security</p><span class="PanelTab"></span></div>
+        <div class="PanelBody LegalBody">
+            <h1 id="DocTitle">Security policy</h1>
+            <p class="LegalMeta">Last updated <time datetime="2026-11-03">3 November 2026</time> · <span class="Status IsCurrent">Current</span></p>
+
+            <p class="LegalLead">RAMMIT keeps Roblox logins on your PC, so security reports matter. This policy covers the RAMMIT app, the installer (<code>RAMMIT-Setup.exe</code>), this website and the build and release files in the RAMMIT repository.</p>
+
+            <nav class="Toc" aria-labelledby="TocTitle">
+                <h2 id="TocTitle">On this page</h2>
+                <ol>
+                    <li><a href="#Report">Report a vulnerability privately</a></li>
+                    <li><a href="#Next">What happens next</a></li>
+                    <li><a href="#Versions">Supported versions</a></li>
+                    <li><a href="#Scope">Scope</a></li>
+                    <li><a href="#Limits">Known limits</a></li>
+                    <li><a href="#Verify">Verify your download</a></li>
+                </ol>
+            </nav>
+
+            <h2 id="Report">Report a vulnerability privately</h2>
+            <p>Use GitHub's private vulnerability reporting: <a href="https://github.com/CBlockDigital/RAMMIT/security/advisories/new" target="_blank" rel="noopener">Report a vulnerability</a>. You need a GitHub account. Only you and the repository's maintainers can see the report. Please don't report security problems in public issues, discussions or pull requests.</p>
+            <p>Include:</p>
+            <ul>
+                <li>which part is affected (app, installer, website or release files) and its version, which the app shows at the bottom of the Settings panel, for example <code>RAMMIT v1.1.1 · Stable</code>;</li>
+                <li>what an attacker could do, and what they need first, for example local access, a malicious theme or a crafted link;</li>
+                <li>steps to reproduce, ideally with a small proof of concept.</li>
+            </ul>
+            <div class="LegalNote" role="note">
+                <span class="NoteLabel">Never send logins</span>
+                <p>Don't include real Roblox cookies (<code>.ROBLOSECURITY</code>), passwords, or files from a <code>Config</code> folder such as <code>Accounts.json</code>. Describe the data instead, or use the throw-away demo accounts that RAMMIT's test harness creates.</p>
+            </div>
+            <p>The same contact is published in machine-readable form at <a href="/.well-known/security.txt">/.well-known/security.txt</a>.</p>
+
+            <h2 id="Next">What happens next</h2>
+            <ul>
+                <li>Reports are read and handled as the maintainers' time allows. RAMMIT is a free project without a dedicated security team, so there are no guaranteed response times.</li>
+                <li>Confirmed problems are fixed in a new release and described in a GitHub Security Advisory. You'll be credited if you want to be.</li>
+                <li>Please allow a reasonable time for a fix to be released before you publish details.</li>
+            </ul>
+
+            <h2 id="Versions">Supported versions</h2>
+            <p>Only the <a href="https://github.com/CBlockDigital/RAMMIT/releases/latest" target="_blank" rel="noopener">latest release</a> gets security fixes. If you run an older version, update with <code>RAMMIT-Setup.exe</code> or download the latest zip.</p>
+
+            <h2 id="Scope">Scope</h2>
+            <p>In scope: everything in the RAMMIT repository, that is the app (<code>Production/RAMMIT-Stable</code>), the installer (<code>Production/Installer</code>), this website (<code>Web/Website</code>) and the build and release scripts.</p>
+            <p>Please report these to their owners instead:</p>
+            <ul>
+                <li><strong>Roblox</strong> (its website, apps, client and APIs): Roblox's own security reporting channel.</li>
+                <li><strong>Bloxstrap and Fishstrap</strong>: their own GitHub repositories.</li>
+                <li><strong>Windows and the Microsoft Edge WebView2 Runtime</strong>: the Microsoft Security Response Center.</li>
+                <li><strong>GitHub and Vercel</strong> (the platforms themselves): their own security programmes.</li>
+            </ul>
+
+            <h2 id="Limits">Known limits</h2>
+            <p>These are not vulnerabilities by themselves, but tell us if you can make them worse.</p>
+            <ul>
+                <li>Saved logins are encrypted with Windows DPAPI for your Windows user. That stops a copied <code>Accounts.json</code> from being read on another PC or by another Windows user. It does not protect against malware that already runs as you.</li>
+                <li>Themes are trusted code. A theme folder can contain JavaScript that runs in RAMMIT's window, so only install themes from people you trust.</li>
+                <li>The executables are not code-signed yet, so Windows SmartScreen may warn about them.</li>
+            </ul>
+
+            <h2 id="Verify">Verify your download</h2>
+            <p>GitHub shows a SHA-256 digest next to every file on a release page, and each zip also comes with a <code>.sha256</code> file. To check a file, run this in PowerShell in the folder you downloaded it to:</p>
+            <p><code>Get-FileHash .\RAMMIT-Setup.exe -Algorithm SHA256</code></p>
+            <p>Compare the result with the digest on the <a href="https://github.com/CBlockDigital/RAMMIT/releases/latest" target="_blank" rel="noopener">release page</a>. A matching hash shows the file wasn't damaged or swapped after it was published there. Only download RAMMIT from the repository's releases, or from the download links on this website.</p>
+        </div>
+    </article>
+
+</main>
+
+<footer class="Footer">
+    <div class="FooterTop">
+        <span>RAMMIT by <a href="https://github.com/CBlockDigital" target="_blank" rel="noopener">CBlock Digital</a> · © 2026 · Free software under the <a href="https://github.com/CBlockDigital/RAMMIT/blob/main/LICENSE" target="_blank" rel="noopener">GPL-3.0</a></span>
+    </div>
+    <nav class="FooterNav" aria-label="Legal and support">
+        <a href="/legal/">Legal</a>
+        <a href="/privacy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+        <a href="/disclaimer/">Disclaimer</a>
+        <a href="https://github.com/CBlockDigital/RAMMIT/blob/main/LICENSE" target="_blank" rel="noopener">Licence</a>
+        <a href="/notices/">Notices</a>
+        <a href="/security/">Security</a>
+        <a href="/support/">Support</a>
+        <a href="https://github.com/CBlockDigital/RAMMIT" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <p class="FooterNote">RAMMIT is an independent project, not affiliated with, sponsored or endorsed by Roblox Corporation. Roblox is a trademark of Roblox Corporation.</p>
+</footer>
+
+<script src="/JS/Site.js"></script>
+</body>
+</html>

@@ -11,6 +11,8 @@
 </head>
 <body>
 
+<a class="SkipLink" href="#Top">Skip to content</a>
+
 <!-- ===== NAV ===== -->
 <header class="Nav" id="Nav">
     <div class="NavInner">
@@ -37,7 +39,7 @@
             <h1>One click.<br>Every account.</h1>
             <p class="Lead">RAMMIT saves your Roblox accounts and opens a separate Roblox window for each one you tick. Free and open source, for Windows 10 and 11.</p>
             <div class="HeroActions">
-                <a class="Btn BtnLaunch" href="https://github.com/CBlockDigital/RAMMIT/releases/latest/download/RAMMIT-Setup.exe">Download RAMMIT 1.1.1</a>
+                <a class="Btn BtnLaunch" href="https://github.com/CBlockDigital/RAMMIT/releases/latest/download/RAMMIT-Setup.exe">Download RAMMIT</a>
                 <a class="Btn BtnNeutral" href="https://github.com/CBlockDigital/RAMMIT" target="_blank" rel="noopener">View on GitHub</a>
             </div>
             <p class="HeroNote">RAMMIT-Setup.exe installs, updates and removes it. Rather not use an installer? Get the <a href="https://github.com/CBlockDigital/RAMMIT/releases/latest" target="_blank" rel="noopener">zip and checksums</a>.</p>
@@ -45,12 +47,12 @@
 
         <figure class="HeroShot">
             <div class="AppWindow" id="LaunchPlayer" aria-label="RAMMIT launching three accounts">
-                <img class="LaunchFrame IsActive" src="Assets/Shots/main-idle.png" alt="The RAMMIT main window with three demo accounts ticked" width="1913" height="1523">
+                <img class="LaunchFrame IsActive" src="Assets/Shots/main-idle.png" alt="The RAMMIT main window with demo accounts, before any are ticked" width="1913" height="1893">
                 <span class="PressRing" id="PressRing"></span>
             </div>
             <figcaption class="ShotCaption">
-                <span>Recorded from the app, launching three accounts</span>
-                <span class="CaptionStatus" id="LaunchStatus">RUNNING: 0 / 5</span>
+                <span>Recorded from RAMMIT 1.1.1 with demo accounts</span>
+                <span class="CaptionStatus" id="LaunchStatus">RUNNING: 0 / 3</span>
             </figcaption>
         </figure>
     </section>
@@ -166,7 +168,7 @@
             <div class="FaqList">
                 <details>
                     <summary>Is it free?</summary>
-                    <p>Yes. RAMMIT is free and open source under GPL-3.0. The code, every release and its SHA-256 checksum are on <a href="https://github.com/CBlockDigital/RAMMIT" target="_blank" rel="noopener">GitHub</a>.</p>
+                    <p>Yes. RAMMIT is free and open source under the <a href="https://github.com/CBlockDigital/RAMMIT/blob/main/LICENSE" target="_blank" rel="noopener">GPL-3.0</a>. The code, every release and its SHA-256 checksum are on <a href="https://github.com/CBlockDigital/RAMMIT" target="_blank" rel="noopener">GitHub</a>.</p>
                 </details>
                 <details>
                     <summary>What do I need to run it?</summary>
@@ -174,7 +176,11 @@
                 </details>
                 <details>
                     <summary>Where are my accounts stored?</summary>
-                    <p>Only on your own PC, inside the RAMMIT folder.</p>
+                    <p>Only on your own PC, in the <strong>Config</strong> folder next to RAMMIT.exe (with the installer, that's <strong>%LOCALAPPDATA%\RAMMIT</strong>). Each account's login cookie is encrypted with Windows DPAPI, so only your Windows user can read it. Usernames, display names and settings are stored as plain text. Nothing is sent to us: RAMMIT only talks to Roblox.</p>
+                </details>
+                <details>
+                    <summary>What happens to my accounts when I uninstall?</summary>
+                    <p>By default the uninstaller keeps your <strong>Config</strong> folder and its backups, so a reinstall picks up where you left off. Tick <strong>Uninstall Config/ folder too</strong> to delete them. If you used the zip, delete the RAMMIT folder.</p>
                 </details>
                 <details>
                     <summary>Does it work with Bloxstrap or Fishstrap?</summary>
@@ -186,7 +192,11 @@
                 </details>
                 <details>
                     <summary>Is RAMMIT made by Roblox?</summary>
-                    <p>No. RAMMIT isn't affiliated with Roblox Corporation.</p>
+                    <p>No. RAMMIT is an independent project, not affiliated with, sponsored or endorsed by Roblox Corporation.</p>
+                </details>
+                <details>
+                    <summary>Can using it get my account banned?</summary>
+                    <p>RAMMIT only opens the official Roblox client, but Roblox's own rules decide what is allowed, and they can change. We can't promise any account is safe. Read the <a href="/disclaimer/">Software Disclaimer</a> before you use it.</p>
                 </details>
             </div>
         </div>
@@ -196,8 +206,8 @@
     <section class="GetIt">
         <img src="Assets/RAMMIT.png" alt="" width="56" height="56">
         <div class="GetItCopy">
-            <h2>Get RAMMIT 1.1.1</h2>
-            <p>Windows 10 / 11 · free · <a href="https://github.com/CBlockDigital/RAMMIT/releases/latest" target="_blank" rel="noopener">zip and checksums</a></p>
+            <h2>Get RAMMIT</h2>
+            <p>Latest release · Windows 10 / 11 · free · <a href="https://github.com/CBlockDigital/RAMMIT/releases/latest" target="_blank" rel="noopener">release notes, zip and checksums</a></p>
         </div>
         <a class="Btn BtnLaunch" href="https://github.com/CBlockDigital/RAMMIT/releases/latest/download/RAMMIT-Setup.exe">Download</a>
     </section>
@@ -205,8 +215,21 @@
 </main>
 
 <footer class="Footer">
-    <span>RAMMIT by <a href="https://github.com/CBlockDigital" target="_blank" rel="noopener">CBlockDigital</a> · GPL-3.0 · <a href="https://github.com/CBlockDigital/RAMMIT" target="_blank" rel="noopener">GitHub</a></span>
-    <span>Not affiliated with Roblox Corporation.</span>
+    <div class="FooterTop">
+        <span>RAMMIT by <a href="https://github.com/CBlockDigital" target="_blank" rel="noopener">CBlock Digital</a> · © 2026 · Free software under the <a href="https://github.com/CBlockDigital/RAMMIT/blob/main/LICENSE" target="_blank" rel="noopener">GPL-3.0</a></span>
+    </div>
+    <nav class="FooterNav" aria-label="Legal and support">
+        <a href="/legal/">Legal</a>
+        <a href="/privacy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+        <a href="/disclaimer/">Disclaimer</a>
+        <a href="https://github.com/CBlockDigital/RAMMIT/blob/main/LICENSE" target="_blank" rel="noopener">Licence</a>
+        <a href="/notices/">Notices</a>
+        <a href="/security/">Security</a>
+        <a href="/support/">Support</a>
+        <a href="https://github.com/CBlockDigital/RAMMIT" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <p class="FooterNote">RAMMIT is an independent project, not affiliated with, sponsored or endorsed by Roblox Corporation. Roblox is a trademark of Roblox Corporation.</p>
 </footer>
 
 <script src="JS/Site.js"></script>

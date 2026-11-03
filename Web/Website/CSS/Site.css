@@ -15,10 +15,12 @@
     --Text: #ffffff;
     --TextDim: #888888;
     --TextMuted: #555555;
+    --TextBody: #aaaaaa;
     --Accent: #0078d4;
     --AccentHover: #1e90ff;
     --Success: #28a745;
     --Danger: #dc3545;
+    --Warning: #ffc107;
     --Border: #252525;
     --BorderLight: #333333;
     --EditButton: #1a6b3a;
@@ -44,10 +46,27 @@ body {
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
-    /* No text selection anywhere on the site (also the long-press callout on iOS). */
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-touch-callout: none;
+}
+
+::selection {
+    background: var(--Accent);
+    color: var(--Text);
+}
+
+/* Visible only when focused from the keyboard */
+.SkipLink {
+    position: absolute;
+    left: 16px;
+    top: -60px;
+    z-index: 100;
+    padding: 10px 16px;
+    background: var(--Accent);
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.SkipLink:focus {
+    top: 12px;
 }
 
 /* Images (and the logo links) can't be dragged off the page; Firefox is handled in JS/Site.js. */
@@ -247,7 +266,7 @@ a:focus-visible {
 
 .AppWindow {
     position: relative;
-    aspect-ratio: 1913 / 1523;
+    aspect-ratio: 1913 / 1893;
     border-radius: var(--Radius);
     overflow: hidden;
     border: 1px solid var(--Border);
@@ -266,13 +285,13 @@ a:focus-visible {
     opacity: 1;
 }
 
-/* LaunchBtn box from the capture manifest: css [437,64,289,42] in a 765x609 window */
+/* LaunchBtn box from the 1.1.1 capture manifest: css [437.8,62.9,289,41.5] in a 765x757 window */
 .PressRing {
     position: absolute;
-    left: 57.1%;
-    top: 10.5%;
-    width: 37.8%;
-    height: 6.9%;
+    left: 57.23%;
+    top: 8.31%;
+    width: 37.78%;
+    height: 5.48%;
     pointer-events: none;
 }
 
@@ -612,14 +631,375 @@ a:focus-visible {
 .Footer {
     max-width: calc(var(--MaxW) + 2 * var(--PadX));
     margin: 0 auto;
-    padding: 20px var(--PadX) 32px;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 8px 24px;
+    padding: 22px var(--PadX) 36px;
+    display: grid;
+    gap: 12px;
     border-top: 1px solid var(--Border);
     font-size: 14px;
     color: var(--TextDim);
+}
+
+.FooterTop {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px 24px;
+}
+
+/* Legal and support links: the nav's quiet style, not the underlined text-link style */
+.Footer .FooterNav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 22px;
+}
+
+.Footer .FooterNav a {
+    color: var(--Text);
+    text-decoration: none;
+    transition: color 0.15s;
+}
+
+.Footer .FooterNav a:hover {
+    color: var(--AccentHover);
+}
+
+.FooterNote {
+    max-width: 90ch;
+}
+
+/* ===== LEGAL PAGES (privacy, terms, disclaimer, notices, security, support) ===== */
+
+.LegalLayout {
+    max-width: calc(var(--MaxW) + 2 * var(--PadX));
+    margin: 0 auto;
+    padding: clamp(32px, 5vw, 64px) var(--PadX) clamp(48px, 6vw, 80px);
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: clamp(28px, 4vw, 56px);
+    align-items: start;
+}
+
+.LegalSide {
+    position: sticky;
+    top: 84px;
+}
+
+.LegalSideLabel {
+    margin-bottom: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--TextDim);
+}
+
+.LegalNav ul {
+    list-style: none;
+    display: grid;
+    gap: 2px;
+}
+
+.LegalNav a {
+    display: block;
+    padding: 8px 12px;
+    border-left: 2px solid var(--Border);
+    font-size: 15px;
+    color: var(--TextDim);
+    transition: color 0.15s;
+}
+
+.LegalNav a:hover {
+    color: var(--Text);
+}
+
+.LegalNav a[aria-current="page"] {
+    border-left-color: var(--Accent);
+    background: var(--Card);
+    color: var(--Text);
+    font-weight: 600;
+}
+
+.LegalBody h1 {
+    font-size: clamp(30px, 3.4vw, 42px);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+}
+
+.LegalMeta {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--TextDim);
+}
+
+.LegalLead {
+    margin-top: 22px;
+    font-size: clamp(18px, 1.6vw, 20px);
+    color: var(--Text);
+    max-width: 62ch;
+}
+
+.LegalBody h2 {
+    margin-top: 44px;
+    padding-top: 28px;
+    border-top: 1px solid var(--Border);
+    font-size: clamp(20px, 2vw, 23px);
+    font-weight: 600;
+    line-height: 1.3;
+    scroll-margin-top: 84px;
+}
+
+.LegalBody h3 {
+    margin-top: 26px;
+    font-size: 17px;
+    font-weight: 600;
+    scroll-margin-top: 84px;
+}
+
+.LegalBody h2 + p,
+.LegalBody h3 + p,
+.LegalBody h2 + ul,
+.LegalBody h3 + ul {
+    margin-top: 12px;
+}
+
+.LegalBody p,
+.LegalBody li,
+.LegalBody dd {
+    color: var(--TextBody);
+    max-width: 72ch;
+}
+
+.LegalBody p + p,
+.LegalBody ul + p,
+.LegalBody ol + p,
+.LegalBody p + ul,
+.LegalBody p + ol,
+.LegalBody .LegalTableWrap + p {
+    margin-top: 14px;
+}
+
+.LegalBody ul,
+.LegalBody ol {
+    margin-left: 22px;
+    display: grid;
+    gap: 8px;
+}
+
+.LegalBody li::marker {
+    color: var(--TextDim);
+}
+
+.LegalBody a {
+    color: var(--AccentHover);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.LegalBody strong {
+    color: var(--Text);
+}
+
+.LegalBody code {
+    font-family: Consolas, 'Cascadia Mono', monospace;
+    font-size: 0.9em;
+    background: var(--Input);
+    padding: 1px 6px;
+    overflow-wrap: anywhere;
+}
+
+/* "On this page" list at the top of each document */
+.Toc {
+    margin-top: 28px;
+    padding: 18px 22px;
+    border: 1px solid var(--Border);
+}
+
+.Toc h2 {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--TextDim);
+}
+
+.LegalBody .Toc ol {
+    margin: 10px 0 0 20px;
+    columns: 2 240px;
+    column-gap: 32px;
+    display: block;
+}
+
+.LegalBody .Toc li {
+    margin-bottom: 6px;
+    break-inside: avoid;
+}
+
+.LegalBody .Toc a {
+    color: var(--Text);
+    text-decoration: none;
+}
+
+.LegalBody .Toc a:hover {
+    color: var(--AccentHover);
+}
+
+/* Short boxed notes; ReviewNote marks a fact the owner still has to supply or confirm */
+.LegalNote,
+.ReviewNote {
+    margin-top: 20px;
+    padding: 14px 18px;
+    background: var(--Input);
+    border-left: 3px solid var(--Accent);
+    max-width: 76ch;
+}
+
+.ReviewNote {
+    border-left-color: var(--Warning);
+}
+
+.NoteLabel {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--AccentHover);
+}
+
+.ReviewNote .NoteLabel {
+    color: var(--Warning);
+}
+
+.LegalBody .LegalNote p,
+.LegalBody .ReviewNote p {
+    margin-top: 0;
+}
+
+.LegalBody .LegalNote p + p,
+.LegalBody .ReviewNote p + p {
+    margin-top: 8px;
+}
+
+/* Tables scroll inside their own box on narrow screens, never the page */
+.LegalTableWrap {
+    margin-top: 16px;
+    overflow-x: auto;
+}
+
+.LegalTable {
+    width: 100%;
+    min-width: 560px;
+    border-collapse: collapse;
+    font-size: 15px;
+}
+
+.LegalTable th {
+    padding: 10px 16px 10px 0;
+    border-bottom: 1px solid var(--Border);
+    text-align: left;
+    vertical-align: bottom;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--TextDim);
+}
+
+.LegalTable td {
+    padding: 12px 16px 12px 0;
+    border-bottom: 1px solid var(--Border);
+    vertical-align: top;
+    color: var(--TextBody);
+}
+
+.LegalTable td:first-child {
+    color: var(--Text);
+    font-weight: 600;
+}
+
+/* The legal hub: one row per document */
+.DocList {
+    margin-top: 28px;
+    border-top: 1px solid var(--Border);
+}
+
+.LegalBody .DocList {
+    list-style: none;
+    margin-left: 0;
+    gap: 0;
+}
+
+.DocList li {
+    display: grid;
+    grid-template-columns: minmax(180px, 2fr) minmax(0, 5fr);
+    gap: 6px 24px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--Border);
+}
+
+.LegalBody .DocList a {
+    color: var(--Text);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.LegalBody .DocList a:hover {
+    color: var(--AccentHover);
+}
+
+.DocList p {
+    margin: 0;
+}
+
+/* Status chips next to each document on the hub and under each title */
+.Status {
+    display: inline-block;
+    padding: 1px 8px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    vertical-align: 1px;
+    border: 1px solid var(--BorderLight);
+    color: var(--TextDim);
+}
+
+.Status.IsDraft {
+    border-color: var(--Warning);
+    color: var(--Warning);
+}
+
+.Status.IsCurrent {
+    border-color: var(--Success);
+    color: var(--Success);
+}
+
+/* The 404 page */
+.NotFound {
+    max-width: calc(var(--MaxW) + 2 * var(--PadX));
+    margin: 0 auto;
+    padding: clamp(56px, 9vw, 120px) var(--PadX);
+}
+
+.NotFound h1 {
+    font-size: clamp(36px, 4.4vw, 52px);
+    font-weight: 700;
+    line-height: 1.05;
+}
+
+.NotFound p {
+    margin-top: 16px;
+    color: var(--TextDim);
+    max-width: 52ch;
+}
+
+.NotFound .HeroActions {
+    margin-top: 28px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -637,6 +1017,31 @@ a:focus-visible {
 
     .SettingRow {
         grid-template-columns: 170px 180px minmax(0, 1fr);
+    }
+
+    .LegalLayout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* The document list becomes a wrapping row of tabs above the document */
+    .LegalSide {
+        position: static;
+    }
+
+    .LegalNav ul {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 6px;
+    }
+
+    .LegalNav a {
+        padding: 6px 10px;
+        border-left: 0;
+        border-bottom: 2px solid var(--Border);
+    }
+
+    .LegalNav a[aria-current="page"] {
+        border-bottom-color: var(--Accent);
     }
 }
 
@@ -687,5 +1092,9 @@ a:focus-visible {
 
     .FaqList summary {
         font-size: 17px;
+    }
+
+    .DocList li {
+        grid-template-columns: minmax(0, 1fr);
     }
 }

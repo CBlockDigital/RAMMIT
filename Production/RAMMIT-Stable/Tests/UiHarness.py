@@ -29,12 +29,12 @@ sys.path.insert(0, ProjectDir)
 # Plain-text accounts like an old build wrote them: exercises the DPAPI migration on start.
 with open(os.path.join(ScratchDir, "Config", "Accounts.json"), "w") as File:
     json.dump([{"username": U, "displayName": D, "cookie": "FakeCookie-" + U} for U, D in
-               [("NovaBuilds", "Nova"), ("PixelRanger_07", "Ranger"), ("ObbyQueen", "Queenie"), ("TycoonTheo", "Theo")]], File)
+               [("DemoNova_RMT", "Nova"), ("DemoPixel_RMT", "Pixel"), ("DemoObby_RMT", "Obby"), ("DemoTycoon_RMT", "Tycoon")]], File)
 with open(os.path.join(ScratchDir, "Config", "Config.json"), "w") as File:
     json.dump([{"name": "Grind Server", "method": "Place ID", "params": {"place_id": "2753915549", "player_mode": "smallest", "ping_mode": "lowest"}},
                {"name": "<img src=x onerror=alert(1)>", "method": "Game URL", "params": {"url": "https://www.roblox.com/games/920587237\"><b>x</b>"}}], File)
 with open(os.path.join(ScratchDir, "Config", "Settings.json"), "w") as File:
-    json.dump({"theme": "dark", "multi_method": "pywin32", "selected_account": "ObbyQueen", "tutorial_seen": True,
+    json.dump({"theme": "dark", "multi_method": "pywin32", "selected_account": "DemoObby_RMT", "tutorial_seen": True,
                "launch_option": "Game URL", "launch_params": {"url": "https://www.roblox.com/games/920587237", "selected_config": "Grind Server"},
                "max_instances": 3, "launch_delay": 0}, File)
 

@@ -1,4 +1,4 @@
-// RAMMIT website: hero launch replay, nav border, scroll reveals.
+// RAMMIT website: hero launch replay, nav border.
 
 (function () {
     const ReduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -13,22 +13,6 @@
     UpdateNav();
     window.addEventListener('scroll', UpdateNav, { passive: true });
 
-    // ===== SCROLL REVEAL =====
-    const RevealItems = document.querySelectorAll('.Reveal');
-    if (ReduceMotion || !('IntersectionObserver' in window)) {
-        RevealItems.forEach(Item => Item.classList.add('IsVisible'));
-    } else {
-        const Observer = new IntersectionObserver(Entries => {
-            Entries.forEach(Entry => {
-                if (Entry.isIntersecting) {
-                    Entry.target.classList.add('IsVisible');
-                    Observer.unobserve(Entry.target);
-                }
-            });
-        }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
-        RevealItems.forEach(Item => Observer.observe(Item));
-    }
-
     // ===== HERO LAUNCH REPLAY =====
     // Frames and timings come from the real capture (capture/screenshots/manifest.json):
     // Ms is the time since LAUNCH 3 SELECTED was pressed.
@@ -37,19 +21,20 @@
     const Status = document.getElementById('LaunchStatus');
     if (!Player) return;
 
-    const IdleMs = 2400;
+    const IdleMs = 1400;
     const HoldMs = 3200;
     const Frames = [
-        { File: 'main-idle.png', Ms: -IdleMs, Text: 'RUNNING: 0 / 5' },
-        { File: 'launch-f000.png', Ms: 0, Text: 'Launching 1 / 3…' },
-        { File: 'launch-f001.png', Ms: 337, Text: 'Launching 1 / 3…' },
-        { File: 'launch-f002.png', Ms: 1483, Text: 'Launching 2 / 3…' },
-        { File: 'launch-f003.png', Ms: 1763, Text: 'Launching 2 / 3…' },
-        { File: 'launch-f004.png', Ms: 2058, Text: 'Launching 2 / 3…' },
-        { File: 'launch-f005.png', Ms: 3209, Text: 'Launching 3 / 3…' },
-        { File: 'launch-f006.png', Ms: 4006, Text: 'Launching 3 / 3…' },
-        { File: 'launch-f007.png', Ms: 5189, Text: 'Launched 3/3' },
-        { File: 'launch-f008.png', Ms: 5532, Text: 'Launched 3/3' }
+        { File: 'main-idle.png', Ms: -IdleMs, Text: 'RUNNING: 0 / 3' },
+        { File: 'main-tick-1.png', Ms: -1000, Text: 'RUNNING: 0 / 3' },
+        { File: 'main-tick-2.png', Ms: -800, Text: 'RUNNING: 0 / 3' },
+        { File: 'main-tick-3.png', Ms: -600, Text: 'RUNNING: 0 / 3' },
+        { File: 'launch-f000.png', Ms: 41, Text: 'Launching 1 / 3…' },
+        { File: 'launch-f001.png', Ms: 564, Text: 'Launching 2 / 3…' },
+        { File: 'launch-f002.png', Ms: 1046, Text: 'Launching 2 / 3…' },
+        { File: 'launch-f003.png', Ms: 1513, Text: 'Launching 3 / 3…' },
+        { File: 'launch-f004.png', Ms: 2044, Text: 'Launching 3 / 3…' },
+        { File: 'launch-f005.png', Ms: 2586, Text: 'Launched 3/3' },
+        { File: 'main-launched.png', Ms: 4993, Text: 'Launched 3/3' }
     ];
     const LoopMs = Frames[Frames.length - 1].Ms + HoldMs + IdleMs;
 
@@ -103,20 +88,17 @@
 
             if (SinceLaunch < 0) {
                 PressedThisLoop = false;
-                Show(0);
-            } else {
-                if (!PressedThisLoop) {
-                    PressedThisLoop = true;
-                    PressRing.classList.remove('IsPressed');
-                    void PressRing.offsetWidth;
-                    PressRing.classList.add('IsPressed');
-                }
-                let Index = 1;
-                for (let I = 1; I < Frames.length; I++) {
-                    if (SinceLaunch >= Frames[I].Ms) Index = I;
-                }
-                Show(Index);
+            } else if (!PressedThisLoop) {
+                PressedThisLoop = true;
+                PressRing.classList.remove('IsPressed');
+                void PressRing.offsetWidth;
+                PressRing.classList.add('IsPressed');
             }
+            let Index = 0;
+            for (let I = 1; I < Frames.length; I++) {
+                if (SinceLaunch >= Frames[I].Ms) Index = I;
+            }
+            Show(Index);
             RafId = requestAnimationFrame(Tick);
         };
 

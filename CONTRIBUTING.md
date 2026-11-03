@@ -4,7 +4,7 @@ Thanks for helping. Small fixes are as welcome as features. Issues labelled [goo
 
 - **Questions and ideas:** [Discussions](https://github.com/CBlockDigital/RAMMIT/discussions).
 - **Bugs:** [Issues](https://github.com/CBlockDigital/RAMMIT/issues/new/choose), using the bug template.
-- **Security problems:** please don't open a public issue. Use [Report a vulnerability](https://github.com/CBlockDigital/RAMMIT/security/advisories/new).
+- **Security problems:** please don't open a public issue. Use [Report a vulnerability](https://github.com/CBlockDigital/RAMMIT/security/advisories/new). [SECURITY.md](SECURITY.md) says what to include.
 
 We aim to reply to every issue and pull request within a day.
 

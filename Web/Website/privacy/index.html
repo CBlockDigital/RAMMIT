@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Privacy Policy · RAMMIT</title>
+    <meta name="description" content="How the RAMMIT website, app and installer handle data.">
+    <meta name="theme-color" content="#0a0a0a">
+    <link rel="icon" href="/Assets/RAMMIT.ico">
+    <link rel="stylesheet" href="/CSS/Site.css">
+</head>
+<body>
+
+<a class="SkipLink" href="#Content">Skip to content</a>
+
+<!-- ===== NAV ===== -->
+<header class="Nav" id="Nav">
+    <div class="NavInner">
+        <a class="Brand" href="/" aria-label="RAMMIT home">
+            <img src="/Assets/RAMMIT.png" alt="" width="28" height="28">
+            <span>RAMMIT</span>
+        </a>
+        <nav class="NavLinks" aria-label="Sections">
+            <a href="/#HowItWorks">How it works</a>
+            <a href="/#LaunchOptions">Launch options</a>
+            <a href="/#Settings">Settings</a>
+            <a href="/#Faq">FAQ</a>
+            <a href="https://github.com/CBlockDigital/RAMMIT" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+        <a class="Btn BtnLaunch BtnSmall" href="https://github.com/CBlockDigital/RAMMIT/releases/latest/download/RAMMIT-Setup.exe">Download</a>
+    </div>
+</header>
+
+<main id="Content" class="LegalLayout">
+
+    <aside class="LegalSide">
+        <p class="LegalSideLabel" id="LegalNavLabel">Legal</p>
+        <nav class="LegalNav" aria-labelledby="LegalNavLabel">
+            <ul>
+                <li><a href="/legal/">Overview</a></li>
+                <li><a href="/privacy/" aria-current="page">Privacy Policy</a></li>
+                <li><a href="/terms/">Terms of Use</a></li>
+                <li><a href="/disclaimer/">Software Disclaimer</a></li>
+                <li><a href="/notices/">Copyright and trademarks</a></li>
+                <li><a href="/security/">Security policy</a></li>
+                <li><a href="/support/">Support and contact</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <article class="LegalDoc" aria-labelledby="DocTitle">
+        <div class="PanelHead"><p class="PanelLabel">Legal</p><span class="PanelTab"></span></div>
+        <div class="PanelBody LegalBody">
+            <h1 id="DocTitle">Privacy Policy</h1>
+            <p class="LegalMeta">Last updated <time datetime="2026-11-03">3 November 2026</time> <span class="Status IsDraft">Draft</span></p>
+            <p class="LegalLead">How the RAMMIT website, app and installer handle data. This page is not legal advice.</p>
+
+<h2 id="Summary">In short</h2>
+<ul><li>This website sets no cookies, uses no analytics and has no forms.</li>
+<li>The RAMMIT app keeps your accounts on your own PC. The maintainers never receive them.</li>
+<li>The services RAMMIT relies on (Vercel, GitHub, Roblox, Microsoft) process data under their own privacy policies.</li></ul>
+<h2 id="Who">Who this policy is from</h2>
+<p>RAMMIT is published on GitHub by <a href="https://github.com/CBlockDigital" target="_blank" rel="noopener">CBlockDigital</a>. CBlock Digital is the project's name, not a registered company.</p>
+<div class="ReviewNote" role="note"><span class="NoteLabel">Owner review</span><p>The legal name and country of the person responsible for RAMMIT (the data controller, where a law requires one) are not published yet.</p></div>
+<h2 id="Website">This website</h2>
+<p>The site is static HTML hosted on Vercel. It loads no third-party scripts, fonts or trackers, and does not use Vercel Speed Insights or Web Analytics. Like any web host, Vercel processes technical request data, such as your IP address and browser details, to deliver the pages and protect the service. See <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">Vercel's privacy policy</a>. The maintainers do not receive a list of individual visitors.</p>
+<h2 id="Downloads">Downloads and GitHub</h2>
+<p>Downloads, issues and discussions are hosted by GitHub. GitHub shows repository owners aggregated traffic for the last 14 days and download counts, not who you are. Anything you post on GitHub is public. See the <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
+<h2 id="App">The RAMMIT app</h2>
+<ul><li><strong>What it stores:</strong> for each account you add, the Roblox login cookie, user ID, username and display name, plus your launch configs and settings, all in the <code>Config</code> folder next to RAMMIT.exe.</li>
+<li><strong>How:</strong> login cookies are encrypted with Windows DPAPI for your Windows user. Usernames, display names and settings are plain text. A log file (<code>RAMMIT.log</code>, up to about 512 KB with its backup) records actions and includes usernames, never cookies.</li>
+<li><strong>Where it connects:</strong> only Roblox services (roblox.com and its subdomains), to sign in, look up servers and launch games. Signing in happens in a private Microsoft WebView2 window; RAMMIT never handles your password.</li>
+<li><strong>No telemetry:</strong> the app sends nothing to the maintainers.</li></ul>
+<h2 id="Installer">The installer</h2>
+<p>RAMMIT-Setup.exe contacts only GitHub, to find and download releases, and checks each download's SHA-256 checksum. It installs to <code>%LOCALAPPDATA%\RAMMIT</code>. When you uninstall, your Config folder and backups are kept unless you tick <strong>Uninstall Config/ folder too</strong>.</p>
+<h2 id="ThirdParties">Roblox and Microsoft</h2>
+<p>When RAMMIT signs in or launches Roblox, Roblox processes your account data under its own privacy policy, linked from <a href="https://www.roblox.com/info/privacy" target="_blank" rel="noopener">roblox.com</a>. WebView2 is part of Windows and is covered by the <a href="https://privacy.microsoft.com/privacystatement" target="_blank" rel="noopener">Microsoft Privacy Statement</a>.</p>
+<h2 id="Rights">Your choices and rights</h2>
+<p>Because the maintainers hold no personal data from the app, you control it: remove an account in RAMMIT, or delete the Config folder. Depending on where you live, laws such as the GDPR, UK GDPR, India's DPDP Act or US state privacy laws may give you rights over data about you. For data held by Vercel, GitHub, Roblox or Microsoft, use their own tools. To ask the maintainers anything, see <a href="/support/">Support</a>.</p>
+<div class="ReviewNote" role="note"><span class="NoteLabel">Owner review</span><p>There is no private contact channel for privacy requests yet. Some laws expect one; until it exists, please don't post personal details publicly.</p></div>
+<h2 id="Children">Children</h2>
+<p>RAMMIT is not directed at children and the maintainers collect nothing from anyone. Roblox accounts are subject to Roblox's own age rules and parental controls.</p>
+<h2 id="Changes">Changes</h2>
+<p>Changes to this policy are published on this page and in the project's GitHub history. The date at the top shows the latest version.</p>
+        </div>
+    </article>
+
+</main>
+
+<footer class="Footer">
+    <div class="FooterTop">
+        <span>RAMMIT by <a href="https://github.com/CBlockDigital" target="_blank" rel="noopener">CBlock Digital</a> · © 2026 · Free software under the <a href="https://github.com/CBlockDigital/RAMMIT/blob/main/LICENSE" target="_blank" rel="noopener">GPL-3.0</a></span>
+    </div>
+    <nav class="FooterNav" aria-label="Legal and support">
+        <a href="/legal/">Legal</a>
+        <a href="/privacy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+        <a href="/disclaimer/">Disclaimer</a>
+        <a href="https://github.com/CBlockDigital/RAMMIT/blob/main/LICENSE" target="_blank" rel="noopener">Licence</a>
+        <a href="/notices/">Notices</a>
+        <a href="/security/">Security</a>
+        <a href="/support/">Support</a>
+        <a href="https://github.com/CBlockDigital/RAMMIT" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <p class="FooterNote">RAMMIT is an independent project, not affiliated with, sponsored or endorsed by Roblox Corporation. Roblox is a trademark of Roblox Corporation.</p>
+</footer>
+
+<script src="/JS/Site.js"></script>
+</body>
+</html>

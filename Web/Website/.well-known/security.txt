@@ -1,0 +1,7 @@
+# Security contact for RAMMIT (https://github.com/CBlockDigital/RAMMIT).
+# Please report security problems privately through GitHub, never in a public issue.
+Contact: https://github.com/CBlockDigital/RAMMIT/security/advisories/new
+Expires: 2027-11-01T00:00:00.000Z
+Policy: https://rammit-pi.vercel.app/security/
+Preferred-Languages: en
+Canonical: https://rammit-pi.vercel.app/.well-known/security.txt

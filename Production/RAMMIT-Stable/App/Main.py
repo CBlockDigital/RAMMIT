@@ -58,6 +58,7 @@ def Run():
                 Bridge._DestroyQuietly(Other)
     Window.events.closed += OnMainClosed
 
+    Bridge._StartLoginChecks()  # expired saved logins turn red (first check now, then every few minutes)
     webview.start()
     Server.Stop()
     Logger.info("RAMMIT closed")

@@ -176,6 +176,21 @@ body {
     color: var(--OnAccent);
 }
 
+/* A saved login Roblox rejected (expired): red row until it's renewed. */
+.ListItem.Expired {
+    background: var(--Danger);
+}
+
+.ListItem.Expired:hover {
+    background: var(--DangerHover);
+}
+
+.ListItem.Expired.Selected {
+    background: var(--Danger);
+    font-weight: 700;
+    color: var(--Accent);
+}
+
 .ListButtons {
     display: flex;
     gap: 10px;
@@ -365,7 +380,7 @@ body {
     gap: 10px;
 }
 
-.BtnAdd, .BtnEdit, .BtnRemove {
+.BtnAdd, .BtnEdit, .BtnRemove, .BtnRenew {
     flex: 1;
     padding: 10px;
     border: none;
@@ -389,7 +404,12 @@ body {
     background: var(--Danger);
 }
 
-.BtnAdd:hover, .BtnEdit:hover, .BtnRemove:hover {
+/* + ADD turns into RENEW while exactly one expired account is selected (Accounts.js). */
+.BtnRenew {
+    background: var(--EditButton);
+}
+
+.BtnAdd:hover, .BtnEdit:hover, .BtnRemove:hover, .BtnRenew:hover {
     opacity: 0.85;
 }
 
@@ -982,11 +1002,11 @@ body {
     transition: background 0.15s ease;
 }
 
-.BtnLaunch, .BtnAdd, .BtnEdit, .BtnRemove, .BtnSelect, .BtnSave, .BtnIcon, .TourBtn {
+.BtnLaunch, .BtnAdd, .BtnEdit, .BtnRemove, .BtnRenew, .BtnSelect, .BtnSave, .BtnIcon, .TourBtn {
     transition: background 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
 }
 
-.BtnLaunch:active, .BtnAdd:active, .BtnEdit:active, .BtnRemove:active,
+.BtnLaunch:active, .BtnAdd:active, .BtnEdit:active, .BtnRemove:active, .BtnRenew:active,
 .BtnSelect:active, .BtnSave:active, .BtnIcon:active, .TourBtn:active {
     transform: scale(0.97);
 }
@@ -1244,7 +1264,7 @@ body.WizardBody {
 }
 
 /* Buttons and text boxes follow the theme's ButtonRadius (0 = square, the Dark look). */
-.BtnAdd, .BtnEdit, .BtnRemove, .BtnSelect, .BtnLaunch, .BtnSave,
+.BtnAdd, .BtnEdit, .BtnRemove, .BtnRenew, .BtnSelect, .BtnLaunch, .BtnSave,
 .SettingsGrid input[type="text"], .ChannelRow input, .LaunchInput, .CustomSelectTrigger {
     border-radius: var(--ButtonRadius);
 }

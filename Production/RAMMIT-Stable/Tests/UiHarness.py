@@ -99,7 +99,8 @@ Roblox.FindLauncherPath = lambda _L: r"C:\Fake\RobloxPlayerBeta.exe"
 Roblox.FetchServers = lambda _P, _C=None, MaxPages=10: [dict(S) for S in FakeServers]
 Roblox.GetGameMaxPlayers = lambda _P: 20
 Roblox.ResolveVipLink = lambda Url, _C=None: ("606849621", "AbC123") if "share" in Url or "privateServerLinkCode" in Url else (None, None)
-Roblox.GetAuthenticatedUser = lambda Cookie: (Cookie.split("-", 1)[1], "New " + Cookie.split("-", 1)[1])
+Roblox.CheckLogin = lambda Cookie: ("Valid", (int.from_bytes(Cookie.split("-", 1)[1].encode(), "big"),  # one id per name
+                                               Cookie.split("-", 1)[1], "New " + Cookie.split("-", 1)[1]))
 Roblox.GetChannel = lambda: Fake["Channel"]
 Roblox.SetChannel = lambda C: bool(Roblox.ChannelPattern.match(C)) and (Fake.__setitem__("Channel", C) or True)
 Themes.OpenThemesFolder = lambda: None

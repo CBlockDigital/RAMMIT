@@ -16,7 +16,7 @@ export async function RefreshAccounts() {
         const Label = El('span', { Class: 'AcctLabel', Text: Account.DisplayName + ' ' },
             El('span', { Class: 'AcctUser', Text: `(@${Account.Username})` }),
             Account.Locked ? El('span', { Class: 'AcctLocked', Text: '⚠', Title: 'This saved login was made on another PC or Windows user. Remove it and add the account again.' }) : null);
-        const Row = El('li', { Class: 'AccountItem ListItem' }, Check, Label, El('span', { Class: 'AcctStatus' }));
+        const Row = El('li', { Class: 'AccountItem ListItem' + (Account.Expired ? ' Expired' : '') }, Check, Label, El('span', { Class: 'AcctStatus' }));
         Check.addEventListener('click', Event => { Event.stopPropagation(); ToggleAccount(Index); });
         Row.addEventListener('click', Event => OnAccountClick(Event, Index));
         return Row;
@@ -66,14 +66,30 @@ export function ToggleSelectAll() {
 
 export const SelectedInListOrder = () => State.Accounts.map(A => A.Username).filter(Name => State.Selected.has(Name));
 
+// The one selected account, when exactly one is selected and its saved login has expired: + ADD becomes RENEW and
+// LAUNCH becomes RENEW AND LAUNCH for it.
+export function RenewTarget() {
+    if (State.Selected.size !== 1) return null;
+    const Name = [...State.Selected][0];
+    const Account = State.Accounts.find(A => A.Username === Name);
+    return Account && Account.Expired ? Account.Username : null;
+}
+
 export function ApplySelection() {
     ById('AccountList').querySelectorAll('.ListItem').forEach((Row, Index) => {
         Row.classList.toggle('Selected', State.Selected.has(State.Accounts[Index].Username));
     });
     const Count = State.Selected.size;
+    const Renew = RenewTarget();
+    const AddBtn = ById('AddAccountBtn');
+    AddBtn.classList.toggle('BtnAdd', !Renew);
+    AddBtn.classList.toggle('BtnRenew', !!Renew);
+    AddBtn.textContent = Renew ? 'RENEW' : '+ ADD';
+    AddBtn.removeAttribute('title');
+    AddBtn.dataset.tooltip = Renew ? `Sign in again as @${Renew} (its saved login expired)` : 'Sign in to a Roblox account and save it';
     ById('SelectionCount').textContent = Count ? ` (${Count} SELECTED)` : '';
     ById('SelectAllBtn').textContent = (State.Accounts.length > 0 && Count >= State.Accounts.length) ? 'CLEAR' : 'SELECT ALL';
-    if (!State.BatchRunning) ById('LaunchBtn').textContent = Count > 1 ? `LAUNCH ${Count} SELECTED` : 'LAUNCH SELECTED';
+    if (!State.BatchRunning) ById('LaunchBtn').textContent = Renew ? 'RENEW AND LAUNCH' : Count > 1 ? `LAUNCH ${Count} SELECTED` : 'LAUNCH SELECTED';
 }
 
 export function ApplyAccountStatus() {
@@ -96,8 +112,18 @@ function SaveSelection() {
 }
 
 export async function AddAccount() {
+    const Renew = RenewTarget();
+    if (Renew) { await RenewAccount(Renew); return; }  // the button reads RENEW
     const Result = await Api.AddAccount();
     if (Result && Result.Error) ShowLaunchError(Result.Error);
+}
+
+// Sign in again for an expired account. True when that same Roblox user signed in (a different one is added instead).
+export async function RenewAccount(Username) {
+    const Result = await Api.RenewAccount(Username);
+    if (Result && Result.Error) ShowLaunchError(Result.Error);
+    await RefreshAccounts();
+    return !!(Result && Result.Renewed);
 }
 
 export async function RemoveSelectedAccounts() {

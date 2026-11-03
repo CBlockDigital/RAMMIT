@@ -23,6 +23,8 @@ from App.WindowSize import HeldWindow
 LockedLoginMessage = "This saved login can't be read on this PC or Windows user. Remove the account and add it again."
 RobloxFirstMessage = "Roblox was already open when RAMMIT started, so only one client can run. Close every Roblox window, then launch again."
 LoginTimeoutSeconds = 300
+LoginCheckSeconds = 300  # how often saved logins are checked for expiry (the first check runs at start-up)
+ExpiredMessage = "Cookie expired. Renew this account."
 
 
 class Api:
@@ -33,6 +35,7 @@ class Api:
         self._Configs = Storage.LoadConfigs()
         self._DataLock = threading.RLock()
         self._Clients = MultiInstance.ClientTracker()  # which running client is which account (holds launch tickets)
+        self._Expired = set()  # lowercase usernames whose saved login Roblox rejected (401): shown red, RENEW offered
         self._Batch = self._EmptyBatch()
         self._MainWindow = None
         self._WizardWindow = None
@@ -99,45 +102,70 @@ class Api:
 
     def GetAccounts(self):
         with self._DataLock:
-            return [{"Username": A["Username"], "DisplayName": A["DisplayName"], "Locked": A["Cookie"] is None}
+            return [{"Username": A["Username"], "DisplayName": A["DisplayName"], "Locked": A["Cookie"] is None,
+                     "Expired": A["Username"].lower() in self._Expired}
                     for A in self._Accounts]
 
     def AddAccount(self):
+        return self._OpenLogin("RAMMIT - Login to Roblox")
+
+    def RenewAccount(self, Username):
+        """Sign in again for an expired account (RENEW). Waits until the login window is done, so RENEW AND LAUNCH can
+        launch right after: {"Renewed": True} when the same Roblox user signed in, {"Renewed": False} when it was a
+        different account (added as a new one) or the window was closed."""
+        Account = self._AccountByName(Username)
+        if not Account:
+            return {"Error": "Account not found."}
+        Done = threading.Event()
+        Outcome = {}
+        Opened = self._OpenLogin("RAMMIT - Renew Cookie", RenewFor=Account["Username"], Done=Done, Outcome=Outcome)
+        if "Error" in Opened:
+            return Opened
+        Done.wait(LoginTimeoutSeconds + 10)
+        return {"Ok": True, "Renewed": Outcome.get("Result") == "Renewed"}
+
+    def _OpenLogin(self, Title, RenewFor=None, Done=None, Outcome=None):
         with self._LoginLock:
             if self._LoginWindow is not None:
                 return {"Error": "A login window is already open."}
-            Window = webview.create_window("RAMMIT - Login to Roblox", url="https://www.roblox.com/login", width=480, height=640)
+            Window = webview.create_window(Title, url="https://www.roblox.com/login", width=480, height=640)
             self._LoginWindow = Window
         Window.events.closed += self._OnLoginClosed
-        threading.Thread(target=self._PollLogin, args=(Window,), name="LoginPoll", daemon=True).start()
+        threading.Thread(target=self._PollLogin, args=(Window, RenewFor, Done, Outcome), name="LoginPoll", daemon=True).start()
         return {"Ok": True}
 
     def _OnLoginClosed(self):
         with self._LoginLock:
             self._LoginWindow = None
 
-    def _PollLogin(self, Window):
-        time.sleep(2)
-        Deadline = time.time() + LoginTimeoutSeconds
-        while time.time() < Deadline and self._LoginWindow is Window:
-            try:
-                Cookie = self._FindLoginCookie(Window.get_cookies())
-            except Exception:
-                return  # window was closed
-            if Cookie:
-                # The WebView2 cookie store is shared by RAMMIT's windows for the whole session.
-                # Clearing it means the next "+ ADD" shows a fresh login instead of re-saving this account.
+    def _PollLogin(self, Window, RenewFor=None, Done=None, Outcome=None):
+        try:
+            time.sleep(2)
+            Deadline = time.time() + LoginTimeoutSeconds
+            while time.time() < Deadline and self._LoginWindow is Window:
                 try:
-                    Window.clear_cookies()
+                    Cookie = self._FindLoginCookie(Window.get_cookies())
                 except Exception:
-                    pass
-                self._FinishLogin(Cookie)
-                break
-            time.sleep(1.5)
-        with self._LoginLock:
-            if self._LoginWindow is Window:
-                self._LoginWindow = None
-        self._DestroyQuietly(Window)
+                    return  # window was closed
+                if Cookie:
+                    # The WebView2 cookie store is shared by RAMMIT's windows for the whole session.
+                    # Clearing it means the next "+ ADD" shows a fresh login instead of re-saving this account.
+                    try:
+                        Window.clear_cookies()
+                    except Exception:
+                        pass
+                    Result = self._FinishLogin(Cookie, RenewFor)
+                    if Outcome is not None:
+                        Outcome["Result"] = Result
+                    break
+                time.sleep(1.5)
+            with self._LoginLock:
+                if self._LoginWindow is Window:
+                    self._LoginWindow = None
+            self._DestroyQuietly(Window)
+        finally:
+            if Done:
+                Done.set()
 
     @staticmethod
     def _FindLoginCookie(CookieJars):
@@ -147,24 +175,82 @@ class Api:
                     return Morsel.value
         return None
 
-    def _FinishLogin(self, Cookie):
-        User = Roblox.GetAuthenticatedUser(Cookie)
-        if not User:
+    def _FinishLogin(self, Cookie, RenewFor=None):
+        """Saves a new login. Renewing (RenewFor = an account's username): the same Roblox user replaces that account's
+        login in place (same user id, or same username if its id isn't known yet); a different user is added as a new
+        account instead. Returns "Renewed", "Added", or None on failure."""
+        State, User = Roblox.CheckLogin(Cookie)
+        if State != "Valid":
             self._Notify("ShowMessage", {"Text": "Login worked but Roblox did not confirm the account. Try again.", "Error": True})
-            return
-        Username, DisplayName = User
+            return None
+        UserId, Username, DisplayName = User
+        Username, DisplayName = Storage.CleanText(Username, 50), Storage.CleanText(DisplayName, 50)
         try:
             with self._DataLock:
-                self._Accounts = [A for A in self._Accounts if A["Username"].lower() != Username.lower()]
-                self._Accounts.append({"Username": Storage.CleanText(Username, 50), "DisplayName": Storage.CleanText(DisplayName, 50),
-                                       "Cookie": Cookie, "Stored": None})
+                Target = next((A for A in self._Accounts if RenewFor and A["Username"].lower() == RenewFor.lower()), None)
+                Same = Target is not None and (Target["UserId"] == UserId if Target["UserId"] else Target["Username"].lower() == Username.lower())
+                if Same:
+                    OldName = Target["Username"]
+                    Target.update({"Username": Username, "DisplayName": DisplayName, "UserId": UserId, "Cookie": Cookie, "Stored": None})
+                    self._Expired.discard(OldName.lower())
+                    if OldName != Username:  # renamed on Roblox: keep it selected under its new name
+                        self._Settings["SelectedAccounts"] = [Username if N == OldName else N for N in self._Settings["SelectedAccounts"]]
+                        self._SaveSettings()
+                else:
+                    self._Accounts = [A for A in self._Accounts if A["Username"].lower() != Username.lower() and A["UserId"] != UserId]
+                    self._Accounts.append({"Username": Username, "DisplayName": DisplayName, "UserId": UserId, "Cookie": Cookie, "Stored": None})
+                self._Expired.discard(Username.lower())
                 Storage.SaveAccounts(self._Accounts)
         except Exception as Error:
             Logger.error("Could not save account %s: %s", Username, type(Error).__name__)
             self._Notify("ShowMessage", {"Text": "Could not save the account securely.", "Error": True})
-            return
-        Logger.info("Saved account %s", Username)
+            return None
+        if Same:
+            Logger.info("Renewed account %s", Username)
+        else:
+            Logger.info("Saved account %s", Username)
+            if RenewFor:
+                self._Notify("ShowMessage", {"Text": f"Signed in as @{Username}, not @{RenewFor}: added it as a new account.", "Error": True})
         self._Notify("AccountsChanged")
+        return "Renewed" if Same else "Added"
+
+    def _StartLoginChecks(self):
+        """Called by Main.py once the window exists: checks every saved login now, then every LoginCheckSeconds."""
+        threading.Thread(target=self._CheckLogins, name="LoginChecks", daemon=True).start()
+
+    def _CheckLogins(self, Forever=True):
+        while True:
+            with self._DataLock:
+                Accounts = [(A["Username"], A["Cookie"]) for A in self._Accounts if A["Cookie"]]
+            Changed = Save = False
+            for Username, Cookie in Accounts:
+                State, User = Roblox.CheckLogin(Cookie)
+                with self._DataLock:
+                    Account = next((A for A in self._Accounts if A["Username"] == Username), None)
+                    if not Account or Account["Cookie"] != Cookie:
+                        continue  # removed or renewed meanwhile
+                    Key = Username.lower()
+                    if State == "Expired" and Key not in self._Expired:
+                        self._Expired.add(Key)
+                        Changed = True
+                    elif State == "Valid":
+                        if Key in self._Expired:
+                            self._Expired.discard(Key)
+                            Changed = True
+                        if not Account["UserId"]:
+                            Account["UserId"] = User[0]
+                            Save = True
+            if Save:
+                try:
+                    with self._DataLock:
+                        Storage.SaveAccounts(self._Accounts)
+                except Exception as Error:
+                    Logger.error("Could not save account ids: %s", type(Error).__name__)
+            if Changed:
+                self._Notify("AccountsChanged")
+            if not Forever:
+                return
+            time.sleep(LoginCheckSeconds)
 
     def RemoveAccounts(self, Usernames):
         if not isinstance(Usernames, list):
@@ -173,6 +259,7 @@ class Api:
         with self._DataLock:
             Before = len(self._Accounts)
             self._Accounts = [A for A in self._Accounts if A["Username"].lower() not in Doomed]
+            self._Expired -= Doomed
             Storage.SaveAccounts(self._Accounts)
             self._Settings["SelectedAccounts"] = [U for U in self._Settings["SelectedAccounts"] if U.lower() not in Doomed]
             self._SaveSettings()
@@ -333,8 +420,13 @@ class Api:
                     return {"Error": "No servers found matching filters."}
                 JobId = Server["id"]
             Ticket = Roblox.GetAuthTicket(Cookie)
+            if Ticket is Roblox.LoginExpired:
+                with self._DataLock:
+                    self._Expired.add(Account["Username"].lower())
+                self._Notify("AccountsChanged")
+                return {"Error": ExpiredMessage}
             if not Ticket:
-                return {"Error": "Auth failed. The saved login may have expired - remove and re-add the account."}
+                return {"Error": "Auth failed."}
             try:
                 LaunchUrl = Roblox.BuildLaunchUrl(Ticket, PlaceId, JobId, LinkCode)
             except ValueError as Error:

@@ -6,7 +6,7 @@ import { ById, Debounce } from './Dom.js';
 import { InitSelect, SetSelectValue, GetSelectValue } from './Select.js';
 import { CreateLaunchForm } from './LaunchForm.js';
 import { State } from './State.js';
-import { ApplySelection, ApplyAccountStatus, SelectedInListOrder } from './Accounts.js';
+import { ApplySelection, ApplyAccountStatus, SelectedInListOrder, RenewTarget, RenewAccount } from './Accounts.js';
 import { SetLaunchStatus, ShowLaunchError, ShowLaunchDone } from './Status.js';
 import { ThemeNoteExtra } from './Themes.js';
 
@@ -53,6 +53,8 @@ function OnLaunchClick() {
 }
 
 async function LaunchSelected() {
+    const Renew = RenewTarget();
+    if (Renew && !(await RenewAccount(Renew))) return;  // RENEW AND LAUNCH: sign in again first, launch only if it worked
     const Names = SelectedInListOrder();
     if (!Names.length) { ShowLaunchError('No account selected.'); return; }
     SetLaunchStatus(Names.length > 1 ? `Launching 1 / ${Names.length}...` : 'Launching...');

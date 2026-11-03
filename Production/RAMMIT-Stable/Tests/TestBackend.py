@@ -463,6 +463,43 @@ class TestApi(unittest.TestCase):
         with mock.patch.object(ApiModule.MultiInstance, "CountRunning", return_value=1):
             self.assertEqual(self.Api._LaunchOne("A", "Home", {}), {"Error": "Instance limit reached."})
 
+    def test_LoginCheckMarksExpiredAndFillsInUserIds(self):
+        Answers = {"c-A": ("Expired", None), "c-B": ("Valid", (101, "B", "b")), "c-C": ("Unknown", None)}
+        with mock.patch.object(ApiModule.Roblox, "CheckLogin", side_effect=lambda Cookie: Answers[Cookie]):
+            self.Api._CheckLogins(Forever=False)
+            Expired = {A["Username"]: A["Expired"] for A in self.Api.GetAccounts()}
+            self.assertEqual(Expired, {"A": True, "B": False, "C": False})  # unknown (offline...) never turns red
+            self.assertEqual([A["UserId"] for A in Storage.LoadAccounts()], [None, 101, None])  # saved for renewing
+            Answers["c-A"] = ("Valid", (100, "A", "a"))  # e.g. Roblox was briefly unhappy
+            self.Api._CheckLogins(Forever=False)
+            self.assertFalse(self.Api.GetAccounts()[0]["Expired"])
+
+    def test_RenewKeepsTheSameUserAndAddsADifferentOne(self):
+        self.Api._Accounts[0]["UserId"] = 7
+        self.Api._Expired = {"a", "b", "c"}
+        self.Api.UpdateSetting("SelectedAccounts", ["A"])
+        with mock.patch.object(ApiModule.Roblox, "CheckLogin", return_value=("Valid", (7, "A2", "Renamed"))):
+            self.assertEqual(self.Api._FinishLogin("new-A", "A"), "Renewed")  # same user id: renamed on Roblox, same row
+        with mock.patch.object(ApiModule.Roblox, "CheckLogin", return_value=("Valid", (12, "C", "c"))):
+            self.assertEqual(self.Api._FinishLogin("new-C", "C"), "Renewed")  # no id saved yet: same username counts
+        with mock.patch.object(ApiModule.Roblox, "CheckLogin", return_value=("Valid", (9, "Other", "o"))):
+            self.assertEqual(self.Api._FinishLogin("other", "B"), "Added")  # someone else signed in: a new account
+        Accounts = {A["Username"]: A for A in self.Api.GetAccounts()}
+        self.assertEqual(list(Accounts), ["A2", "B", "C", "Other"])
+        self.assertEqual({Name: A["Expired"] for Name, A in Accounts.items()}, {"A2": False, "B": True, "C": False, "Other": False})
+        self.assertEqual(self.Api.GetSettings()["SelectedAccounts"], ["A2"])
+        self.assertEqual([A["UserId"] for A in Storage.LoadAccounts()], [7, None, 12, 9])
+        self.assertIn("Error", self.Api.RenewAccount("Nobody"))
+
+    def test_ExpiredLoginAtLaunchMarksTheAccount(self):
+        with mock.patch.object(ApiModule.MultiInstance, "CountRunning", return_value=0), \
+                mock.patch.object(ApiModule.MultiInstance, "LockCookieFile"), \
+                mock.patch.object(ApiModule.MultiInstance, "HoldMutex", return_value=True), \
+                mock.patch.object(ApiModule.Roblox, "FindLauncherPath", return_value="C:\\R.exe"), \
+                mock.patch.object(ApiModule.Roblox, "GetAuthTicket", return_value=ApiModule.Roblox.LoginExpired):
+            self.assertEqual(self.Api._LaunchOne("A", "Home", {}), {"Error": ApiModule.ExpiredMessage})
+        self.assertTrue(self.Api.GetAccounts()[0]["Expired"])
+
     def test_RemoveAccountsByName(self):
         self.Api.UpdateSetting("SelectedAccounts", ["A", "B"])
         self.assertEqual(self.Api.RemoveAccounts(["a", "Zed"]), {"Removed": 1})

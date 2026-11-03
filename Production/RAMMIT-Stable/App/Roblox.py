@@ -59,29 +59,38 @@ def PlaceIdFromGameUrl(Url):
 
 # ---------------------------------------------------------------- auth
 
-def GetAuthenticatedUser(Cookie):
-    """(Username, DisplayName) for a login cookie, or None."""
+LoginExpired = object()  # GetAuthTicket's answer when Roblox rejects the saved login (401): it has expired
+
+
+def CheckLogin(Cookie):
+    """("Valid", (UserId, Username, DisplayName)), ("Expired", None) when Roblox rejects the login (401), or
+    ("Unknown", None) for anything else (offline, rate limited, ...), so a bad connection never marks a login expired."""
     try:
         Response = requests.get("https://users.roblox.com/v1/users/authenticated", headers=_CookieHeader(Cookie), timeout=Timeout)
+        if Response.status_code == 401:
+            return "Expired", None
         if Response.status_code != 200:
             Logger.warning("users/authenticated returned %s", Response.status_code)
-            return None
+            return "Unknown", None
         Data = Response.json()
-        if isinstance(Data, dict) and isinstance(Data.get("name"), str):
-            return Data["name"], Data.get("displayName") or Data["name"]
+        if isinstance(Data, dict) and isinstance(Data.get("name"), str) and isinstance(Data.get("id"), int):
+            return "Valid", (Data["id"], Data["name"], Data.get("displayName") or Data["name"])
     except (requests.RequestException, ValueError) as Error:
         Logger.warning("users/authenticated failed: %s", type(Error).__name__)
-    return None
+    return "Unknown", None
 
 
 def GetAuthTicket(Cookie):
-    """One-time ticket the Roblox client exchanges for a session. Handles the CSRF dance and 429s."""
+    """One-time ticket the Roblox client exchanges for a session, LoginExpired if Roblox rejects the login (401), or
+    None. Handles the CSRF dance and 429s."""
     Url = "https://auth.roblox.com/v1/authentication-ticket/"
     Headers = {"User-Agent": "Roblox/WinInet", "Referer": "https://www.roblox.com/develop", "RBX-For-Gameauth": "true",
                "Content-Type": "application/json", **_CookieHeader(Cookie)}
     try:
         First = requests.post(Url, headers=Headers, timeout=Timeout)
         Csrf = First.headers.get("x-csrf-token")
+        if First.status_code == 401:
+            return LoginExpired
         if First.status_code != 403 or not Csrf:
             Logger.warning("auth ticket CSRF step returned %s", First.status_code)
             return None
@@ -90,6 +99,8 @@ def GetAuthTicket(Cookie):
             Second = requests.post(Url, headers=Headers, timeout=Timeout)
             if Second.status_code == 200:
                 return Second.headers.get("rbx-authentication-ticket") or None
+            if Second.status_code == 401:
+                return LoginExpired
             if Second.status_code != 429:
                 Logger.warning("auth ticket returned %s", Second.status_code)
                 return None

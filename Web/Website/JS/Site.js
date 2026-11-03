@@ -28,13 +28,13 @@
         { File: 'main-tick-1.png', Ms: -1000, Text: 'RUNNING: 0 / 3' },
         { File: 'main-tick-2.png', Ms: -800, Text: 'RUNNING: 0 / 3' },
         { File: 'main-tick-3.png', Ms: -600, Text: 'RUNNING: 0 / 3' },
-        { File: 'launch-f000.png', Ms: 34, Text: 'Launching 1 / 3…' },
-        { File: 'launch-f001.png', Ms: 517, Text: 'Launching 2 / 3…' },
-        { File: 'launch-f002.png', Ms: 964, Text: 'Launching 2 / 3…' },
-        { File: 'launch-f003.png', Ms: 1494, Text: 'Launching 3 / 3…' },
-        { File: 'launch-f004.png', Ms: 1915, Text: 'Launching 3 / 3…' },
-        { File: 'launch-f005.png', Ms: 2540, Text: 'Launched 3/3' },
-        { File: 'main-launched.png', Ms: 4803, Text: 'Launched 3/3' }
+        { File: 'launch-f000.png', Ms: 41, Text: 'Launching 1 / 3…' },
+        { File: 'launch-f001.png', Ms: 564, Text: 'Launching 2 / 3…' },
+        { File: 'launch-f002.png', Ms: 1046, Text: 'Launching 2 / 3…' },
+        { File: 'launch-f003.png', Ms: 1513, Text: 'Launching 3 / 3…' },
+        { File: 'launch-f004.png', Ms: 2044, Text: 'Launching 3 / 3…' },
+        { File: 'launch-f005.png', Ms: 2586, Text: 'Launched 3/3' },
+        { File: 'main-launched.png', Ms: 4993, Text: 'Launched 3/3' }
     ];
     const LoopMs = Frames[Frames.length - 1].Ms + HoldMs + IdleMs;
 

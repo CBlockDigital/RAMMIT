@@ -1,0 +1,16 @@
+GIMP Palette
+Name: RAMMIT
+Columns: 4
+#
+ 51  95 255	BrandBlue
+ 10  10  10	Background
+ 20  20  20	Card
+ 31  31  31	Input
+ 37  37  37	Border
+255 255 255	Text
+136 136 136	TextDim
+  0 120 212	Accent
+ 30 144 255	AccentHover
+ 26 107  58	Launch
+ 40 167  69	Success
+220  53  69	Danger

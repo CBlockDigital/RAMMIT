@@ -215,7 +215,7 @@ try {
     await Shot('07-InstallDone', 'InstallDone');
     const DoneText = await Text('#InstallDoneText');
     Check('install done: Test1 wording with real version + path', DoneText.startsWith('Installed v1.0.0 to ') && DoneText.includes(DefaultPath)
-        && DoneText.includes('A desktop shortcut has been created.') && DoneText.includes('Have fun - and ping us if anything breaks.'), DoneText);
+        && DoneText.includes('Shortcuts were added to the Desktop and the Start Menu.') && DoneText.includes('Have fun - and ping us if anything breaks.'), DoneText);
     let St = await Hook('State');
     Check('install: registry + Apps entry written (test keys)', St.Registry && St.Registry.Version === '1.0.0' && St.Apps && St.Apps.DisplayVersion === '1.0.0');
     await ClickBtn('LaunchBtn');

@@ -355,6 +355,19 @@ class TestUninstall(InstallerTestCase):
         Setup.RemoveShortcuts(Short)
         self.assertFalse(any(os.path.exists(P) for P in Setup.ShortcutPaths()))
 
+    def test_ShortcutsAreTheTickedOnesAndUpdatesKeepTheChoice(self):
+        Desktop, StartMenu = Setup.ShortcutPath("Desktop"), Setup.ShortcutPath("StartMenu")
+        self.assertEqual(self.Install("1.0.0", Shortcuts=["StartMenu"])["Shortcuts"], ["StartMenu"])
+        self.assertEqual((os.path.isfile(Desktop), os.path.isfile(StartMenu)), (False, True))
+        self.assertEqual(Setup.RegRead(Setup.ShortcutsValue), "StartMenu")
+        self.Install("1.1.0", Kind="Update")  # no choice passed: the one made at install
+        self.assertEqual((os.path.isfile(Desktop), os.path.isfile(StartMenu)), (False, True))
+        os.remove(StartMenu)
+        self.assertEqual(self.Install("1.1.0", Shortcuts=[])["Shortcuts"], [])  # neither ticked
+        self.assertEqual((os.path.isfile(Desktop), os.path.isfile(StartMenu)), (False, False))
+        Setup.RegDeleteValue(Setup.ShortcutsValue)  # an install from before the choice existed: both, as always
+        self.assertEqual(Setup.ChosenShortcuts(), ["Desktop", "StartMenu"])
+
     def test_uninstall_with_config_removes_config_and_backups_only(self):
         self.Install("1.0.0")
         Write(os.path.join(self.Target, "Config", "Settings.json"), "{}")
@@ -435,7 +448,7 @@ class TestKeptConfig(InstallerTestCase):
         self.assertIn("KeptTester", Read(os.path.join(self.Other, "Config", "Accounts.json")))
         self.assertEqual(len(os.listdir(os.path.join(self.Other, "Config.Backup"))), 1)
         self.assertFalse(os.path.exists(self.Target))
-        self.assertEqual(set(Support.RegValues(self.L.RegKeyPath)), {"InstallPath", "Version"})
+        self.assertEqual(set(Support.RegValues(self.L.RegKeyPath)), {"InstallPath", "Version", "Shortcuts"})
         self.assertIsNone(Setup.FindKeptConfig())
 
     def test_reinstall_same_folder_fresh_puts_accounts_aside(self):

@@ -283,7 +283,8 @@ async function StartInstall(ConfigChoice) {
     ById('InstallPath').value = Check.Path;
     ResetProgress('Installing RAMMIT...');
     Go('Progress', Flow);
-    StartJob('Install', () => Api.StartInstall(Version, Check.Path, { Legacy: State.LegacyMode, ConfigChoice: ConfigChoice || '', KeptConfig: Kept }), Back);
+    const Shortcuts = [['ShortcutDesktop', 'Desktop'], ['ShortcutStartMenu', 'StartMenu']].filter(([Id]) => ById(Id).checked).map(([, Name]) => Name);
+    StartJob('Install', () => Api.StartInstall(Version, Check.Path, { Legacy: State.LegacyMode, ConfigChoice: ConfigChoice || '', KeptConfig: Kept, Shortcuts }), Back);
 }
 
 // '' (nothing kept, or the old Test1 flow), 'Use' (bring the kept accounts back) or 'Fresh' (start without them).
@@ -292,6 +293,14 @@ const KeptChoice = () => (State.KeptConfig && !State.LegacyMode ? (ById('UseKept
 // ------------------------------------------------------------ results (Test1's OnActionDone)
 
 const Warn = Result => (Result.Warnings || []).map(Text => [Text]);
+
+// What the install made, from the ticked shortcut boxes: [] when neither was ticked.
+function ShortcutLine(Made) {
+    const Places = { Desktop: 'the Desktop', StartMenu: 'the Start Menu' };
+    const Where = (Made || []).map(Name => Places[Name]).filter(Boolean);
+    if (!Where.length) return [];
+    return [[Where.length > 1 ? `Shortcuts were added to ${Where.join(' and ')}.` : `A shortcut was added to ${Where[0]}.`]];
+}
 
 On('Progress', UpdateProgress);
 On('UninstallProgress', UpdateUninstallProgress);
@@ -304,7 +313,7 @@ On('Done', async Result => {
             ['Installed ', { Em: WithBranch(Result.Version, Result.Branch) }, ' to ', { Em: Result.Path, Class: 'Path' }, '.'],
             ...(Result.MovedLegacy ? [['Your accounts and settings came across from the old version.']] : []),
             ...(Result.KeptLine ? [[Result.KeptLine]] : []),
-            ['A desktop shortcut has been created.'],
+            ...ShortcutLine(Result.Shortcuts),
             ...Warn(Result),
             [],
             ['Have fun - and ping us if anything breaks.'],
@@ -411,11 +420,14 @@ Click('UninstallConfirmBtn', () => StartAction('Uninstall'));
 Click('InstallDoneCloseBtn', CloseWindow);
 Click('ActionDoneCloseBtn', CloseWindow);
 Click('UninstallDoneCloseBtn', CloseWindow);
-Click('LaunchBtn', async () => {
+// LAUNCH RAMMIT on both done screens (install, and update / repair / undo): starts it and closes the installer.
+async function LaunchRammit(DoneScreen) {
     const Result = await Api.Launch();
-    if (Result && Result.Error) ShowError(Result.Error, '', null, () => Go('InstallDone'), "RAMMIT didn't start.");
+    if (Result && Result.Error) ShowError(Result.Error, '', null, () => Go(DoneScreen), "RAMMIT didn't start.");
     else CloseWindow();
-});
+}
+Click('LaunchBtn', () => LaunchRammit('InstallDone'));
+Click('ActionLaunchBtn', () => LaunchRammit('ActionDone'));
 
 // Older RAMMIT found
 Click('LegacyMoveRemoveBtn', () => {
@@ -500,7 +512,7 @@ ById('InstallPath').addEventListener('input', () => { ById('PathError').textCont
 async function Boot() {
     // A reload can bring back old tick boxes (browser form restore) that no longer match State.
     document.querySelectorAll('.ShowTestVersions, #RemoveConfigs, #LegacyDontAsk').forEach(Box => { Box.checked = false; });
-    ById('UseKept').checked = true;
+    ['UseKept', 'ShortcutDesktop', 'ShortcutStartMenu'].forEach(Id => { ById(Id).checked = true; });
     WatchSize();
     BuildCrumbs();
     FitWindow();

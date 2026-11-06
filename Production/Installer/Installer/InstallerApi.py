@@ -276,8 +276,10 @@ class InstallerApi:
         Options = Options if isinstance(Options, dict) else {}
         LegacyMode, ConfigChoice = Options.get("Legacy", ""), Options.get("ConfigChoice", "")
         KeptChoice = Options.get("KeptConfig", "")
+        Shortcuts = Options.get("Shortcuts", list(Setup.ShortcutNames))  # the ticked shortcut boxes
         if (LegacyMode not in LegacyModes or ConfigChoice not in ConfigChoices or KeptChoice not in KeptChoices
-                or not isinstance(InstallPath, str)):
+                or not isinstance(InstallPath, str) or not isinstance(Shortcuts, list)
+                or not all(Name in Setup.ShortcutNames for Name in Shortcuts)):
             return {"Error": "Bad request."}
         LegacyInfo = Legacy.Detect() if LegacyMode else None
         if LegacyMode and not LegacyInfo:
@@ -289,7 +291,8 @@ class InstallerApi:
             Kept = Setup.FindKeptConfig() if KeptChoice and not LegacyMode else None
             return Setup.RunInstall(Release["Version"], InstallPath, self._Progress, Release=Release, Kind="Install",
                                     LegacyMode=LegacyMode, LegacyPath=LegacyInfo["Path"] if LegacyInfo else "",
-                                    ConfigChoice=ConfigChoice or "KeepNew", Kept=Kept, UseKept=KeptChoice == "Use")
+                                    ConfigChoice=ConfigChoice or "KeepNew", Kept=Kept, UseKept=KeptChoice == "Use",
+                                    Shortcuts=Shortcuts)
         return self._StartJob("Install", Job)
 
     def _InstalledOrError(self):

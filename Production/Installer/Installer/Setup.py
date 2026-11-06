@@ -169,9 +169,24 @@ def _FolderSize(Folder):
 
 # ------------------------------------------------------------ shortcuts (straight at RAMMIT.exe, never PowerShell)
 
-def ShortcutPaths():
+ShortcutNames = ("Desktop", "StartMenu")  # the two the installer offers (tick boxes on the Version screen)
+ShortcutsValue = "Shortcuts"             # registry: which ones were chosen at install, e.g. "Desktop,StartMenu" or ""
+
+
+def ShortcutPath(Name):
     L = Locations.Current
-    return [os.path.join(L.DesktopDir, "RAMMIT.lnk"), os.path.join(L.StartMenuDir, "RAMMIT.lnk")]
+    return os.path.join(L.DesktopDir if Name == "Desktop" else L.StartMenuDir, "RAMMIT.lnk")
+
+
+def ShortcutPaths():
+    return [ShortcutPath(Name) for Name in ShortcutNames]
+
+
+def ChosenShortcuts():
+    """The shortcuts chosen at install, for an update / repair / undo to recreate. Installs from before the choice
+    existed have none saved: both, as they always got."""
+    Saved = RegRead(ShortcutsValue)
+    return list(ShortcutNames) if Saved is None else [Name for Name in Saved.split(",") if Name in ShortcutNames]
 
 
 def _Shell():
@@ -190,10 +205,10 @@ def ReadShortcut(LinkPath):
         return "", ""
 
 
-def CreateShortcuts(InstallPath):
+def CreateShortcuts(InstallPath, Names=ShortcutNames):
     Exe = os.path.join(InstallPath, "RAMMIT.exe")
     Shell = _Shell()
-    for LinkPath in ShortcutPaths():
+    for LinkPath in [ShortcutPath(Name) for Name in ShortcutNames if Name in Names]:
         os.makedirs(os.path.dirname(LinkPath), exist_ok=True)
         Link = Shell.CreateShortCut(LinkPath)
         Link.TargetPath = Exe
@@ -791,10 +806,12 @@ def CheckTarget(InstallPath, LegacyMode="", LegacyPath=""):
 
 
 def RunInstall(Version, InstallPath, Report, Release=None, CachedSlot="", Kind="Install",
-               LegacyMode="", LegacyPath="", ConfigChoice="KeepNew", Kept=None, UseKept=True):
+               LegacyMode="", LegacyPath="", ConfigChoice="KeepNew", Kept=None, UseKept=True, Shortcuts=None):
     """The whole pipeline (module docstring). Report(**Progress) gets Test1's progress fields.
     Kept = FindKeptConfig() for a fresh install (UseKept: bring those accounts back or start fresh).
-    Returns {Version, Branch, Path, Warnings, MovedLegacy, KeptLine, OldVersion}."""
+    Shortcuts = the shortcut names ticked for an install; None (update / repair / undo) = the ones chosen at install.
+    Returns {Version, Branch, Path, Warnings, MovedLegacy, KeptLine, OldVersion, Shortcuts}."""
+    Shortcuts = ChosenShortcuts() if Shortcuts is None else [Name for Name in ShortcutNames if Name in Shortcuts]
     Warnings = []
     KeptLine = ""
     Check = CheckTarget(InstallPath, LegacyMode, LegacyPath)
@@ -879,6 +896,7 @@ def RunInstall(Version, InstallPath, Report, Release=None, CachedSlot="", Kind="
         Report(StageDetail="Writing registry", StagePct=25, OverallPct=93)
         RegWrite("InstallPath", InstallPath)
         RegWrite("Version", Version)
+        RegWrite(ShortcutsValue, ",".join(Shortcuts))
         try:
             CopySetupExe()
             WriteUninstallEntry(InstallPath, Version)
@@ -887,16 +905,17 @@ def RunInstall(Version, InstallPath, Report, Release=None, CachedSlot="", Kind="
             Logger.warning("Apps entry failed: %s", Error)
         Report(StageDetail="Creating shortcuts", StagePct=60, OverallPct=96)
         try:
-            CreateShortcuts(InstallPath)
+            CreateShortcuts(InstallPath, Shortcuts)
         except Exception as Error:
-            Warnings.append("The desktop shortcut couldn't be created.")
+            Warnings.append("The shortcuts couldn't be created.")
             Logger.warning("Shortcuts failed: %s", type(Error).__name__)
+            Shortcuts = []
         Report(StageDetail="Saving a copy for Undo", StagePct=85, OverallPct=98)
         UpdateCache(Version, ZipPath, Sha, OldVersion, FromSlot=CachedSlot, Branch=Branch)
         Report(StagePct=100, StageDetail="", OverallPct=100)
         Logger.info("%s finished: v%s in %s (was %s)", Kind, Version, InstallPath, OldVersion or "not installed")
         return {"Version": Version, "Branch": Branch, "Path": InstallPath, "Warnings": Warnings, "OldVersion": OldVersion,
-                "MovedLegacy": LegacyMode in ("MoveRemove", "MoveKeep"), "KeptLine": KeptLine}
+                "MovedLegacy": LegacyMode in ("MoveRemove", "MoveKeep"), "KeptLine": KeptLine, "Shortcuts": Shortcuts}
     finally:
         _RemoveStaging(Staging)
         shutil.rmtree(TempDir, ignore_errors=True)

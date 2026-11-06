@@ -132,6 +132,19 @@
                 Show dev versions
             </label>
 
+            <div class="InstCheckboxPair">
+                <label class="InstCheckboxRow">
+                    <input type="checkbox" id="ShortcutDesktop" checked>
+                    <span class="CheckboxBox"><i class="ph-bold ph-check"></i></span>
+                    Desktop shortcut
+                </label>
+                <label class="InstCheckboxRow">
+                    <input type="checkbox" id="ShortcutStartMenu" checked>
+                    <span class="CheckboxBox"><i class="ph-bold ph-check"></i></span>
+                    Start Menu shortcut
+                </label>
+            </div>
+
             <label class="InstCheckboxRow" id="KeptRow" hidden>
                 <input type="checkbox" id="UseKept" checked>
                 <span class="CheckboxBox"><i class="ph-bold ph-check"></i></span>
@@ -304,8 +317,9 @@
                 <div class="InstResultTitle" id="ActionDoneTitle">Updated successfully.</div>
                 <div class="InstResultText" id="ActionDoneText"></div>
             </div>
-            <div class="InstallerBtnRow">
-                <button class="BtnInst Success" id="ActionDoneCloseBtn">CLOSE</button>
+            <div class="InstallerBtnRow Row">
+                <button class="BtnInst Cancel" id="ActionDoneCloseBtn">CLOSE</button>
+                <button class="BtnInst Success" id="ActionLaunchBtn">LAUNCH RAMMIT</button>
             </div>
         </div>
 

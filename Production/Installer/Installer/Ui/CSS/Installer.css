@@ -679,6 +679,12 @@ body {
     cursor: pointer;
 }
 
+/* Two tick boxes on one line (the Desktop / Start Menu shortcut choice). */
+.InstCheckboxPair {
+    display: flex;
+    gap: 24px;
+}
+
 .InstCheckboxRow input[type="checkbox"] {
     display: none;
 }

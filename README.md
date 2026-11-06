@@ -1,5 +1,7 @@
 # RAMMIT
 
+<b><ins>R</ins></b>oblox <b><ins>A</ins></b>ccount <b><ins>M</ins></b>anager and <b><ins>M</ins></b>ulti <b><ins>I</ins></b>nstance <b><ins>T</ins></b>ool
+
 **Save your Roblox accounts once, tick the ones you want, and open a separate Roblox window for each with one click.** A free, open-source Windows app.
 
 [![CI](https://github.com/CBlockDigital/RAMMIT/actions/workflows/CI.yml/badge.svg)](https://github.com/CBlockDigital/RAMMIT/actions/workflows/CI.yml)

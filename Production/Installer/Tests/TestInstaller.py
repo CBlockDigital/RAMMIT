@@ -218,10 +218,9 @@ class TestInstallAndSwap(InstallerTestCase):
         self.assertEqual(Entry["DisplayVersion"], "1.0.0")
         self.assertIn("/Uninstall", Entry["UninstallString"])
         self.assertEqual(Entry["InstallLocation"], self.Target)
-        for LinkPath in Setup.ShortcutPaths():
-            Target, Arguments = Setup.ReadShortcut(LinkPath)
-            self.assertTrue(Paths.SamePath(Target, os.path.join(self.Target, "RAMMIT.exe")), Target)
-            self.assertEqual(Arguments, "")
+        for LinkPath in Setup.ShortcutPaths():  # open RAMMIT:, which starts this install's RAMMIT.exe
+            self.assertEqual(Setup.ReadUrlShortcut(LinkPath), self.L.ProtocolName + ":")
+        self.assertTrue(Paths.SamePath(Setup.ProtocolTarget(), os.path.join(self.Target, "RAMMIT.exe")), Setup.ProtocolTarget())
         self.assertFalse(os.path.exists(self.Target + Setup.StagingSuffix))
         self.assertFalse(os.path.exists(os.path.join(self.Target, Setup.StagingMarker)))
         self.assertEqual(Setup.CachedRelease("Installed")["Version"], "1.0.0")
@@ -338,10 +337,11 @@ class TestUninstall(InstallerTestCase):
         self.assertEqual(Support.RegValues(self.L.RegKeyPath), {Setup.KeptValue: self.Target})
         self.assertIsNone(Support.RegValues(self.L.UninstallKeyPath))
         self.assertFalse(any(os.path.exists(P) for P in Setup.ShortcutPaths()))
+        self.assertIsNone(Support.RegValues(self.L.ProtocolKeyPath))  # RAMMIT: goes too
         self.assertFalse(os.path.exists(self.L.CacheDir))
 
     def test_shortcuts_removed_when_paths_differ_only_by_short_names(self):
-        # GitHub's runner has TEMP = C:\Users\RUNNER~1\...; the .lnk stores the long form. Same folder, so remove.
+        # GitHub's runner has TEMP = C:\Users\RUNNER~1\...; an old .lnk stores the long form. Same folder, so remove.
         import ctypes
         Long = os.path.join(os.path.dirname(self.Target), "RAMMIT Long Folder Name")
         os.makedirs(Long, exist_ok=True)
@@ -350,9 +350,28 @@ class TestUninstall(InstallerTestCase):
         Short = Buffer.value
         if not Short or os.path.normcase(Short) == os.path.normcase(Long):
             self.skipTest("this drive doesn't make 8.3 short names")
-        Setup.CreateShortcuts(Long)
-        self.assertTrue(all(os.path.isfile(P) for P in Setup.ShortcutPaths()))
+        for LinkPath in Setup.LinkPaths():
+            Support.MakeOldShortcut(LinkPath, os.path.join(Long, "RAMMIT.exe"))
         Setup.RemoveShortcuts(Short)
+        self.assertFalse(any(os.path.exists(P) for P in Setup.LinkPaths()))
+
+    def test_ShortcutsOpenTheProtocolAndReplaceOldLinks(self):
+        Old = Setup.LinkPaths()
+        for LinkPath in Old:  # an install from before 1.1.2: .lnk files straight at RAMMIT.exe
+            Support.MakeOldShortcut(LinkPath, os.path.join(self.Target, "RAMMIT.exe"))
+        Elsewhere = os.path.join(self.Env.Root, "Mine", "RAMMIT.lnk")  # one the user made: never touched
+        Support.MakeOldShortcut(Elsewhere, os.path.join(self.Target, "RAMMIT.exe"))
+        self.Install("1.0.0")
+        self.assertFalse(any(os.path.exists(P) for P in Old))
+        self.assertTrue(os.path.isfile(Elsewhere))
+        self.assertTrue(all(Setup.IsOurShortcut(P) for P in Setup.ShortcutPaths()))
+        Values = Support.RegValues(self.L.ProtocolKeyPath)
+        self.assertEqual((Values[""], Values["URL Protocol"]), ("URL:" + self.L.ProtocolName, ""))
+        Somebody = os.path.join(self.L.DesktopDir, "Other.url")  # not ours: uninstall leaves it alone
+        with open(Somebody, "w") as File:
+            File.write("[InternetShortcut]\nURL=https://example.com/\n")
+        Setup.RunUninstall(self.Target, True, NoReport)
+        self.assertTrue(os.path.isfile(Somebody))
         self.assertFalse(any(os.path.exists(P) for P in Setup.ShortcutPaths()))
 
     def test_ShortcutsAreTheTickedOnesAndUpdatesKeepTheChoice(self):
@@ -411,11 +430,13 @@ class TestUninstall(InstallerTestCase):
 
     def test_shortcut_to_something_else_is_left_alone(self):
         self.Install("1.0.0")
-        Other = Setup.ShortcutPaths()[0]
-        os.remove(Other)
-        Support.MakeLegacyShortcut(Other)
+        Other = Setup.ShortcutPaths()[0]  # a RAMMIT.url that opens something else
+        Write(Other, "[InternetShortcut]\nURL=https://example.com/\n")
+        Lnk = Setup.LinkPaths()[0]  # and a RAMMIT.lnk that isn't straight at this RAMMIT.exe
+        Support.MakeLegacyShortcut(Lnk)
         Setup.RunUninstall(self.Target, True, NoReport)
         self.assertTrue(os.path.isfile(Other))
+        self.assertTrue(os.path.isfile(Lnk))
 
 
 # ------------------------------------------------------------------------------------------------ kept accounts
@@ -556,7 +577,7 @@ class TestLegacy(InstallerTestCase):
         Setup.RegWrite("InstallPath", self.Old)
         Setup.RegWrite("Version", "1.0.0")
         Setup.RegWrite("ConfigPath", "x")
-        for LinkPath in Setup.ShortcutPaths():
+        for LinkPath in Setup.LinkPaths():
             Support.MakeLegacyShortcut(LinkPath)
 
     def test_detection(self):
@@ -578,8 +599,8 @@ class TestLegacy(InstallerTestCase):
         self.assertFalse(os.path.exists(self.Old))
         self.assertEqual(Setup.RegRead("InstallPath"), self.Target)
         self.assertIsNone(Setup.RegRead("ConfigPath"))
-        for LinkPath in Setup.ShortcutPaths():  # PowerShell shortcuts replaced by direct ones
-            self.assertTrue(Setup.ReadShortcut(LinkPath)[0].lower().endswith("rammit.exe"))
+        self.assertFalse(any(os.path.exists(P) for P in Setup.LinkPaths()))  # PowerShell shortcuts replaced by RAMMIT: ones
+        self.assertTrue(all(Setup.IsOurShortcut(P) for P in Setup.ShortcutPaths()))
         self.assertIsNone(Legacy.Detect())
 
     def test_choice1_into_the_old_folder_itself(self):
@@ -739,6 +760,10 @@ class TestSafetyRails(unittest.TestCase):
             Locations.Reload()
         os.environ["RAMMIT_INSTALLER_REGKEY"] = r"Software\CBlock Digital\RAMMIT-InstallerTest-X"
         os.environ["RAMMIT_INSTALLER_UNINSTALL_NAME"] = "RAMMIT"
+        with self.assertRaises(RuntimeError):
+            Locations.Reload()
+        os.environ["RAMMIT_INSTALLER_UNINSTALL_NAME"] = "RAMMIT-InstallerTest-X"
+        os.environ["RAMMIT_INSTALLER_PROTOCOL"] = "RAMMIT"  # the real RAMMIT: protocol
         with self.assertRaises(RuntimeError):
             Locations.Reload()
 

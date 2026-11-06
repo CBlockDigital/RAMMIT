@@ -36,6 +36,7 @@ os.environ.update({
     "RAMMIT_INSTALLER_TEST_ROOT": ScratchDir,
     "RAMMIT_INSTALLER_REGKEY": r"Software\CBlock Digital\RAMMIT-InstallerTest-Ui",
     "RAMMIT_INSTALLER_UNINSTALL_NAME": "RAMMIT-InstallerTest-Ui",
+    "RAMMIT_INSTALLER_PROTOCOL": "RAMMIT-InstallerTest-Ui",
 })
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import Support  # noqa: E402  (also puts Installer\ on sys.path)
@@ -64,6 +65,7 @@ def DeleteKeys():
             winreg.DeleteKey(winreg.HKEY_CURRENT_USER, Path)
         except OSError:
             pass
+    Setup.UnregisterProtocol()
     # Creating the test key also created "Software\CBlock Digital": remove it again if nothing else is in it.
     Parent = L.RegKeyPath.rsplit("\\", 1)[0]
     try:

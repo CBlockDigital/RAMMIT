@@ -1,9 +1,10 @@
-"""Starts RAMMIT: logging -> multi-instance lock -> local UI server -> main window."""
+"""Starts RAMMIT: logging -> install registry check -> multi-instance lock -> local UI server -> main window."""
 import os
+import sys
 
 import webview
 
-from App import MultiInstance, Paths, Themes
+from App import Install, MultiInstance, Paths, Themes
 from App.Splash import SplashScreen
 from App.Api import Api, GuardNavigation
 from App.LocalServer import LocalServer
@@ -27,6 +28,15 @@ def StartHeight(Bridge):
 def Run():
     SetupLog()
     Logger.info("RAMMIT %s starting from %s", VersionLabel(), Paths.BaseDir)
+    if getattr(sys, "frozen", False):  # only the installed exe: running from source never touches the registry
+        try:
+            Done = Install.Sync(Paths.BaseDir)
+            if Done == "Moved":
+                Logger.info("RAMMIT was moved here: the registry and the RAMMIT: shortcuts now point at this folder")
+            elif Done:
+                Logger.info("RAMMIT: shortcuts re-pointed at this folder")
+        except OSError as Error:
+            Logger.warning("Could not update the install's registry entries: %s", type(Error).__name__)
     os.chdir(Paths.BaseDir)
     Paths.EnsureConfigDir()
     MultiInstance.Enable()

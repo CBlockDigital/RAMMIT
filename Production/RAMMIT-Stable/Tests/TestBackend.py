@@ -42,6 +42,61 @@ class TestPaths(unittest.TestCase):
         self.assertFalse(Paths.IsInside(Paths.SrcDir, os.path.join(Paths.SrcDir, "..", "Config")))
 
 
+class TestInstallSync(unittest.TestCase):
+    """App/Install.Sync against throw-away keys (never the real HKCU\\...\\RAMMIT or RAMMIT: protocol)."""
+
+    def setUp(self):
+        import uuid
+        Tag = uuid.uuid4().hex[:8]
+        self.Keys = (rf"Software\CBlock Digital\RAMMIT-AppTest-{Tag}", rf"Software\Classes\RAMMIT-AppTest-{Tag}",
+                     rf"Software\Microsoft\Windows\CurrentVersion\Uninstall\RAMMIT-AppTest-{Tag}")
+        self.Root = tempfile.mkdtemp(prefix="RAMMIT-InstallSync-")
+        self.Old, self.New = os.path.join(self.Root, "Old"), os.path.join(self.Root, "New")
+        for Folder in (self.Old, self.New):
+            os.makedirs(Folder)
+            open(os.path.join(Folder, "RAMMIT.exe"), "w").close()
+
+    def tearDown(self):
+        import winreg
+
+        def Delete(Path):
+            try:
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, Path) as Key:
+                    Subs = [winreg.EnumKey(Key, I) for I in range(winreg.QueryInfoKey(Key)[0])]
+                for Sub in Subs:
+                    Delete(Path + "\\" + Sub)
+                winreg.DeleteKey(winreg.HKEY_CURRENT_USER, Path)
+            except OSError:
+                pass
+        for Path in self.Keys:
+            Delete(Path)
+        shutil.rmtree(self.Root, ignore_errors=True)
+
+    def Sync(self, BaseDir):
+        from App import Install
+        return Install.Sync(BaseDir, *self.Keys)
+
+    def test_MovedFolderTakesOverAndSecondCopyDoesNot(self):
+        from App import Install
+        RegKey, ProtocolKey, UninstallKey = self.Keys
+        self.assertEqual(self.Sync(self.New), "")  # never installed: nothing written
+        self.assertIsNone(Install._Read(RegKey, "InstallPath"))
+        Install._Write(RegKey, "InstallPath", self.Old)
+        Install._Write(UninstallKey, "UninstallString", "x")
+        self.assertEqual(self.Sync(self.New), "")  # the installed copy is still there: a second copy changes nothing
+        self.assertEqual(Install._Read(RegKey, "InstallPath"), self.Old)
+        os.remove(os.path.join(self.Old, "RAMMIT.exe"))  # moved away
+        self.assertEqual(self.Sync(self.New), "Moved")
+        Exe = os.path.join(self.New, "RAMMIT.exe")
+        self.assertEqual(Install._Read(RegKey, "InstallPath"), self.New)
+        self.assertEqual(Install._Read(ProtocolKey + r"\shell\open\command"), f'"{Exe}"')
+        self.assertEqual(Install._Read(ProtocolKey, "URL Protocol"), "")
+        self.assertEqual(Install._Read(UninstallKey, "InstallLocation"), self.New)
+        self.assertEqual(self.Sync(self.New), "")  # already right
+        Install._Write(ProtocolKey + r"\shell\open\command", "", '"C:\\Elsewhere\\RAMMIT.exe"')
+        self.assertEqual(self.Sync(self.New), "Fixed")
+
+
 class TestVersion(unittest.TestCase):
     def test_VersionIsPlainNumbers(self):
         self.assertRegex(Version.AppVersion, r"^\d+\.\d+\.\d+$")

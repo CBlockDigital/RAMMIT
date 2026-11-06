@@ -60,6 +60,7 @@ README.txt, HowToMakeATheme.txt
 | `LocalServer.py` | Hardened static server for the active theme folder |
 | `Themes.py` | Theme discovery, `HeightMap.json`, fallback to Dark |
 | `Paths.py`, `Log.py`, `Version.py` | Locations, the log file, the version string |
+| `Install.py` | When the installed folder was moved by hand, points the installer's registry entries and the `RAMMIT:` shortcut protocol at the new place |
 
 ### Frontend (`Src/<Theme>/JS/`, plain ES modules, no build step)
 

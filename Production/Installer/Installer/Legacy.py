@@ -150,7 +150,7 @@ def Remove(Folder, IncludeConfig):
 def FindShortcuts():
     """Test1's RAMMIT.lnk files: they start PowerShell, which reads the registry and runs RAMMIT.exe."""
     Found = []
-    for LinkPath in Setup.ShortcutPaths():
+    for LinkPath in Setup.LinkPaths():
         if os.path.isfile(LinkPath):
             Target, Arguments = Setup.ReadShortcut(LinkPath)
             if Target.lower().endswith("powershell.exe") and "cblock digital" in Arguments.lower():

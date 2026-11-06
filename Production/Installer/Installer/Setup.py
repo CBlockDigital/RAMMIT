@@ -977,7 +977,7 @@ def RunUninstall(InstallPath, RemoveConfig, Report):
             except OSError:
                 pass
     ConfigKept = _HasFiles(os.path.join(InstallPath, "Config"))
-    # Registry: the whole key goes (InstallPath, Version, IgnoreLegacyInstall, any old Test1 values). When Config
+    # Registry: the whole key goes (InstallPath, Version, LegacyInstallPath, any old Test1 values). When Config
     # stays, one value remembers where, so the next install can offer those accounts again (FindKeptConfig).
     RegDeleteKey()
     if ConfigKept:

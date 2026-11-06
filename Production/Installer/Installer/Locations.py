@@ -1,7 +1,7 @@
 """Every folder and registry key the installer touches, resolved in one place.
 
 Normal mode (what users get):
-    registry      HKCU\\Software\\CBlock Digital\\RAMMIT                         InstallPath, Version, IgnoreLegacyInstall
+    registry      HKCU\\Software\\CBlock Digital\\RAMMIT                         InstallPath, Version, LegacyInstallPath
     Apps list     HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\RAMMIT
     shortcuts     <Desktop>\\RAMMIT.lnk and <Start Menu>\\Programs\\RAMMIT.lnk
     install       %LOCALAPPDATA%\\RAMMIT (default, the user can pick another folder)

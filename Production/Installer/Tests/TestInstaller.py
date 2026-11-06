@@ -388,7 +388,7 @@ class TestUninstall(InstallerTestCase):
 
     def test_full_uninstall_leaves_no_registry_key_and_no_setup_folder(self):
         self.Install("1.0.0")
-        Setup.RegWrite("IgnoreLegacyInstall", "1")
+        Legacy.Ignore(True)
         Write(self.L.LogFile, "old log")
         Write(self.L.LogFile + ".1", "older log")
         Setup.RunUninstall(self.Target, True, NoReport)
@@ -642,8 +642,14 @@ class TestLegacy(InstallerTestCase):
     def test_Choice4DontAskAgainForgetsAPutOffOne(self):
         Legacy.Ignore(False, self.Old)
         Legacy.Ignore(True)
-        self.assertIsNone(Setup.RegRead("LegacyInstallPath"))
+        self.assertEqual(Setup.RegRead("LegacyInstallPath"), Legacy.IgnoredForGood)
         self.assertIsNone(Legacy.Detect())
+
+    def test_OldDontAskAgainValueIsCarriedOver(self):
+        Setup.RegWrite(Legacy.OldIgnoreValue, "1")  # what installers before 1.1.2 wrote
+        self.assertIsNone(Legacy.Detect())
+        self.assertIsNone(Setup.RegRead(Legacy.OldIgnoreValue))
+        self.assertEqual(Setup.RegRead("LegacyInstallPath"), Legacy.IgnoredForGood)
 
     def test_Choice2MoveAndKeepForgetsAPutOffOne(self):
         Legacy.Ignore(False, self.Old)

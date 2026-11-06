@@ -370,7 +370,7 @@ try {
     await Page.click('[data-screen=Legacy] .InstCheckboxRow');
     await ClickBtn('LegacyIgnoreBtn');
     await OnScreen('MenuFresh');
-    Check('ignore + don\'t ask again saved', (await Hook('State')).Registry.IgnoreLegacyInstall === '1');
+    Check('ignore + don\'t ask again saved', (await Hook('State')).Registry.LegacyInstallPath === 'Ignore');
     await Open();
     Check('not asked again', await OnScreen('MenuFresh'));
 

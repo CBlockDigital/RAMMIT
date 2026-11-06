@@ -10,8 +10,8 @@ The four choices on the "Older RAMMIT found" screen map to:
   1. MoveRemove  copy Config\\ files into the new install, then Remove(IncludeConfig=True)
   2. MoveKeep    copy Config\\ files into the new install, leave the old one alone
   3. Remove      Remove(IncludeConfig=True) without copying (the UI asks to confirm first)
-  4. Ignore      with "don't ask again" the registry gets IgnoreLegacyInstall=1; without it, LegacyInstallPath=<folder>,
-                 and later runs open the menu with an OLD VERSION button instead of this screen
+  4. Ignore      with "don't ask again" the registry gets LegacyInstallPath=Ignore (for good, no undo); without it,
+                 LegacyInstallPath=<folder>, and later runs open the menu with an OLD VERSION button instead of this screen
 
 Only names Test1 is known to ship are ever deleted. Account files are copied as files and never read
 (they hold login cookies); "has accounts" is judged by file size alone.
@@ -51,12 +51,18 @@ def ReadVersion(Folder):
     return Version if re.match(r"^[0-9A-Za-z.\-]{1,20}$", Version) else ""
 
 
+IgnoredForGood = "Ignore"  # LegacyInstallPath's value once the user ticked "don't ask again" and pressed Ignore
+OldIgnoreValue = "IgnoreLegacyInstall"  # where installers before 1.1.2 kept that; moved over by Detect()
+
+
 def Detect():
     """{Path, Version, Shortcuts, Deferred} for a Test1 install the registry points at (InstallPath, or LegacyInstallPath
     once the user pressed Ignore), unless the user said never ask again. Deferred = it was put off with Ignore."""
-    if Setup.RegRead("IgnoreLegacyInstall") == "1":
-        return None
+    if Setup.RegRead(OldIgnoreValue) == "1":  # installers before 1.1.2 kept "don't ask again" in its own value
+        Ignore(True)
     PutOff = Setup.RegRead("LegacyInstallPath")
+    if PutOff == IgnoredForGood:
+        return None
     for Folder in (Setup.RegRead("InstallPath"), PutOff):
         if Folder and os.path.isdir(Folder) and IsLegacyFolder(Folder):
             return {"Path": Folder, "Version": ReadVersion(Folder), "Shortcuts": FindShortcuts(),
@@ -175,8 +181,8 @@ def Ignore(DontAskAgain, Folder=""):
     """Ticked: never ask again. Unticked: remember the folder, so it stays reachable from the menu (even after a new
     install takes over InstallPath) without blocking the way in."""
     if DontAskAgain:
-        Setup.RegWrite("IgnoreLegacyInstall", "1")
-        Setup.RegDeleteValue("LegacyInstallPath")
+        Setup.RegWrite("LegacyInstallPath", IgnoredForGood)
+        Setup.RegDeleteValue(OldIgnoreValue)
     elif Folder:
         Setup.RegWrite("LegacyInstallPath", Folder)
 

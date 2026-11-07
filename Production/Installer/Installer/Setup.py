@@ -167,11 +167,90 @@ def _FolderSize(Folder):
     return Total
 
 
-# ------------------------------------------------------------ shortcuts (straight at RAMMIT.exe, never PowerShell)
+# ------------------------------------------------------------ shortcuts (RAMMIT.url files that open RAMMIT:)
+# A shortcut that names a path breaks when the RAMMIT folder is moved. These open the RAMMIT: protocol instead
+# (HKCU\Software\Classes\RAMMIT, pointing at RAMMIT.exe), which RAMMIT points back at itself when it starts from a
+# moved folder (App/Install.py), so every shortcut keeps working wherever it is, copies the user made included.
+# Their icon is a copy in RAMMIT-Setup\, which never moves. Installers before 1.1.2 made RAMMIT.lnk files straight
+# at RAMMIT.exe (and Test1 made PowerShell ones, see Legacy.py); ours are replaced by .url ones on the next install.
+
+ShortcutNames = ("Desktop", "StartMenu")  # the two the installer offers (tick boxes on the Version screen)
+ShortcutsValue = "Shortcuts"             # registry: which ones were chosen at install, e.g. "Desktop,StartMenu" or ""
+
+
+def _ShortcutDir(Name):
+    L = Locations.Current
+    return L.DesktopDir if Name == "Desktop" else L.StartMenuDir
+
+
+def ShortcutPath(Name):
+    return os.path.join(_ShortcutDir(Name), "RAMMIT.url")
+
 
 def ShortcutPaths():
+    return [ShortcutPath(Name) for Name in ShortcutNames]
+
+
+def LinkPaths():
+    """Where the RAMMIT.lnk shortcuts of Test1 and of installers before 1.1.2 are."""
+    return [os.path.join(_ShortcutDir(Name), "RAMMIT.lnk") for Name in ShortcutNames]
+
+
+def _DeleteKeyTree(KeyPath):
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, KeyPath) as Key:
+            SubKeys = [winreg.EnumKey(Key, Index) for Index in range(winreg.QueryInfoKey(Key)[0])]
+    except OSError:
+        return
+    for Name in SubKeys:
+        _DeleteKeyTree(KeyPath + "\\" + Name)
+    RegDeleteKey(KeyPath)
+
+
+def RegisterProtocol(InstallPath):
+    """RAMMIT: starts this install's RAMMIT.exe. Nothing from the link is passed on, so a RAMMIT: link on a web page can
+    only open RAMMIT (after the browser asks), nothing more."""
     L = Locations.Current
-    return [os.path.join(L.DesktopDir, "RAMMIT.lnk"), os.path.join(L.StartMenuDir, "RAMMIT.lnk")]
+    Exe = os.path.join(InstallPath, "RAMMIT.exe")
+    for Sub, Value in (("", f"URL:{L.ProtocolName}"), ("DefaultIcon", f'"{Exe}",0'), (r"shell\open\command", f'"{Exe}"')):
+        with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, L.ProtocolKeyPath + ("\\" + Sub if Sub else ""), 0,
+                                winreg.KEY_WRITE) as Key:
+            winreg.SetValueEx(Key, "", 0, winreg.REG_SZ, Value)
+            if not Sub:
+                winreg.SetValueEx(Key, "URL Protocol", 0, winreg.REG_SZ, "")
+
+
+def ProtocolTarget():
+    """The RAMMIT.exe that RAMMIT: starts, or "" when it isn't registered."""
+    Command = RegRead("", Locations.Current.ProtocolKeyPath + r"\shell\open\command") or ""
+    return Command.strip().strip('"')
+
+
+def UnregisterProtocol():
+    _DeleteKeyTree(Locations.Current.ProtocolKeyPath)
+
+
+def ReadUrlShortcut(Path):
+    """The URL= of a .url shortcut, or "" when it can't be read."""
+    try:
+        with open(Path, encoding="mbcs", errors="replace") as File:
+            for Line in File:
+                if Line.lower().startswith("url="):
+                    return Line[4:].strip()
+    except OSError:
+        pass
+    return ""
+
+
+def IsOurShortcut(Path):
+    return ReadUrlShortcut(Path).lower() == Locations.Current.ProtocolName.lower() + ":"
+
+
+def ChosenShortcuts():
+    """The shortcuts chosen at install, for an update / repair / undo to recreate. Installs from before the choice
+    existed have none saved: both, as they always got."""
+    Saved = RegRead(ShortcutsValue)
+    return list(ShortcutNames) if Saved is None else [Name for Name in Saved.split(",") if Name in ShortcutNames]
 
 
 def _Shell():
@@ -190,32 +269,54 @@ def ReadShortcut(LinkPath):
         return "", ""
 
 
-def CreateShortcuts(InstallPath):
-    Exe = os.path.join(InstallPath, "RAMMIT.exe")
-    Shell = _Shell()
-    for LinkPath in ShortcutPaths():
-        os.makedirs(os.path.dirname(LinkPath), exist_ok=True)
-        Link = Shell.CreateShortCut(LinkPath)
-        Link.TargetPath = Exe
-        Link.Arguments = ""
-        Link.WorkingDirectory = InstallPath
-        Link.IconLocation = Exe + ",0"
-        Link.Description = "RAMMIT - Roblox Multi-Account Launcher"
-        Link.save()
+def _ShortcutIcon(InstallPath):
+    """A copy of RAMMIT's icon in RAMMIT-Setup\\ (stays put when the RAMMIT folder moves), or RAMMIT.exe itself."""
+    L = Locations.Current
+    Source = os.path.join(InstallPath, "Src", "Dark", "RAMMIT.ico")
+    try:
+        if os.path.isfile(Source):
+            os.makedirs(L.SetupDir, exist_ok=True)
+            shutil.copyfile(Source, L.IconPath)
+    except OSError as Error:
+        Logger.warning("Shortcut icon not copied: %s", type(Error).__name__)
+    return L.IconPath if os.path.isfile(L.IconPath) else os.path.join(InstallPath, "RAMMIT.exe")
 
 
-def RemoveShortcuts(InstallPath):
-    """Removes RAMMIT.lnk only where it points at this install's RAMMIT.exe."""
+def CreateShortcuts(InstallPath, Names=ShortcutNames):
+    """RAMMIT.url for each ticked name (register the protocol first). Our old RAMMIT.lnk files go."""
+    _RemoveOldLinks(InstallPath)
+    Icon = _ShortcutIcon(InstallPath)
+    Text = f"[InternetShortcut]\nURL={Locations.Current.ProtocolName}:\nIconFile={Icon}\nIconIndex=0\n"
+    for Path in [ShortcutPath(Name) for Name in ShortcutNames if Name in Names]:
+        os.makedirs(os.path.dirname(Path), exist_ok=True)
+        with open(Path, "w", encoding="mbcs", errors="replace") as File:
+            File.write(Text)
+
+
+def _RemoveOldLinks(InstallPath):
+    """Removes RAMMIT.lnk only where it points at this install's RAMMIT.exe (made by installers before 1.1.2)."""
     Exe = os.path.join(InstallPath, "RAMMIT.exe")
-    for LinkPath in ShortcutPaths():
+    for LinkPath in LinkPaths():
         if os.path.isfile(LinkPath):
             Target, _Args = ReadShortcut(LinkPath)
             # SamePath resolves 8.3 short names (C:\Users\RUNNER~1) the .lnk may store differently from ours.
             if Target and Paths.SamePath(Target, Exe):
-                try:
-                    os.remove(LinkPath)
-                except OSError as Error:
-                    Logger.warning("Could not remove shortcut %s: %s", LinkPath, type(Error).__name__)
+                _RemoveFile(LinkPath)
+
+
+def RemoveShortcuts(InstallPath):
+    """Removes our RAMMIT.url files, and RAMMIT.lnk files pointing at this install's RAMMIT.exe."""
+    _RemoveOldLinks(InstallPath)
+    for Path in ShortcutPaths():
+        if os.path.isfile(Path) and IsOurShortcut(Path):
+            _RemoveFile(Path)
+
+
+def _RemoveFile(Path):
+    try:
+        os.remove(Path)
+    except OSError as Error:
+        Logger.warning("Could not remove shortcut %s: %s", Path, type(Error).__name__)
 
 
 # ------------------------------------------------------------ folders
@@ -791,10 +892,12 @@ def CheckTarget(InstallPath, LegacyMode="", LegacyPath=""):
 
 
 def RunInstall(Version, InstallPath, Report, Release=None, CachedSlot="", Kind="Install",
-               LegacyMode="", LegacyPath="", ConfigChoice="KeepNew", Kept=None, UseKept=True):
+               LegacyMode="", LegacyPath="", ConfigChoice="KeepNew", Kept=None, UseKept=True, Shortcuts=None):
     """The whole pipeline (module docstring). Report(**Progress) gets Test1's progress fields.
     Kept = FindKeptConfig() for a fresh install (UseKept: bring those accounts back or start fresh).
-    Returns {Version, Branch, Path, Warnings, MovedLegacy, KeptLine, OldVersion}."""
+    Shortcuts = the shortcut names ticked for an install; None (update / repair / undo) = the ones chosen at install.
+    Returns {Version, Branch, Path, Warnings, MovedLegacy, KeptLine, OldVersion, Shortcuts}."""
+    Shortcuts = ChosenShortcuts() if Shortcuts is None else [Name for Name in ShortcutNames if Name in Shortcuts]
     Warnings = []
     KeptLine = ""
     Check = CheckTarget(InstallPath, LegacyMode, LegacyPath)
@@ -859,6 +962,7 @@ def RunInstall(Version, InstallPath, Report, Release=None, CachedSlot="", Kind="
         if LegacyMode in ("MoveRemove", "MoveKeep") and LegacyMoved:
             Report(StageDetail="Moving accounts and settings")
             Warnings += Legacy.MoveConfig(LegacyMoved, InstallPath, ConfigChoice)
+            RegDeleteValue("LegacyInstallPath")  # dealt with: no OLD VERSION button any more
         if LegacyMode == "MoveRemove" and LegacyMoved:
             Report(StageDetail="Removing the old version")
             Result = Legacy.Remove(LegacyMoved, IncludeConfig=True)
@@ -878,6 +982,7 @@ def RunInstall(Version, InstallPath, Report, Release=None, CachedSlot="", Kind="
         Report(StageDetail="Writing registry", StagePct=25, OverallPct=93)
         RegWrite("InstallPath", InstallPath)
         RegWrite("Version", Version)
+        RegWrite(ShortcutsValue, ",".join(Shortcuts))
         try:
             CopySetupExe()
             WriteUninstallEntry(InstallPath, Version)
@@ -886,16 +991,18 @@ def RunInstall(Version, InstallPath, Report, Release=None, CachedSlot="", Kind="
             Logger.warning("Apps entry failed: %s", Error)
         Report(StageDetail="Creating shortcuts", StagePct=60, OverallPct=96)
         try:
-            CreateShortcuts(InstallPath)
+            RegisterProtocol(InstallPath)
+            CreateShortcuts(InstallPath, Shortcuts)
         except Exception as Error:
-            Warnings.append("The desktop shortcut couldn't be created.")
+            Warnings.append("The shortcuts couldn't be created.")
             Logger.warning("Shortcuts failed: %s", type(Error).__name__)
+            Shortcuts = []
         Report(StageDetail="Saving a copy for Undo", StagePct=85, OverallPct=98)
         UpdateCache(Version, ZipPath, Sha, OldVersion, FromSlot=CachedSlot, Branch=Branch)
         Report(StagePct=100, StageDetail="", OverallPct=100)
         Logger.info("%s finished: v%s in %s (was %s)", Kind, Version, InstallPath, OldVersion or "not installed")
         return {"Version": Version, "Branch": Branch, "Path": InstallPath, "Warnings": Warnings, "OldVersion": OldVersion,
-                "MovedLegacy": LegacyMode in ("MoveRemove", "MoveKeep"), "KeptLine": KeptLine}
+                "MovedLegacy": LegacyMode in ("MoveRemove", "MoveKeep"), "KeptLine": KeptLine, "Shortcuts": Shortcuts}
     finally:
         _RemoveStaging(Staging)
         shutil.rmtree(TempDir, ignore_errors=True)
@@ -957,7 +1064,7 @@ def RunUninstall(InstallPath, RemoveConfig, Report):
             except OSError:
                 pass
     ConfigKept = _HasFiles(os.path.join(InstallPath, "Config"))
-    # Registry: the whole key goes (InstallPath, Version, IgnoreLegacyInstall, any old Test1 values). When Config
+    # Registry: the whole key goes (InstallPath, Version, LegacyInstallPath, any old Test1 values). When Config
     # stays, one value remembers where, so the next install can offer those accounts again (FindKeptConfig).
     RegDeleteKey()
     if ConfigKept:
@@ -965,6 +1072,7 @@ def RunUninstall(InstallPath, RemoveConfig, Report):
     TidyRegistry()
     RemoveUninstallEntry()
     RemoveShortcuts(InstallPath)
+    UnregisterProtocol()
     Report(Pct=100)
     Logger.info("Uninstalled %s (config removed: %s, kept: %s, left: %d)", InstallPath, RemoveConfig, ConfigKept, len(Left))
     RemoveSetupFolder()
@@ -984,7 +1092,7 @@ def RemoveSetupFolder():
     ClearCache()
     import Log
     Log.Close()
-    for Name in ("Setup.log", "Setup.log.1"):
+    for Name in ("Setup.log", "Setup.log.1", os.path.basename(L.IconPath)):
         try:
             os.remove(os.path.join(L.SetupDir, Name))
         except OSError:

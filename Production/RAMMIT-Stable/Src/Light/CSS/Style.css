@@ -174,6 +174,21 @@ body {
     color: var(--OnAccent);
 }
 
+/* A saved login Roblox rejected (expired): red row until it's renewed. */
+.ListItem.Expired {
+    background: var(--Danger);
+}
+
+.ListItem.Expired:hover {
+    background: var(--DangerHover);
+}
+
+.ListItem.Expired.Selected {
+    background: var(--Danger);
+    font-weight: 700;
+    color: var(--Accent);
+}
+
 .ListButtons {
     display: flex;
     gap: 10px;
@@ -363,7 +378,7 @@ body {
     gap: 10px;
 }
 
-.BtnAdd, .BtnEdit, .BtnRemove {
+.BtnAdd, .BtnEdit, .BtnRemove, .BtnRenew {
     flex: 1;
     padding: 10px;
     border: none;
@@ -387,7 +402,12 @@ body {
     background: var(--Danger);
 }
 
-.BtnAdd:hover, .BtnEdit:hover, .BtnRemove:hover {
+/* + ADD turns into RENEW while exactly one expired account is selected (Accounts.js). */
+.BtnRenew {
+    background: var(--EditButton);
+}
+
+.BtnAdd:hover, .BtnEdit:hover, .BtnRemove:hover, .BtnRenew:hover {
     opacity: 0.85;
 }
 
@@ -980,11 +1000,11 @@ body {
     transition: background 0.15s ease;
 }
 
-.BtnLaunch, .BtnAdd, .BtnEdit, .BtnRemove, .BtnSelect, .BtnSave, .BtnIcon, .TourBtn {
+.BtnLaunch, .BtnAdd, .BtnEdit, .BtnRemove, .BtnRenew, .BtnSelect, .BtnSave, .BtnIcon, .TourBtn {
     transition: background 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
 }
 
-.BtnLaunch:active, .BtnAdd:active, .BtnEdit:active, .BtnRemove:active,
+.BtnLaunch:active, .BtnAdd:active, .BtnEdit:active, .BtnRemove:active, .BtnRenew:active,
 .BtnSelect:active, .BtnSave:active, .BtnIcon:active, .TourBtn:active {
     transform: scale(0.97);
 }
@@ -1152,7 +1172,13 @@ body.WizardBody {
     box-sizing: border-box;
     border: 1px solid var(--BorderLight);
     border-radius: 2px;
-    background: conic-gradient(var(--S2) 0 25%, var(--S3) 0 50%, var(--S0) 0 75%, var(--S1) 0);
+    /* Three half-size layers over --S1, not a conic-gradient: its hard stops come out jagged at
+       fractional sizes and DPI scaling, these straight edges stay crisp. */
+    background:
+        linear-gradient(var(--S2), var(--S2)) right top / 50% 50% no-repeat,
+        linear-gradient(var(--S3), var(--S3)) right bottom / 50% 50% no-repeat,
+        linear-gradient(var(--S0), var(--S0)) left bottom / 50% 50% no-repeat,
+        var(--S1);
 }
 
 /* Exactly as tall as the picker (the button keeps its natural height, so the row and the
@@ -1236,9 +1262,36 @@ body.WizardBody {
 }
 
 /* Buttons and text boxes follow the theme's ButtonRadius (0 = square, the Dark look). */
-.BtnAdd, .BtnEdit, .BtnRemove, .BtnSelect, .BtnLaunch, .BtnSave,
+.BtnAdd, .BtnEdit, .BtnRemove, .BtnRenew, .BtnSelect, .BtnLaunch, .BtnSave,
 .SettingsGrid input[type="text"], .ChannelRow input, .LaunchInput, .CustomSelectTrigger {
     border-radius: var(--ButtonRadius);
+}
+
+/* Tooltips (JS/Tooltip.js): follow the cursor, flip to its other side at the window's edges. Outside .Container, so
+   not zoomed. Square unless the theme sets --TooltipRadius. Width is the text's own (max-content), so measuring it
+   does not depend on where it currently sits; long text wraps, and "\n" starts a new line. */
+.Tooltip {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 9999;
+    width: max-content;
+    max-width: min(320px, calc(100vw - 8px));
+    padding: 4px 8px;
+    background: var(--Card);
+    border: 1px solid var(--BorderLight);
+    border-radius: var(--TooltipRadius, 0px);
+    color: var(--Text);
+    font-family: var(--Font);
+    font-size: 11px;
+    white-space: pre-line;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.Tooltip.Visible {
+    opacity: 1;
 }
 
 /* =====================================================================

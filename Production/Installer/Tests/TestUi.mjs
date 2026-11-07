@@ -215,7 +215,7 @@ try {
     await Shot('07-InstallDone', 'InstallDone');
     const DoneText = await Text('#InstallDoneText');
     Check('install done: Test1 wording with real version + path', DoneText.startsWith('Installed v1.0.0 to ') && DoneText.includes(DefaultPath)
-        && DoneText.includes('A desktop shortcut has been created.') && DoneText.includes('Have fun - and ping us if anything breaks.'), DoneText);
+        && DoneText.includes('Shortcuts were added to the Desktop and the Start Menu.') && DoneText.includes('Have fun - and ping us if anything breaks.'), DoneText);
     let St = await Hook('State');
     Check('install: registry + Apps entry written (test keys)', St.Registry && St.Registry.Version === '1.0.0' && St.Apps && St.Apps.DisplayVersion === '1.0.0');
     await ClickBtn('LaunchBtn');
@@ -225,7 +225,7 @@ try {
     await Open();
     await Shot('08-MenuInstalled', 'MenuInstalled');
     Check('installed menu: versions + buttons (no separate Change version)', (await Text('#InstalledVer')) === 'v1.0.0' && (await Text('#LatestVer')) === 'v1.1.0'
-        && JSON.stringify(await Page.$$eval('[data-screen=MenuInstalled] .BtnInst', Els => Els.map(E => E.textContent))) === '["UPDATE / DOWNGRADE","REPAIR","UNINSTALL","CANCEL"]');
+        && JSON.stringify(await Page.$$eval('[data-screen=MenuInstalled] .BtnInst', Els => Els.filter(E => !E.hidden).map(E => E.textContent))) === '["UPDATE / DOWNGRADE","REPAIR","UNINSTALL","CANCEL"]');  // OLD VERSION is hidden: no old version put off
     await ClickBtn('UpdateBtn');
     await Shot('09-UpdateDowngrade', 'ChangeVersion');
     Check('update/downgrade: crumbs', (await Crumbs()) === 'Menu > Version* > Progress > Done', await Crumbs());
@@ -370,7 +370,7 @@ try {
     await Page.click('[data-screen=Legacy] .InstCheckboxRow');
     await ClickBtn('LegacyIgnoreBtn');
     await OnScreen('MenuFresh');
-    Check('ignore + don\'t ask again saved', (await Hook('State')).Registry.IgnoreLegacyInstall === '1');
+    Check('ignore + don\'t ask again saved', (await Hook('State')).Registry.LegacyInstallPath === 'Ignore');
     await Open();
     Check('not asked again', await OnScreen('MenuFresh'));
 

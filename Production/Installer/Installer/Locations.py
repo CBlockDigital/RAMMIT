@@ -1,16 +1,19 @@
 """Every folder and registry key the installer touches, resolved in one place.
 
 Normal mode (what users get):
-    registry      HKCU\\Software\\CBlock Digital\\RAMMIT                         InstallPath, Version, IgnoreLegacyInstall
+    registry      HKCU\\Software\\CBlock Digital\\RAMMIT                         InstallPath, Version, LegacyInstallPath
     Apps list     HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\RAMMIT
-    shortcuts     <Desktop>\\RAMMIT.lnk and <Start Menu>\\Programs\\RAMMIT.lnk
+    protocol      HKCU\\Software\\Classes\\RAMMIT (RAMMIT: starts RAMMIT.exe; the shortcuts open it)
+    shortcuts     <Desktop>\\RAMMIT.url and <Start Menu>\\Programs\\RAMMIT.url
     install       %LOCALAPPDATA%\\RAMMIT (default, the user can pick another folder)
-    setup copy    %LOCALAPPDATA%\\RAMMIT-Setup\\RAMMIT-Setup.exe, Cache\\ (zips for Undo), Setup.log
+    setup copy    %LOCALAPPDATA%\\RAMMIT-Setup\\RAMMIT-Setup.exe, RAMMIT.ico (shortcut icon), Cache\\ (zips for Undo),
+                  Setup.log
 
 Test mode (environment variable RAMMIT_INSTALLER_TEST=1) moves ALL of it somewhere harmless, so tests and
 manual try-outs can never touch a real install:
     registry      HKCU\\Software\\CBlock Digital\\RAMMIT-InstallerTest         (override: RAMMIT_INSTALLER_REGKEY)
     Apps list     ...\\Uninstall\\RAMMIT-InstallerTest                          (override: RAMMIT_INSTALLER_UNINSTALL_NAME)
+    protocol      ...\\Classes\\RAMMIT-InstallerTest                            (override: RAMMIT_INSTALLER_PROTOCOL)
     folders       %TEMP%\\RAMMIT-InstallerTest\\{Desktop, StartMenu, LocalAppData}  (override: RAMMIT_INSTALLER_TEST_ROOT)
     releases      RAMMIT_INSTALLER_RELEASES_URL may point at a fake release server (ignored outside test mode)
 
@@ -22,6 +25,7 @@ import tempfile
 RealRegKeyPath = r"Software\CBlock Digital\RAMMIT"
 UninstallParentPath = r"Software\Microsoft\Windows\CurrentVersion\Uninstall"
 RealUninstallName = "RAMMIT"
+RealProtocolName = "RAMMIT"
 SetupExeName = "RAMMIT-Setup.exe"
 
 
@@ -34,6 +38,7 @@ class _Locations:
             self.TestRoot = Root
             self.RegKeyPath = os.environ.get("RAMMIT_INSTALLER_REGKEY") or r"Software\CBlock Digital\RAMMIT-InstallerTest"
             self.UninstallName = os.environ.get("RAMMIT_INSTALLER_UNINSTALL_NAME") or "RAMMIT-InstallerTest"
+            self.ProtocolName = os.environ.get("RAMMIT_INSTALLER_PROTOCOL") or "RAMMIT-InstallerTest"
             self.DesktopDir = os.path.join(Root, "Desktop")
             self.StartMenuDir = os.path.join(Root, "StartMenu")
             LocalAppData = os.path.join(Root, "LocalAppData")
@@ -42,17 +47,20 @@ class _Locations:
             self.TestRoot = ""
             self.RegKeyPath = RealRegKeyPath
             self.UninstallName = RealUninstallName
+            self.ProtocolName = RealProtocolName
             self.DesktopDir = _KnownFolder("Desktop", os.path.join(os.environ.get("USERPROFILE", ""), "Desktop"))
             self.StartMenuDir = os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs")
             LocalAppData = os.environ.get("LOCALAPPDATA", "")
             self.ReleasesUrlOverride = ""
         self.UninstallKeyPath = UninstallParentPath + "\\" + self.UninstallName
+        self.ProtocolKeyPath = r"Software\Classes" + "\\" + self.ProtocolName
         self.DefaultInstallPath = os.path.join(LocalAppData, "RAMMIT")
         # Kept OUTSIDE the install folder: the folder swap and the manifest-only uninstall never touch it.
         self.SetupDir = os.path.join(LocalAppData, "RAMMIT-Setup")
         self.CacheDir = os.path.join(self.SetupDir, "Cache")
         self.LogFile = os.path.join(self.SetupDir, "Setup.log")
         self.SetupExePath = os.path.join(self.SetupDir, SetupExeName)
+        self.IconPath = os.path.join(self.SetupDir, "RAMMIT.ico")  # the shortcuts' icon: here, it never moves
         self._CheckTestModeIsolated()
 
     def _CheckTestModeIsolated(self):
@@ -64,6 +72,8 @@ class _Locations:
             Problems.append("registry key")
         if self.UninstallName.lower() == RealUninstallName.lower() or "test" not in self.UninstallName.lower():
             Problems.append("uninstall entry")
+        if self.ProtocolName.lower() == RealProtocolName.lower() or "test" not in self.ProtocolName.lower():
+            Problems.append("protocol")
         RealLocal = os.path.normcase(os.path.join(os.environ.get("LOCALAPPDATA", "?"), "RAMMIT"))
         if os.path.normcase(self.DefaultInstallPath) == RealLocal:
             Problems.append("install folder")

@@ -42,6 +42,61 @@ class TestPaths(unittest.TestCase):
         self.assertFalse(Paths.IsInside(Paths.SrcDir, os.path.join(Paths.SrcDir, "..", "Config")))
 
 
+class TestInstallSync(unittest.TestCase):
+    """App/Install.Sync against throw-away keys (never the real HKCU\\...\\RAMMIT or RAMMIT: protocol)."""
+
+    def setUp(self):
+        import uuid
+        Tag = uuid.uuid4().hex[:8]
+        self.Keys = (rf"Software\CBlock Digital\RAMMIT-AppTest-{Tag}", rf"Software\Classes\RAMMIT-AppTest-{Tag}",
+                     rf"Software\Microsoft\Windows\CurrentVersion\Uninstall\RAMMIT-AppTest-{Tag}")
+        self.Root = tempfile.mkdtemp(prefix="RAMMIT-InstallSync-")
+        self.Old, self.New = os.path.join(self.Root, "Old"), os.path.join(self.Root, "New")
+        for Folder in (self.Old, self.New):
+            os.makedirs(Folder)
+            open(os.path.join(Folder, "RAMMIT.exe"), "w").close()
+
+    def tearDown(self):
+        import winreg
+
+        def Delete(Path):
+            try:
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, Path) as Key:
+                    Subs = [winreg.EnumKey(Key, I) for I in range(winreg.QueryInfoKey(Key)[0])]
+                for Sub in Subs:
+                    Delete(Path + "\\" + Sub)
+                winreg.DeleteKey(winreg.HKEY_CURRENT_USER, Path)
+            except OSError:
+                pass
+        for Path in self.Keys:
+            Delete(Path)
+        shutil.rmtree(self.Root, ignore_errors=True)
+
+    def Sync(self, BaseDir):
+        from App import Install
+        return Install.Sync(BaseDir, *self.Keys)
+
+    def test_MovedFolderTakesOverAndSecondCopyDoesNot(self):
+        from App import Install
+        RegKey, ProtocolKey, UninstallKey = self.Keys
+        self.assertEqual(self.Sync(self.New), "")  # never installed: nothing written
+        self.assertIsNone(Install._Read(RegKey, "InstallPath"))
+        Install._Write(RegKey, "InstallPath", self.Old)
+        Install._Write(UninstallKey, "UninstallString", "x")
+        self.assertEqual(self.Sync(self.New), "")  # the installed copy is still there: a second copy changes nothing
+        self.assertEqual(Install._Read(RegKey, "InstallPath"), self.Old)
+        os.remove(os.path.join(self.Old, "RAMMIT.exe"))  # moved away
+        self.assertEqual(self.Sync(self.New), "Moved")
+        Exe = os.path.join(self.New, "RAMMIT.exe")
+        self.assertEqual(Install._Read(RegKey, "InstallPath"), self.New)
+        self.assertEqual(Install._Read(ProtocolKey + r"\shell\open\command"), f'"{Exe}"')
+        self.assertEqual(Install._Read(ProtocolKey, "URL Protocol"), "")
+        self.assertEqual(Install._Read(UninstallKey, "InstallLocation"), self.New)
+        self.assertEqual(self.Sync(self.New), "")  # already right
+        Install._Write(ProtocolKey + r"\shell\open\command", "", '"C:\\Elsewhere\\RAMMIT.exe"')
+        self.assertEqual(self.Sync(self.New), "Fixed")
+
+
 class TestVersion(unittest.TestCase):
     def test_VersionIsPlainNumbers(self):
         self.assertRegex(Version.AppVersion, r"^\d+\.\d+\.\d+$")
@@ -410,7 +465,49 @@ class TestApi(unittest.TestCase):
         Args = Popen.call_args[0][0]
         self.assertEqual(Args[0], "C:\\R.exe")
         self.assertIn("placeId=123", Args[1])
-        self.assertIn(4242, self.Api._TrackedPids)
+        self.assertEqual(self.Api._Clients._Owners[4242]["User"], "B")  # the started process belongs to the account
+        self.assertEqual(self.Api._Clients._Expected, [])
+
+    def test_ClientTrackerFollowsLaunchesToTheirGameWindows(self):
+        # As seen on a real PC: the process RAMMIT starts can hand the game to a "--launch-to-tray" child that opens the
+        # window; a game that closes leaves a tray child too, which must not take the account over.
+        from App import MultiInstance
+        Tracker = MultiInstance.ClientTracker()
+        Tracker.Expect("TICKETA", "A")
+        Tracker.Started("TICKETA", 20)  # A: RAMMIT started pid 20
+        Tracker.Expect("TICKETB", "B")  # B: its process is only found by its ticket (pid 30)
+        Lines = {20: "RobloxPlayerBeta.exe roblox-player:1+launchmode:play+gameinfo:TICKETA+launchtime:1",
+                 21: "RobloxPlayerBeta.exe --launch-to-tray", 22: "RobloxPlayerBeta.exe --launch-to-tray",
+                 30: "RobloxPlayerBeta.exe roblox-player:1+launchmode:play+gameinfo:TICKETB+launchtime:2"}
+        Parents = {20: 1, 21: 20, 22: 21, 30: 1}
+        Players = set()
+
+        def Scan(Running, Windows, IncludeStarting=True):
+            Players.clear()
+            Players.update(Running)
+            with mock.patch.object(MultiInstance, "_PlayerPids", return_value=set(Running)), \
+                    mock.patch.object(MultiInstance, "_GameWindowPids", return_value=set(Windows)), \
+                    mock.patch.object(MultiInstance, "_CommandLine", side_effect=lambda Pid: Lines[Pid]), \
+                    mock.patch.object(MultiInstance, "_ParentPid", side_effect=lambda Pid: Parents[Pid]), \
+                    mock.patch.object(MultiInstance, "_Alive", side_effect=lambda Pid: Pid in Players):
+                return Tracker.Scan(IncludeStarting), Tracker.Accounts()
+
+        self.assertEqual(Scan([20], []), (2, {"A": "starting", "B": "starting"}))  # no windows yet: count for the limit
+        self.assertEqual(Scan([20], [], IncludeStarting=False)[0], 0)  # but not on the counter label
+        self.assertEqual(Scan([21], [21]), (2, {"A": "running", "B": "starting"}))  # 20 handed A to 21, which opened it
+        self.assertEqual(Scan([21, 30], [21, 30]), (2, {"A": "running", "B": "running"}))  # B found by its ticket
+        self.assertEqual(Scan([22, 30], [30]), (1, {"B": "running"}))  # A closed; its tray child 22 isn't A
+        self.assertEqual(Scan([22], []), (0, {}))
+
+    def test_OnlyGameWindowsCount(self):
+        # Roblox's tray right-click menu (SystrayContextMenu) is a visible window too, and a hidden game window isn't open yet.
+        from App import MultiInstance
+        Windows = {1: ("WINDOWSCLIENT", True, 11), 2: ("SystrayContextMenu", True, 12), 3: ("WINDOWSCLIENT", False, 13)}
+        with mock.patch.object(MultiInstance.win32gui, "EnumWindows", side_effect=lambda Fn, _X: [Fn(H, None) for H in Windows]), \
+                mock.patch.object(MultiInstance.win32gui, "IsWindowVisible", side_effect=lambda H: Windows[H][1]), \
+                mock.patch.object(MultiInstance.win32gui, "GetClassName", side_effect=lambda H: Windows[H][0]), \
+                mock.patch.object(MultiInstance.win32process, "GetWindowThreadProcessId", side_effect=lambda H: (0, Windows[H][2])):
+            self.assertEqual(MultiInstance._GameWindowPids(), {11})
 
     def test_RobloxAlreadyRunningGivesClearError(self):
         self.Api._Settings["MaxInstances"] = 5
@@ -420,6 +517,43 @@ class TestApi(unittest.TestCase):
     def test_InstanceLimit(self):
         with mock.patch.object(ApiModule.MultiInstance, "CountRunning", return_value=1):
             self.assertEqual(self.Api._LaunchOne("A", "Home", {}), {"Error": "Instance limit reached."})
+
+    def test_LoginCheckMarksExpiredAndFillsInUserIds(self):
+        Answers = {"c-A": ("Expired", None), "c-B": ("Valid", (101, "B", "b")), "c-C": ("Unknown", None)}
+        with mock.patch.object(ApiModule.Roblox, "CheckLogin", side_effect=lambda Cookie: Answers[Cookie]):
+            self.Api._CheckLogins(Forever=False)
+            Expired = {A["Username"]: A["Expired"] for A in self.Api.GetAccounts()}
+            self.assertEqual(Expired, {"A": True, "B": False, "C": False})  # unknown (offline...) never turns red
+            self.assertEqual([A["UserId"] for A in Storage.LoadAccounts()], [None, 101, None])  # saved for renewing
+            Answers["c-A"] = ("Valid", (100, "A", "a"))  # e.g. Roblox was briefly unhappy
+            self.Api._CheckLogins(Forever=False)
+            self.assertFalse(self.Api.GetAccounts()[0]["Expired"])
+
+    def test_RenewKeepsTheSameUserAndAddsADifferentOne(self):
+        self.Api._Accounts[0]["UserId"] = 7
+        self.Api._Expired = {"a", "b", "c"}
+        self.Api.UpdateSetting("SelectedAccounts", ["A"])
+        with mock.patch.object(ApiModule.Roblox, "CheckLogin", return_value=("Valid", (7, "A2", "Renamed"))):
+            self.assertEqual(self.Api._FinishLogin("new-A", "A"), "Renewed")  # same user id: renamed on Roblox, same row
+        with mock.patch.object(ApiModule.Roblox, "CheckLogin", return_value=("Valid", (12, "C", "c"))):
+            self.assertEqual(self.Api._FinishLogin("new-C", "C"), "Renewed")  # no id saved yet: same username counts
+        with mock.patch.object(ApiModule.Roblox, "CheckLogin", return_value=("Valid", (9, "Other", "o"))):
+            self.assertEqual(self.Api._FinishLogin("other", "B"), "Added")  # someone else signed in: a new account
+        Accounts = {A["Username"]: A for A in self.Api.GetAccounts()}
+        self.assertEqual(list(Accounts), ["A2", "B", "C", "Other"])
+        self.assertEqual({Name: A["Expired"] for Name, A in Accounts.items()}, {"A2": False, "B": True, "C": False, "Other": False})
+        self.assertEqual(self.Api.GetSettings()["SelectedAccounts"], ["A2"])
+        self.assertEqual([A["UserId"] for A in Storage.LoadAccounts()], [7, None, 12, 9])
+        self.assertIn("Error", self.Api.RenewAccount("Nobody"))
+
+    def test_ExpiredLoginAtLaunchMarksTheAccount(self):
+        with mock.patch.object(ApiModule.MultiInstance, "CountRunning", return_value=0), \
+                mock.patch.object(ApiModule.MultiInstance, "LockCookieFile"), \
+                mock.patch.object(ApiModule.MultiInstance, "HoldMutex", return_value=True), \
+                mock.patch.object(ApiModule.Roblox, "FindLauncherPath", return_value="C:\\R.exe"), \
+                mock.patch.object(ApiModule.Roblox, "GetAuthTicket", return_value=ApiModule.Roblox.LoginExpired):
+            self.assertEqual(self.Api._LaunchOne("A", "Home", {}), {"Error": ApiModule.ExpiredMessage})
+        self.assertTrue(self.Api.GetAccounts()[0]["Expired"])
 
     def test_RemoveAccountsByName(self):
         self.Api.UpdateSetting("SelectedAccounts", ["A", "B"])
@@ -443,6 +577,30 @@ class TestApi(unittest.TestCase):
         self.assertEqual(Info["Active"], "Dark")
         self.assertEqual(self.Api.GetHeightMap()["WizardWindow"]["Width"], 400)
         self.assertIn("Error", self.Api.UpdateSetting("Theme", "../../Config"))
+
+    def test_MainWindowOpensAtHeightMapHeight(self):
+        from App import Main
+        Map = Themes.LoadHeightMap("Dark")[0]["MainWindow"]
+        self.assertEqual(Main.StartHeight(self.Api), Map["Home"])
+        self.Api.UpdateSettings({"LaunchOption": "Game URL", "LaunchParams": {"PlayerMode": "range"}})
+        self.assertEqual(Main.StartHeight(self.Api), Map["Game URL"] + Map["PlayerFilterExtra"])
+
+    def test_ResizeWaitsForLetGoWhileWindowIsHeld(self):
+        from App import WindowSize
+        Window = mock.MagicMock()
+        Window.native = mock.Mock(Height=595, DeviceDpi=96)  # 476 logical px at 125%; DeviceDpi stays 96 (pywebview)
+        self.Api._AttachMainWindow(Window)
+        Sizer = self.Api._MainSizer
+        Sizer._Dragging = True  # title bar held: only record the height (Windows would undo a resize now)
+        self.Api.ResizeWindow(800)
+        Window.resize.assert_not_called()
+        with mock.patch.object(WindowSize.HeldWindow, "_SetHeight") as SetHeight, \
+                mock.patch.object(WindowSize.HeldWindow, "_WindowScale", return_value=1.25):
+            Sizer._Dragging = False
+            Sizer._ReapplyHeight()  # what letting go runs
+            SetHeight.assert_called_once_with(Window.native, round(int(800 * 0.85) * 1.25))
+        self.Api.ResizeWindow(716)  # not held: straight through
+        Window.resize.assert_called_once_with(int(900 * 0.85), int(716 * 0.85))
 
     def test_FindLoginCookie(self):
         Morsel = mock.Mock(value="tok")

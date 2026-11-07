@@ -10,6 +10,7 @@ import os
 import shutil
 import subprocess
 import unittest
+from unittest import mock
 import winreg
 import zipfile
 
@@ -217,10 +218,9 @@ class TestInstallAndSwap(InstallerTestCase):
         self.assertEqual(Entry["DisplayVersion"], "1.0.0")
         self.assertIn("/Uninstall", Entry["UninstallString"])
         self.assertEqual(Entry["InstallLocation"], self.Target)
-        for LinkPath in Setup.ShortcutPaths():
-            Target, Arguments = Setup.ReadShortcut(LinkPath)
-            self.assertTrue(Paths.SamePath(Target, os.path.join(self.Target, "RAMMIT.exe")), Target)
-            self.assertEqual(Arguments, "")
+        for LinkPath in Setup.ShortcutPaths():  # open RAMMIT:, which starts this install's RAMMIT.exe
+            self.assertEqual(Setup.ReadUrlShortcut(LinkPath), self.L.ProtocolName + ":")
+        self.assertTrue(Paths.SamePath(Setup.ProtocolTarget(), os.path.join(self.Target, "RAMMIT.exe")), Setup.ProtocolTarget())
         self.assertFalse(os.path.exists(self.Target + Setup.StagingSuffix))
         self.assertFalse(os.path.exists(os.path.join(self.Target, Setup.StagingMarker)))
         self.assertEqual(Setup.CachedRelease("Installed")["Version"], "1.0.0")
@@ -337,10 +337,11 @@ class TestUninstall(InstallerTestCase):
         self.assertEqual(Support.RegValues(self.L.RegKeyPath), {Setup.KeptValue: self.Target})
         self.assertIsNone(Support.RegValues(self.L.UninstallKeyPath))
         self.assertFalse(any(os.path.exists(P) for P in Setup.ShortcutPaths()))
+        self.assertIsNone(Support.RegValues(self.L.ProtocolKeyPath))  # RAMMIT: goes too
         self.assertFalse(os.path.exists(self.L.CacheDir))
 
     def test_shortcuts_removed_when_paths_differ_only_by_short_names(self):
-        # GitHub's runner has TEMP = C:\Users\RUNNER~1\...; the .lnk stores the long form. Same folder, so remove.
+        # GitHub's runner has TEMP = C:\Users\RUNNER~1\...; an old .lnk stores the long form. Same folder, so remove.
         import ctypes
         Long = os.path.join(os.path.dirname(self.Target), "RAMMIT Long Folder Name")
         os.makedirs(Long, exist_ok=True)
@@ -349,10 +350,42 @@ class TestUninstall(InstallerTestCase):
         Short = Buffer.value
         if not Short or os.path.normcase(Short) == os.path.normcase(Long):
             self.skipTest("this drive doesn't make 8.3 short names")
-        Setup.CreateShortcuts(Long)
-        self.assertTrue(all(os.path.isfile(P) for P in Setup.ShortcutPaths()))
+        for LinkPath in Setup.LinkPaths():
+            Support.MakeOldShortcut(LinkPath, os.path.join(Long, "RAMMIT.exe"))
         Setup.RemoveShortcuts(Short)
+        self.assertFalse(any(os.path.exists(P) for P in Setup.LinkPaths()))
+
+    def test_ShortcutsOpenTheProtocolAndReplaceOldLinks(self):
+        Old = Setup.LinkPaths()
+        for LinkPath in Old:  # an install from before 1.1.2: .lnk files straight at RAMMIT.exe
+            Support.MakeOldShortcut(LinkPath, os.path.join(self.Target, "RAMMIT.exe"))
+        Elsewhere = os.path.join(self.Env.Root, "Mine", "RAMMIT.lnk")  # one the user made: never touched
+        Support.MakeOldShortcut(Elsewhere, os.path.join(self.Target, "RAMMIT.exe"))
+        self.Install("1.0.0")
+        self.assertFalse(any(os.path.exists(P) for P in Old))
+        self.assertTrue(os.path.isfile(Elsewhere))
+        self.assertTrue(all(Setup.IsOurShortcut(P) for P in Setup.ShortcutPaths()))
+        Values = Support.RegValues(self.L.ProtocolKeyPath)
+        self.assertEqual((Values[""], Values["URL Protocol"]), ("URL:" + self.L.ProtocolName, ""))
+        Somebody = os.path.join(self.L.DesktopDir, "Other.url")  # not ours: uninstall leaves it alone
+        with open(Somebody, "w") as File:
+            File.write("[InternetShortcut]\nURL=https://example.com/\n")
+        Setup.RunUninstall(self.Target, True, NoReport)
+        self.assertTrue(os.path.isfile(Somebody))
         self.assertFalse(any(os.path.exists(P) for P in Setup.ShortcutPaths()))
+
+    def test_ShortcutsAreTheTickedOnesAndUpdatesKeepTheChoice(self):
+        Desktop, StartMenu = Setup.ShortcutPath("Desktop"), Setup.ShortcutPath("StartMenu")
+        self.assertEqual(self.Install("1.0.0", Shortcuts=["StartMenu"])["Shortcuts"], ["StartMenu"])
+        self.assertEqual((os.path.isfile(Desktop), os.path.isfile(StartMenu)), (False, True))
+        self.assertEqual(Setup.RegRead(Setup.ShortcutsValue), "StartMenu")
+        self.Install("1.1.0", Kind="Update")  # no choice passed: the one made at install
+        self.assertEqual((os.path.isfile(Desktop), os.path.isfile(StartMenu)), (False, True))
+        os.remove(StartMenu)
+        self.assertEqual(self.Install("1.1.0", Shortcuts=[])["Shortcuts"], [])  # neither ticked
+        self.assertEqual((os.path.isfile(Desktop), os.path.isfile(StartMenu)), (False, False))
+        Setup.RegDeleteValue(Setup.ShortcutsValue)  # an install from before the choice existed: both, as always
+        self.assertEqual(Setup.ChosenShortcuts(), ["Desktop", "StartMenu"])
 
     def test_uninstall_with_config_removes_config_and_backups_only(self):
         self.Install("1.0.0")
@@ -374,7 +407,7 @@ class TestUninstall(InstallerTestCase):
 
     def test_full_uninstall_leaves_no_registry_key_and_no_setup_folder(self):
         self.Install("1.0.0")
-        Setup.RegWrite("IgnoreLegacyInstall", "1")
+        Legacy.Ignore(True)
         Write(self.L.LogFile, "old log")
         Write(self.L.LogFile + ".1", "older log")
         Setup.RunUninstall(self.Target, True, NoReport)
@@ -397,11 +430,13 @@ class TestUninstall(InstallerTestCase):
 
     def test_shortcut_to_something_else_is_left_alone(self):
         self.Install("1.0.0")
-        Other = Setup.ShortcutPaths()[0]
-        os.remove(Other)
-        Support.MakeLegacyShortcut(Other)
+        Other = Setup.ShortcutPaths()[0]  # a RAMMIT.url that opens something else
+        Write(Other, "[InternetShortcut]\nURL=https://example.com/\n")
+        Lnk = Setup.LinkPaths()[0]  # and a RAMMIT.lnk that isn't straight at this RAMMIT.exe
+        Support.MakeLegacyShortcut(Lnk)
         Setup.RunUninstall(self.Target, True, NoReport)
         self.assertTrue(os.path.isfile(Other))
+        self.assertTrue(os.path.isfile(Lnk))
 
 
 # ------------------------------------------------------------------------------------------------ kept accounts
@@ -434,7 +469,7 @@ class TestKeptConfig(InstallerTestCase):
         self.assertIn("KeptTester", Read(os.path.join(self.Other, "Config", "Accounts.json")))
         self.assertEqual(len(os.listdir(os.path.join(self.Other, "Config.Backup"))), 1)
         self.assertFalse(os.path.exists(self.Target))
-        self.assertEqual(set(Support.RegValues(self.L.RegKeyPath)), {"InstallPath", "Version"})
+        self.assertEqual(set(Support.RegValues(self.L.RegKeyPath)), {"InstallPath", "Version", "Shortcuts"})
         self.assertIsNone(Setup.FindKeptConfig())
 
     def test_reinstall_same_folder_fresh_puts_accounts_aside(self):
@@ -542,7 +577,7 @@ class TestLegacy(InstallerTestCase):
         Setup.RegWrite("InstallPath", self.Old)
         Setup.RegWrite("Version", "1.0.0")
         Setup.RegWrite("ConfigPath", "x")
-        for LinkPath in Setup.ShortcutPaths():
+        for LinkPath in Setup.LinkPaths():
             Support.MakeLegacyShortcut(LinkPath)
 
     def test_detection(self):
@@ -553,7 +588,7 @@ class TestLegacy(InstallerTestCase):
         self.assertEqual(Setup.Classify(self.Old), "Legacy")
         State = InstallerApi.InstallerApi().GetState()
         self.assertFalse(State["Installed"])
-        self.assertEqual(State["Legacy"], {"Path": self.Old, "Version": "1.0.0"})
+        self.assertEqual(State["Legacy"], {"Path": self.Old, "Version": "1.0.0", "Deferred": False})
 
     def test_choice1_move_and_remove_into_another_folder(self):
         Result = self.Install("1.1.0", LegacyMode="MoveRemove", LegacyPath=self.Old)
@@ -564,8 +599,8 @@ class TestLegacy(InstallerTestCase):
         self.assertFalse(os.path.exists(self.Old))
         self.assertEqual(Setup.RegRead("InstallPath"), self.Target)
         self.assertIsNone(Setup.RegRead("ConfigPath"))
-        for LinkPath in Setup.ShortcutPaths():  # PowerShell shortcuts replaced by direct ones
-            self.assertTrue(Setup.ReadShortcut(LinkPath)[0].lower().endswith("rammit.exe"))
+        self.assertFalse(any(os.path.exists(P) for P in Setup.LinkPaths()))  # PowerShell shortcuts replaced by RAMMIT: ones
+        self.assertTrue(all(Setup.IsOurShortcut(P) for P in Setup.ShortcutPaths()))
         self.assertIsNone(Legacy.Detect())
 
     def test_choice1_into_the_old_folder_itself(self):
@@ -612,7 +647,64 @@ class TestLegacy(InstallerTestCase):
         self.assertIsNone(Legacy.Detect())
         with self.assertRaises(Setup.SetupError):  # and its folder still can't be installed over
             Setup.CheckTarget(self.Old)
+
+    def test_Choice4IgnoreWithoutDontAskPutsItOff(self):
+        InstallerApi.InstallerApi().IgnoreLegacy(False)
+        self.assertEqual(Setup.RegRead("LegacyInstallPath"), self.Old)
+        self.assertTrue(Legacy.Detect()["Deferred"])  # the menu opens, with OLD VERSION
+        self.Install("1.1.0")  # a new install takes over InstallPath: the old one is still remembered
+        State = InstallerApi.InstallerApi().GetState()
+        self.assertTrue(State["Installed"])
+        self.assertEqual(State["Legacy"], {"Path": self.Old, "Version": "1.0.0", "Deferred": True})
+        Legacy.RunRemove(self.Old, lambda **_P: None)  # dealt with: forgotten
+        self.assertIsNone(Setup.RegRead("LegacyInstallPath"))
+        self.assertIsNone(Legacy.Detect())
+
+    def test_Choice4DontAskAgainForgetsAPutOffOne(self):
+        Legacy.Ignore(False, self.Old)
+        Legacy.Ignore(True)
+        self.assertEqual(Setup.RegRead("LegacyInstallPath"), Legacy.IgnoredForGood)
+        self.assertIsNone(Legacy.Detect())
+
+    def test_OldDontAskAgainValueIsCarriedOver(self):
+        Setup.RegWrite(Legacy.OldIgnoreValue, "1")  # what installers before 1.1.2 wrote
+        self.assertIsNone(Legacy.Detect())
+        self.assertIsNone(Setup.RegRead(Legacy.OldIgnoreValue))
+        self.assertEqual(Setup.RegRead("LegacyInstallPath"), Legacy.IgnoredForGood)
+
+    def test_Choice2MoveAndKeepForgetsAPutOffOne(self):
+        Legacy.Ignore(False, self.Old)
+        self.Install("1.1.0", LegacyMode="MoveKeep", LegacyPath=self.Old)
+        self.assertIsNone(Setup.RegRead("LegacyInstallPath"))
+        self.assertIsNone(Legacy.Detect())
         self.assertTrue(os.path.isfile(os.path.join(self.Old, "Src", "Version.json")))
+
+    def test_MoveIntoInstalledRammitKeepsTheOldOneAndDoesNotReinstall(self):
+        self.Install("1.1.0")  # RAMMIT installed, the old version put off with Ignore
+        Legacy.Ignore(False, self.Old)
+        Api = InstallerApi.InstallerApi()
+        self.assertEqual(Api.CheckLegacyMove(), {"Ok": True, "NeedsConfigChoice": False})
+        self.assertEqual(Api.StartLegacyMove("Reinstall"), {"Error": "Bad request."})
+        Manifest = Setup.ReadManifest(self.Target)
+        Result = Legacy.RunMove(self.Old, self.Target, "MoveKeep", "KeepNew", NoReport)
+        self.assertEqual((Result["Mode"], Result["InstallPath"]), ("MoveKeep", self.Target))
+        self.assertIn("OldTester", Read(os.path.join(self.Target, "Config", "Accounts.json")))
+        self.assertEqual(Setup.ReadManifest(self.Target), Manifest)  # nothing reinstalled
+        self.assertTrue(os.path.isfile(os.path.join(self.Old, "Src", "Version.json")))  # old one kept
+        self.assertEqual((Setup.RegRead("InstallPath"), Setup.RegRead("Version")), (self.Target, "1.1.0"))
+        self.assertIsNone(Setup.RegRead("LegacyInstallPath"))
+        self.assertIsNone(Legacy.Detect())
+
+    def test_MoveIntoInstalledRammitThenRemoveTheOldOne(self):
+        self.Install("1.1.0")
+        Legacy.Ignore(False, self.Old)
+        Legacy.RunMove(self.Old, self.Target, "MoveRemove", "KeepNew", NoReport)
+        self.assertIn("OldTester", Read(os.path.join(self.Target, "Config", "Accounts.json")))
+        self.assertFalse(os.path.exists(self.Old))
+        self.assertFalse(any(os.path.exists(P) for P in Setup.ShortcutPaths()
+                             if Setup.ReadShortcut(P)[0].lower().endswith("powershell.exe")))
+        self.assertEqual((Setup.RegRead("InstallPath"), Setup.RegRead("Version")), (self.Target, "1.1.0"))
+        self.assertIsNone(Legacy.Detect())
 
     def test_config_clash_keep_new_or_use_old(self):
         self.Install("1.0.0")
@@ -670,6 +762,10 @@ class TestSafetyRails(unittest.TestCase):
         os.environ["RAMMIT_INSTALLER_UNINSTALL_NAME"] = "RAMMIT"
         with self.assertRaises(RuntimeError):
             Locations.Reload()
+        os.environ["RAMMIT_INSTALLER_UNINSTALL_NAME"] = "RAMMIT-InstallerTest-X"
+        os.environ["RAMMIT_INSTALLER_PROTOCOL"] = "RAMMIT"  # the real RAMMIT: protocol
+        with self.assertRaises(RuntimeError):
+            Locations.Reload()
 
     def test_release_override_ignored_outside_test_mode(self):
         os.environ.pop("RAMMIT_INSTALLER_TEST", None)
@@ -695,6 +791,26 @@ class TestApiSurface(InstallerTestCase):
         self.assertEqual(Api.IgnoreLegacy("1"), {"Error": "Bad request."})
         self.assertIsNone(Api.ResizeInstaller("tall"))
         self.assertIn("Error", Api.Launch())
+
+    def test_ResizeWaitsForLetGoWhileHeld(self):
+        Window = Support.EventWindow()
+        Window.native = mock.Mock(Height=409, DeviceDpi=96)  # 327 logical px at 125%; DeviceDpi stays 96 (pywebview)
+        Api = InstallerApi.InstallerApi()
+        Api._AttachWindow(Window)
+        Api._LastHeight, Api._Frame = 327, 39
+        Api._Dragging = True  # title bar held: only record the height (a resize now would just flicker)
+        Api.ResizeInstaller(411, 288)
+        self.assertIsNone(Window.LastResize)
+        self.assertEqual(Api._LastHeight, 450)
+        with mock.patch.object(InstallerApi.InstallerApi, "_SetHeight") as SetHeight, \
+                mock.patch.object(InstallerApi.InstallerApi, "_WindowScale", return_value=1.25):
+            Api._Dragging = False
+            Api._ReapplyHeight()  # what letting go runs
+            SetHeight.assert_called_once_with(Window.native, round(450 * 1.25))
+            SetHeight.reset_mock()
+            Window.native.Height = round(450 * 1.25)  # already right: nothing to do
+            Api._ReapplyHeight()
+            SetHeight.assert_not_called()
 
 
 class TestUiServer(unittest.TestCase):

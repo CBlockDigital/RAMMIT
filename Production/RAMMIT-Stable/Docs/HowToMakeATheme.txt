@@ -8,7 +8,7 @@ A theme is just a folder. Every theme RAMMIT can use lives in the
     Src\
       Dark\            the default look            (comes with RAMMIT)
       Light\           the 2016 Roblox look         (comes with RAMMIT)
-      CBlock\          the CBlock / Industrialist look (comes with RAMMIT)
+      CBlock\          the CBlock look (comes with RAMMIT)
       MyCustomTheme\   an example custom theme      (comes with RAMMIT)
       OceanBlue\       <- your theme goes here, next to the others
 
@@ -42,7 +42,7 @@ press the "?" button, then "Making your own theme".
 
     "SupportedVersions" says which RAMMIT versions your theme was made
     for. The version is at the bottom of the Settings panel
-    (for example "RAMMIT v1.1.1 - Stable").
+    (for example "RAMMIT v1.1.2 - Stable").
         "1.0"    any 1.0.x  (1.0.0, 1.0.1, ...)
         "1.0.2"  exactly 1.0.2
         "1.2+"   1.2.0 and everything newer

@@ -82,20 +82,25 @@ class FakeProc:
 def FakePopen(Args, **_Kw):
     Fake["Launches"].append(Args[1])
     Fake["Running"] += 1
-    return FakeProc()
+    Proc = FakeProc()
+    Proc.pid = FakeProc.pid - len(Fake["Launches"])  # one pid per launch, like real ones
+    return Proc
 
 
 webview.create_window = FakeWindow
 ApiModule.webview.create_window = FakeWindow
 ApiModule.subprocess = types.SimpleNamespace(Popen=FakePopen, CREATE_NO_WINDOW=0)
 MultiInstance.Enable = MultiInstance.LockCookieFile = MultiInstance.HoldMutex = MultiInstance.IsReady = lambda: True
-MultiInstance.CountRunning = lambda _Pids=None: Fake["Running"]
+MultiInstance.CountRunning = lambda _Tracker=None, IncludeStarting=True: Fake["Running"]
+# No real clients here: every account RAMMIT launched counts as open (its row shows the running mark).
+MultiInstance.ClientTracker.Accounts = lambda Self: {Info["User"]: "running" for Info in Self._Owners.values() if Info["User"]}
 Roblox.GetAuthTicket = lambda _Cookie: "FAKETICKET0123"
 Roblox.FindLauncherPath = lambda _L: r"C:\Fake\RobloxPlayerBeta.exe"
 Roblox.FetchServers = lambda _P, _C=None, MaxPages=10: [dict(S) for S in FakeServers]
 Roblox.GetGameMaxPlayers = lambda _P: 20
 Roblox.ResolveVipLink = lambda Url, _C=None: ("606849621", "AbC123") if "share" in Url or "privateServerLinkCode" in Url else (None, None)
-Roblox.GetAuthenticatedUser = lambda Cookie: (Cookie.split("-", 1)[1], "New " + Cookie.split("-", 1)[1])
+Roblox.CheckLogin = lambda Cookie: ("Valid", (int.from_bytes(Cookie.split("-", 1)[1].encode(), "big"),  # one id per name
+                                               Cookie.split("-", 1)[1], "New " + Cookie.split("-", 1)[1]))
 Roblox.GetChannel = lambda: Fake["Channel"]
 Roblox.SetChannel = lambda C: bool(Roblox.ChannelPattern.match(C)) and (Fake.__setitem__("Channel", C) or True)
 Themes.OpenThemesFolder = lambda: None

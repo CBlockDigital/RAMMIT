@@ -11,6 +11,7 @@ import { Api, WaitForApi, ReportError } from './Bridge.js';
 import { ById } from './Dom.js';
 import { InitSelect, SetSelectValue, GetSelectValue } from './Select.js';
 import { CreateLaunchForm, FilterMethods } from './LaunchForm.js';
+import { InitTooltips } from './Tooltip.js';
 
 let SizeMap = { Home: 287, ExtraPadding: 20 };
 let InitDone = false;
@@ -60,6 +61,7 @@ ById('ConfirmBtn').addEventListener('click', async () => {
 });
 
 async function Boot() {
+    InitTooltips();
     await WaitForApi('GetWizardData');
     const HeightMap = await Api.GetHeightMap().catch(() => null);
     if (HeightMap && HeightMap.WizardWindow) SizeMap = HeightMap.WizardWindow;

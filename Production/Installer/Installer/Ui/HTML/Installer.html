@@ -37,7 +37,7 @@
         <div class="InstallerScreen" data-screen="Legacy">
             <div class="InstallerMessage">
                 An older test version of RAMMIT (<strong id="LegacyVer">...</strong>) is installed in <strong class="Path" id="LegacyPath">...</strong>.<br>
-                What should happen to it? The <strong>first choice</strong> is recommended.
+                What should happen to it?<span id="LegacyRecommend"> The <strong>first choice</strong> is recommended.</span>
             </div>
             <div class="InstallerBtnRow">
                 <button class="BtnInst Install" id="LegacyMoveRemoveBtn">MOVE MY ACCOUNTS, REMOVE OLD VERSION</button>
@@ -69,10 +69,12 @@
             <div class="InstallerMessage">
                 RAMMIT is not installed on this system.<br>
                 <span id="KeptFreshLine" hidden>Saved accounts from an earlier install were found in <strong class="Path" id="KeptFreshPath">...</strong>.<br></span>
+                <span id="FreshLegacyLine" hidden>An older test version of RAMMIT (<strong class="LegacyMenuVer">...</strong>) is still in <strong class="Path LegacyMenuPath">...</strong>.<br></span>
                 Press <strong>Install</strong> to set it up, or <strong>Cancel</strong> to exit.
             </div>
             <div class="InstallerBtnRow">
                 <button class="BtnInst Install" id="FreshInstallBtn">INSTALL</button>
+                <button class="BtnInst Legacy" id="FreshLegacyBtn" hidden>OLD VERSION</button>
                 <button class="BtnInst Cancel" id="FreshCancelBtn">CANCEL</button>
             </div>
         </div>
@@ -82,11 +84,13 @@
             <div class="InstallerMessage">
                 RAMMIT is already installed on this system.<br>
                 Installed version: <strong id="InstalledVer">...</strong> - Latest: <strong id="LatestVer">...</strong><br>
+                <span id="InstalledLegacyLine" hidden>An older test version of RAMMIT (<strong class="LegacyMenuVer">...</strong>) is still in <strong class="Path LegacyMenuPath">...</strong>.<br></span>
                 Choose an action below.
             </div>
             <div class="InstallerBtnRow">
                 <button class="BtnInst Update" id="UpdateBtn">UPDATE / DOWNGRADE</button>
                 <button class="BtnInst Repair" id="RepairBtn">REPAIR</button>
+                <button class="BtnInst Legacy" id="InstalledLegacyBtn" hidden>OLD VERSION</button>
                 <button class="BtnInst Uninstall" id="UninstallBtn">UNINSTALL</button>
                 <button class="BtnInst Cancel" id="InstalledCancelBtn">CANCEL</button>
             </div>
@@ -127,6 +131,19 @@
                 <span class="CheckboxBox"><i class="ph-bold ph-check"></i></span>
                 Show dev versions
             </label>
+
+            <div class="InstCheckboxPair">
+                <label class="InstCheckboxRow">
+                    <input type="checkbox" id="ShortcutDesktop" checked>
+                    <span class="CheckboxBox"><i class="ph-bold ph-check"></i></span>
+                    Desktop shortcut
+                </label>
+                <label class="InstCheckboxRow">
+                    <input type="checkbox" id="ShortcutStartMenu" checked>
+                    <span class="CheckboxBox"><i class="ph-bold ph-check"></i></span>
+                    Start Menu shortcut
+                </label>
+            </div>
 
             <label class="InstCheckboxRow" id="KeptRow" hidden>
                 <input type="checkbox" id="UseKept" checked>
@@ -300,8 +317,9 @@
                 <div class="InstResultTitle" id="ActionDoneTitle">Updated successfully.</div>
                 <div class="InstResultText" id="ActionDoneText"></div>
             </div>
-            <div class="InstallerBtnRow">
-                <button class="BtnInst Success" id="ActionDoneCloseBtn">CLOSE</button>
+            <div class="InstallerBtnRow Row">
+                <button class="BtnInst Cancel" id="ActionDoneCloseBtn">CLOSE</button>
+                <button class="BtnInst Success" id="ActionLaunchBtn">LAUNCH RAMMIT</button>
             </div>
         </div>
 
@@ -309,7 +327,7 @@
         <div class="InstallerScreen" data-screen="LegacyDone">
             <div class="InstResult">
                 <div class="InstResultIcon Success"><i class="ph-bold ph-check"></i></div>
-                <div class="InstResultTitle">Old version removed.</div>
+                <div class="InstResultTitle" id="LegacyDoneTitle">Old version removed.</div>
                 <div class="InstResultText" id="LegacyDoneText"></div>
             </div>
             <div class="InstallerBtnRow">

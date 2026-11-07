@@ -42,6 +42,7 @@
     --BorderLight: #333333;
     --BtnEdit: #1a6b3a;
     --Green2: #1a6b3a;
+    --Legacy: #4b3f8f;  /* OLD VERSION button: muted violet */
     --BtnNeutral: #222222;
     --ScrollbarThumb: #444444;
     --ScrollbarThumbHover: #555555;
@@ -252,6 +253,10 @@ body {
 
 .BtnInst.Primary {
     background: var(--Accent);
+}
+
+.BtnInst.Legacy {
+    background: var(--Legacy);
 }
 
 .BtnInst.Success {
@@ -674,6 +679,12 @@ body {
     cursor: pointer;
 }
 
+/* Two tick boxes on one line (the Desktop / Start Menu shortcut choice). */
+.InstCheckboxPair {
+    display: flex;
+    gap: 24px;
+}
+
 .InstCheckboxRow input[type="checkbox"] {
     display: none;
 }
@@ -693,7 +704,7 @@ body {
 .InstCheckboxRow .CheckboxBox i {
     font-size: 11px;
     color: var(--Accent);
-    /* Hide while unticked so the mark is not shown as a ghost check (#2). */
+    /* hidden, not display: none, so the box keeps its size while unticked (#2) */
     visibility: hidden;
 }
 

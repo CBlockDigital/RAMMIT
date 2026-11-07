@@ -41,11 +41,13 @@ class TestEnvironment:
         self.Root = tempfile.mkdtemp(prefix=f"RAMMIT-InstallerTest-{Label}-")
         self.RegKey = rf"Software\CBlock Digital\RAMMIT-InstallerTest-{Tag}"
         self.UninstallName = f"RAMMIT-InstallerTest-{Tag}"
+        self.ProtocolName = f"RAMMIT-InstallerTest-{Tag}"
         os.environ.update({
             "RAMMIT_INSTALLER_TEST": "1",
             "RAMMIT_INSTALLER_TEST_ROOT": self.Root,
             "RAMMIT_INSTALLER_REGKEY": self.RegKey,
             "RAMMIT_INSTALLER_UNINSTALL_NAME": self.UninstallName,
+            "RAMMIT_INSTALLER_PROTOCOL": self.ProtocolName,
         })
         import Locations
         self.Locations = Locations.Reload()
@@ -62,6 +64,8 @@ class TestEnvironment:
                 winreg.DeleteKey(winreg.HKEY_CURRENT_USER, Path)
             except OSError:
                 pass
+        import Setup
+        Setup._DeleteKeyTree(r"Software\Classes" + "\\" + self.ProtocolName)
         DeleteEmptyParent(self.RegKey)
         shutil.rmtree(self.Root, ignore_errors=True)
 
@@ -144,6 +148,15 @@ def MakeLegacyShortcut(LinkPath):
     Link = win32com.client.Dispatch("WScript.Shell").CreateShortCut(LinkPath)
     Link.TargetPath = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", "WindowsPowerShell", "v1.0", "powershell.exe")
     Link.Arguments = '-WindowStyle Hidden -Command "& (Join-Path (Get-ItemPropertyValue \'HKCU:\\Software\\CBlock Digital\\RAMMIT\' \'InstallPath\') \'RAMMIT.exe\')"'
+    Link.save()
+
+
+def MakeOldShortcut(LinkPath, Exe):
+    """What installers before 1.1.2 made: RAMMIT.lnk straight at RAMMIT.exe."""
+    import win32com.client
+    os.makedirs(os.path.dirname(LinkPath), exist_ok=True)
+    Link = win32com.client.Dispatch("WScript.Shell").CreateShortCut(LinkPath)
+    Link.TargetPath = Exe
     Link.save()
 
 

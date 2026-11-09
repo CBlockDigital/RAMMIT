@@ -1,4 +1,4 @@
-// RAMMIT website: hero launch replay, nav border, scroll reveals.
+// RAMMIT website: hero launch replay, nav border.
 
 (function () {
     const ReduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -12,22 +12,6 @@
     const UpdateNav = () => Nav.classList.toggle('IsScrolled', window.scrollY > 8);
     UpdateNav();
     window.addEventListener('scroll', UpdateNav, { passive: true });
-
-    // ===== SCROLL REVEAL =====
-    const RevealItems = document.querySelectorAll('.Reveal');
-    if (ReduceMotion || !('IntersectionObserver' in window)) {
-        RevealItems.forEach(Item => Item.classList.add('IsVisible'));
-    } else {
-        const Observer = new IntersectionObserver(Entries => {
-            Entries.forEach(Entry => {
-                if (Entry.isIntersecting) {
-                    Entry.target.classList.add('IsVisible');
-                    Observer.unobserve(Entry.target);
-                }
-            });
-        }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
-        RevealItems.forEach(Item => Observer.observe(Item));
-    }
 
     // ===== HERO LAUNCH REPLAY =====
     // Frames and timings come from the real capture (capture/screenshots/manifest.json):

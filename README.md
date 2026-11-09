@@ -24,7 +24,7 @@ Prefer no installer? Each [release](https://github.com/CBlockDigital/RAMMIT/rele
 
 The exe isn't code-signed yet, so Windows SmartScreen may warn the first time.
 
-**See it first:** [rammit-pi.vercel.app](https://rammit-pi.vercel.app), with screenshots and a 45-second promo video.
+**See it first:** [rammit-pi.vercel.app](https://rammit-pi.vercel.app), with screenshots and the 2-minute launch film.
 
 ## What it does
 

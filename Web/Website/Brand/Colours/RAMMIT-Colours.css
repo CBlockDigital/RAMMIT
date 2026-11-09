@@ -1,0 +1,16 @@
+/* RAMMIT colours. BrandBlue is for the logo; the rest is the app's Dark theme. */
+:root {
+    --BrandBlue: #335FFF;  /* The logo background. Logo only, never UI. */
+    --Background: #0A0A0A;  /* Page and window background. */
+    --Card: #141414;  /* Panels. */
+    --Input: #1F1F1F;  /* Text boxes, drop-downs. */
+    --Border: #252525;  /* Dividers, 1 px borders. */
+    --Text: #FFFFFF;  /* Main text. */
+    --TextDim: #888888;  /* Secondary text, labels. */
+    --Accent: #0078D4;  /* Selected rows, + ADD, panel labels. */
+    --AccentHover: #1E90FF;  /* Links, hover states. */
+    --Launch: #1A6B3A;  /* LAUNCH and Download buttons only. */
+    --Success: #28A745;  /* Launched, confirm. */
+    --Danger: #DC3545;  /* - REMOVE, errors. */
+    --Font: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+}

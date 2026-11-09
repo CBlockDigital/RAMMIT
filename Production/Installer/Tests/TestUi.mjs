@@ -199,6 +199,9 @@ try {
     const DefaultPath = (await CallApi('GetState')).DefaultPath;
     await Page.$eval('#InstallPath', (E, P) => { E.value = P; }, DefaultPath);
 
+    await Page.$eval('#ShortcutDesktop', E => E.closest('label').click());  // only a Start Menu shortcut
+    Check('shortcut tick boxes: Desktop unticked, Start Menu ticked', !(await Page.$eval('#ShortcutDesktop', E => E.checked))
+        && await Page.$eval('#ShortcutStartMenu', E => E.checked));
     await Hook('Running', { Running: true });
     await Hook('Server', { ChunkDelay: 0.12 });
     await ClickBtn('VersionInstallBtn');
@@ -215,17 +218,27 @@ try {
     await Shot('07-InstallDone', 'InstallDone');
     const DoneText = await Text('#InstallDoneText');
     Check('install done: Test1 wording with real version + path', DoneText.startsWith('Installed v1.0.0 to ') && DoneText.includes(DefaultPath)
-        && DoneText.includes('A desktop shortcut has been created.') && DoneText.includes('Have fun - and ping us if anything breaks.'), DoneText);
+        && DoneText.includes('A shortcut was added to the Start Menu.') && DoneText.includes('Have fun - and ping us if anything breaks.'), DoneText);
     let St = await Hook('State');
     Check('install: registry + Apps entry written (test keys)', St.Registry && St.Registry.Version === '1.0.0' && St.Apps && St.Apps.DisplayVersion === '1.0.0');
+    Check('install: only the ticked shortcut is made and remembered', St.Registry.Shortcuts === 'StartMenu', JSON.stringify(St.Registry));
     await ClickBtn('LaunchBtn');
     Check('LAUNCH RAMMIT starts the app and closes the installer', await WaitFor(async () => { const S = await Hook('State'); return S.Launches === 1 && S.Closed >= 1; }));
 
     // ------------------------------------------------------------ B. installed
+    // Opening sends two heights about 17 ms apart (the Loading screen's, then the menu's). With every resize slowed
+    // down, they would overlap unless the page waits for each one (#8).
+    await Hook('SlowResize', { Delay: 0.3 });
     await Open();
     await Shot('08-MenuInstalled', 'MenuInstalled');
+    await Sleep(1500);  // every resize the page asked for has finished
+    St = await Hook('State');
+    const FitNow = await Page.evaluate(() => window.InstallerFitHeight);
+    Check('resizes go one at a time and the newest height wins (#8)', St.ResizesInFlight === 1 && Math.abs(St.LastAskedHeight - FitNow) < 2,
+        `in flight ${St.ResizesInFlight}, last asked ${St.LastAskedHeight}, needed ${FitNow}`);
+    await Hook('SlowResize', { Delay: 0 });
     Check('installed menu: versions + buttons (no separate Change version)', (await Text('#InstalledVer')) === 'v1.0.0' && (await Text('#LatestVer')) === 'v1.1.0'
-        && JSON.stringify(await Page.$$eval('[data-screen=MenuInstalled] .BtnInst', Els => Els.map(E => E.textContent))) === '["UPDATE / DOWNGRADE","REPAIR","UNINSTALL","CANCEL"]');
+        && JSON.stringify(await Page.$$eval('[data-screen=MenuInstalled] .BtnInst', Els => Els.filter(E => !E.hidden).map(E => E.textContent))) === '["UPDATE / DOWNGRADE","REPAIR","UNINSTALL","CANCEL"]');  // OLD VERSION is hidden: no old version put off
     await ClickBtn('UpdateBtn');
     await Shot('09-UpdateDowngrade', 'ChangeVersion');
     Check('update/downgrade: crumbs', (await Crumbs()) === 'Menu > Version* > Progress > Done', await Crumbs());
@@ -248,6 +261,11 @@ try {
     Check('update: heading', (await Text('#ProgressHeading')) === 'Updating RAMMIT to v1.1.0...', await Text('#ProgressHeading'));
     await Shot('10-ActionDone', 'ActionDone');
     Check('update done', (await Text('#ActionDoneTitle')) === 'Updated successfully.' && (await Text('#ActionDoneText')).startsWith('RAMMIT is now on v1.1.0.'), await Text('#ActionDoneText'));
+    const BeforeLaunch = await Hook('State');
+    await ClickBtn('ActionLaunchBtn');
+    Check('update done: LAUNCH RAMMIT starts the app and closes the installer', await WaitFor(async () => {
+        const S = await Hook('State'); return S.Launches === BeforeLaunch.Launches + 1 && S.Closed > BeforeLaunch.Closed; }));
+    Check('update keeps the shortcut choice', (await Hook('State')).Registry.Shortcuts === 'StartMenu');
 
     await Open();
     await OnScreen('MenuInstalled');
@@ -301,6 +319,7 @@ try {
     Check('tick box changes the warning (Test1)', /also remove your Config\/ folder/.test(await Text('#ConfirmUninstallMsg')));
     Check('ticked check icon is visible (#2)', (await CheckIconVisibility()) === 'visible');
     await Page.click('[data-screen=ConfirmUninstall] .InstCheckboxRow');
+    Check('unticked again: check icon hidden again (#2)', (await CheckIconVisibility()) === 'hidden');
     await Hook('Accounts', { Path: DefaultPath });  // RAMMIT has run once: there is a Config folder to keep
     await Hook('SlowUninstall', { Delay: 0.4 });
     await ClickBtn('UninstallConfirmBtn');
@@ -363,16 +382,25 @@ try {
     await ClickBtn('LegacyDoneContinueBtn');
     await OnScreen('MenuFresh');
 
-    // choice 4: ignore + don't ask again
+    // choice 4 without "don't ask again": put off, reachable from the menu's OLD VERSION button
     await Hook('Legacy', {});
     await Open();
     await OnScreen('Legacy');
+    await ClickBtn('LegacyIgnoreBtn');
+    await OnScreen('MenuFresh');
+    Check('ignore puts it off: OLD VERSION on the menu', await Visible('#FreshLegacyBtn') && (await Hook('State')).Registry.LegacyInstallPath === Old);
+    await Open();
+    Check('put off: the installer opens on the menu', await OnScreen('MenuFresh') && await Visible('#FreshLegacyBtn'));
+    await ClickBtn('FreshLegacyBtn');
+    await OnScreen('Legacy');
+
+    // choice 4: ignore + don't ask again
     await Page.click('[data-screen=Legacy] .InstCheckboxRow');
     await ClickBtn('LegacyIgnoreBtn');
     await OnScreen('MenuFresh');
-    Check('ignore + don\'t ask again saved', (await Hook('State')).Registry.IgnoreLegacyInstall === '1');
+    Check('ignore + don\'t ask again saved', (await Hook('State')).Registry.LegacyInstallPath === 'Ignore');
     await Open();
-    Check('not asked again', await OnScreen('MenuFresh'));
+    Check('not asked again', await OnScreen('MenuFresh') && !(await Visible('#FreshLegacyBtn')));
 
     // ------------------------------------------------------------ D. no internet on a fresh PC
     await Hook('Server', { Offline: true, Forget: true });

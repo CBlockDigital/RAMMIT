@@ -1,6 +1,6 @@
 /* =====================================================================
    THEME: CBlock
-   The look of the Industrialist Simulator website: near-black panels on
+   The look of the CBlock website: near-black panels on
    black, one deep violet accent (#5d1fa9), thin indigo borders, flat.
    Same variables as Dark - see HowToMakeATheme.txt next to RAMMIT.exe.
    ===================================================================== */
@@ -20,6 +20,7 @@
     --SuccessHover: #2bb886;
     --Danger: #f87171;              /* - REMOVE, errors, cancel */
     --DangerHover: #ef5a5a;
+    --OnExpired: #000000;           /* text on an expired login's red row */
     --Warning: #fbbf24;             /* "launching" marks, warnings */
     --Border: #18122a;
     --BorderLight: #18122a;
@@ -32,6 +33,7 @@
     --Font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     --Radius: 8px;                  /* panel corners */
     --ButtonRadius: 4px;            /* button and text-box corners */
+    --TooltipRadius: 4px;           /* tooltip corners (other themes: square) */
 }
 
 /* =====================================================================
@@ -172,6 +174,25 @@ body {
 .ListItem.Selected {
     background: var(--Accent);
     color: var(--OnAccent);
+}
+
+/* A saved login Roblox rejected (expired): red row until it's renewed. Its text is --OnExpired (white, or a dark
+   colour where --Danger is light). Selected, it stays red and gets a ring in that colour: the accent can be as dark
+   as the red. Themes from before --OnExpired get white. */
+.ListItem.Expired {
+    background: var(--Danger);
+    color: var(--OnExpired, #ffffff);
+}
+
+.ListItem.Expired:hover {
+    background: var(--DangerHover);
+}
+
+.ListItem.Expired.Selected {
+    background: var(--Danger);
+    color: var(--OnExpired, #ffffff);
+    font-weight: 700;
+    box-shadow: inset 0 0 0 2px var(--OnExpired, #ffffff);
 }
 
 .ListButtons {
@@ -363,7 +384,7 @@ body {
     gap: 10px;
 }
 
-.BtnAdd, .BtnEdit, .BtnRemove {
+.BtnAdd, .BtnEdit, .BtnRemove, .BtnRenew {
     flex: 1;
     padding: 10px;
     border: none;
@@ -387,7 +408,12 @@ body {
     background: var(--Danger);
 }
 
-.BtnAdd:hover, .BtnEdit:hover, .BtnRemove:hover {
+/* + ADD turns into RENEW while exactly one expired account is selected (Accounts.js). */
+.BtnRenew {
+    background: var(--EditButton);
+}
+
+.BtnAdd:hover, .BtnEdit:hover, .BtnRemove:hover, .BtnRenew:hover {
     opacity: 0.85;
 }
 
@@ -688,6 +714,16 @@ body {
     color: var(--OnAccent);
 }
 
+/* On an expired login's red row (selected or not), the @username and the status mark use the row's text colour:
+   a red error mark on the red row would vanish. */
+.ListItem.Expired .AcctUser,
+.ListItem.Expired .AcctStatus.Queued,
+.ListItem.Expired .AcctStatus.Launching,
+.ListItem.Expired .AcctStatus.Ok,
+.ListItem.Expired .AcctStatus.Error {
+    color: var(--OnExpired, #ffffff);
+}
+
 .BtnSelect {
     flex: 1;
     padding: 10px;
@@ -980,11 +1016,11 @@ body {
     transition: background 0.15s ease;
 }
 
-.BtnLaunch, .BtnAdd, .BtnEdit, .BtnRemove, .BtnSelect, .BtnSave, .BtnIcon, .TourBtn {
+.BtnLaunch, .BtnAdd, .BtnEdit, .BtnRemove, .BtnRenew, .BtnSelect, .BtnSave, .BtnIcon, .TourBtn {
     transition: background 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
 }
 
-.BtnLaunch:active, .BtnAdd:active, .BtnEdit:active, .BtnRemove:active,
+.BtnLaunch:active, .BtnAdd:active, .BtnEdit:active, .BtnRemove:active, .BtnRenew:active,
 .BtnSelect:active, .BtnSave:active, .BtnIcon:active, .TourBtn:active {
     transform: scale(0.97);
 }
@@ -1152,7 +1188,13 @@ body.WizardBody {
     box-sizing: border-box;
     border: 1px solid var(--BorderLight);
     border-radius: 2px;
-    background: conic-gradient(var(--S2) 0 25%, var(--S3) 0 50%, var(--S0) 0 75%, var(--S1) 0);
+    /* Three half-size layers over --S1, not a conic-gradient: its hard stops come out jagged at
+       fractional sizes and DPI scaling, these straight edges stay crisp. */
+    background:
+        linear-gradient(var(--S2), var(--S2)) right top / 50% 50% no-repeat,
+        linear-gradient(var(--S3), var(--S3)) right bottom / 50% 50% no-repeat,
+        linear-gradient(var(--S0), var(--S0)) left bottom / 50% 50% no-repeat,
+        var(--S1);
 }
 
 /* Exactly as tall as the picker (the button keeps its natural height, so the row and the
@@ -1236,9 +1278,36 @@ body.WizardBody {
 }
 
 /* Buttons and text boxes follow the theme's ButtonRadius (0 = square, the Dark look). */
-.BtnAdd, .BtnEdit, .BtnRemove, .BtnSelect, .BtnLaunch, .BtnSave,
+.BtnAdd, .BtnEdit, .BtnRemove, .BtnRenew, .BtnSelect, .BtnLaunch, .BtnSave,
 .SettingsGrid input[type="text"], .ChannelRow input, .LaunchInput, .CustomSelectTrigger {
     border-radius: var(--ButtonRadius);
+}
+
+/* Tooltips (JS/Tooltip.js): follow the cursor, flip to its other side at the window's edges. Outside .Container, so
+   not zoomed. Square unless the theme sets --TooltipRadius. Width is the text's own (max-content), so measuring it
+   does not depend on where it currently sits; long text wraps, and a line break in the text starts a new line. */
+.Tooltip {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 9999;
+    width: max-content;
+    max-width: min(320px, calc(100vw - 8px));
+    padding: 4px 8px;
+    background: var(--Card);
+    border: 1px solid var(--BorderLight);
+    border-radius: var(--TooltipRadius, 0px);
+    color: var(--Text);
+    font-family: var(--Font);
+    font-size: 11px;
+    white-space: pre-line;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.Tooltip.Visible {
+    opacity: 1;
 }
 
 /* =====================================================================
@@ -1246,7 +1315,7 @@ body.WizardBody {
    ===================================================================== */
 
 /* CBlock: flat panels, 1px indigo rings, outlined buttons that invert on hover (the
-   Industrialist site's .Btn / .Field / .DropdownToggle look). Nothing here changes a size:
+   CBlock site's .Btn / .Field / .DropdownToggle look). Nothing here changes a size:
    rings are inset box-shadows or outlines, so HeightMap.json still fits. */
 
 /* Panels: the site's 1px #18122a border, drawn inside the box. */
@@ -1283,7 +1352,7 @@ body.WizardBody {
 .CustomSelectOption:hover { background: #18122a; color: var(--Text); }
 
 /* Buttons: 6px corners like the site's .Btn. */
-.BtnAdd, .BtnEdit, .BtnRemove, .BtnSelect, .BtnLaunch, .BtnSave, .BtnConfirm, .BtnCancel, .TourBtn {
+.BtnAdd, .BtnEdit, .BtnRemove, .BtnRenew, .BtnSelect, .BtnLaunch, .BtnSave, .BtnConfirm, .BtnCancel, .TourBtn {
     border-radius: 6px;
     transition: background 0.2s, color 0.2s, box-shadow 0.2s, opacity 0.15s, transform 0.1s ease;
 }
@@ -1302,11 +1371,11 @@ body.WizardBody {
 .TourBtn.Primary { background: var(--Accent); color: var(--OnAccent); box-shadow: inset 0 0 0 1px var(--Accent); }
 .TourBtn.Primary:hover { background: transparent; color: #9a63e0; opacity: 1; }
 
-/* .Btn: + ADD (violet), EDIT (green), - REMOVE and wizard CANCEL (red). */
+/* .Btn: + ADD (violet), EDIT and RENEW (green), - REMOVE and wizard CANCEL (red). */
 .BtnAdd { background: transparent; color: #9a63e0; box-shadow: inset 0 0 0 1px var(--Accent); }
 .BtnAdd:hover { background: var(--Accent); color: var(--OnAccent); opacity: 1; }
-.BtnEdit { background: transparent; color: var(--Success); box-shadow: inset 0 0 0 1px var(--Success); }
-.BtnEdit:hover { background: var(--Success); color: #000000; opacity: 1; }
+.BtnEdit, .BtnRenew { background: transparent; color: var(--Success); box-shadow: inset 0 0 0 1px var(--Success); }
+.BtnEdit:hover, .BtnRenew:hover { background: var(--Success); color: #000000; opacity: 1; }
 .BtnRemove, .BtnRow .BtnCancel { background: transparent; color: var(--Danger); box-shadow: inset 0 0 0 1px var(--Danger); }
 .BtnRemove:hover, .BtnRow .BtnCancel:hover { background: var(--Danger); color: #000000; opacity: 1; }
 

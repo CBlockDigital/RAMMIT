@@ -23,11 +23,11 @@
     </div>
 
     <label for="ConfigName">Name</label>
-    <input type="text" id="ConfigName" placeholder="My Config" maxlength="60">
+    <input type="text" id="ConfigName" placeholder="My Config" maxlength="60" title="What this config is called in the list">
 
     <label>Method</label>
     <div class="CustomSelect" id="MethodSelect" data-value="Home">
-        <div class="CustomSelectTrigger">
+        <div class="CustomSelectTrigger" title="Where the accounts go (same choices as the launch drop-down)">
             <span class="CustomSelectText">Home</span>
             <span class="CustomSelectArrow">&#9660;</span>
         </div>
@@ -43,8 +43,8 @@
     <div id="DynamicFields"></div>
 
     <div class="BtnRow">
-        <button class="BtnConfirm" id="ConfirmBtn">CONFIRM</button>
-        <button class="BtnCancel" id="CancelBtn">CANCEL</button>
+        <button class="BtnConfirm" id="ConfirmBtn" title="Save this config">CONFIRM</button>
+        <button class="BtnCancel" id="CancelBtn" title="Close without saving">CANCEL</button>
     </div>
     <div class="ErrorMsg" id="ErrorMsg"></div>
 </body>

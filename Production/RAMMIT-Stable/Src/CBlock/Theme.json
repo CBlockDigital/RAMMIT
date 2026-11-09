@@ -1,6 +1,6 @@
 {
     "Name": "CBlock",
     "Author": "RAMMIT",
-    "Description": "The CBlock / Industrialist look.",
-    "SupportedVersions": ["1.0", "1.1"]
+    "Description": "The CBlock look.",
+    "SupportedVersions": ["1.0", "1.1", "1.2"]
 }

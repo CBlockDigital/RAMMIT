@@ -296,7 +296,10 @@ def ComposeSheet(Tools, Theme, Parts):
         h1 {{ margin: 18px 30px 0; font-size: 30px; font-weight: 700; }}
         h1 span {{ font-weight: 400; color: #a9a4bd; font-size: 22px; }}
         .Swatch {{ display: inline-block; width: 26px; height: 26px; vertical-align: -4px; margin-right: 12px; border-radius: 3px;
-                  border: 1px solid #3a3548; background: conic-gradient({Swatch[2]} 0 25%, {Swatch[3]} 0 50%, {Swatch[0]} 0 75%, {Swatch[1]} 0); }}
+                  border: 1px solid #3a3548;
+                  background: linear-gradient({Swatch[2]}, {Swatch[2]}) right top / 50% 50% no-repeat,
+                              linear-gradient({Swatch[3]}, {Swatch[3]}) right bottom / 50% 50% no-repeat,
+                              linear-gradient({Swatch[0]}, {Swatch[0]}) left bottom / 50% 50% no-repeat, {Swatch[1]}; }}
         .Label {{ font-size: 22px; color: #a98be8; margin-bottom: 8px; }}
         .Column {{ display: flex; flex-direction: column; gap: 26px; }}
         img {{ display: block; }}

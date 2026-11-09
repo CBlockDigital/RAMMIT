@@ -39,7 +39,7 @@
                 <label class="LaunchOptionLabel">Launch Option</label>
                 <div class="LaunchOptionRow">
                     <div class="CustomSelect" id="LaunchOptionSelect" data-value="Home">
-                        <div class="CustomSelectTrigger">
+                        <div class="CustomSelectTrigger" title="Where every ticked account goes when it opens">
                             <span class="CustomSelectText">Home</span>
                             <span class="CustomSelectArrow">&#9660;</span>
                         </div>
@@ -81,12 +81,12 @@
                     </div>
                 </div>
                 <div class="ListButtons">
-                    <button class="BtnAdd" id="AddConfigBtn">+ ADD</button>
-                    <button class="BtnEdit" id="EditConfigBtn">EDIT</button>
-                    <button class="BtnRemove" id="RemoveConfigBtn">- REMOVE</button>
+                    <button class="BtnAdd" id="AddConfigBtn" title="Save a game and its filters under a name">+ ADD</button>
+                    <button class="BtnEdit" id="EditConfigBtn" title="Change the selected config (or double-click it)">EDIT</button>
+                    <button class="BtnRemove" id="RemoveConfigBtn" title="Delete the selected config">- REMOVE</button>
                 </div>
             </div>
-            <div class="SettingsCollapseToggle" id="SettingsToggle">
+            <div class="SettingsCollapseToggle" id="SettingsToggle" title="Show or hide the settings">
                 <i class="ph-bold ph-caret-right"></i>
             </div>
             <div class="RightPanel SettingsPanel" id="SettingsPanel">
@@ -112,7 +112,7 @@
 
                         <label>Launcher</label>
                         <div class="CustomSelect" id="LauncherSelect" data-value="Roblox">
-                            <div class="CustomSelectTrigger">
+                            <div class="CustomSelectTrigger" title="Which installed launcher starts Roblox">
                                 <span class="CustomSelectText">Roblox</span>
                                 <span class="CustomSelectArrow">&#9660;</span>
                             </div>
@@ -125,19 +125,19 @@
 
                         <label>Channel</label>
                         <div class="ChannelRow">
-                            <input type="text" id="ChannelEntry" maxlength="64" spellcheck="false">
+                            <input type="text" id="ChannelEntry" maxlength="64" spellcheck="false" title="Roblox build to launch on (production is the normal one)">
                             <button class="BtnIcon Check" id="SaveChannelBtn" title="Save channel"><i class="ph-bold ph-check"></i></button>
                             <button class="BtnIcon Cross" id="ResetChannelBtn" title="Put back the current channel"><i class="ph-bold ph-x"></i></button>
                         </div>
 
                         <label>Max Instances</label>
-                        <input type="text" id="MaxInstances" value="1" maxlength="3" inputmode="numeric">
+                        <input type="text" id="MaxInstances" value="1" maxlength="3" inputmode="numeric" title="Stop launching once this many are running">
 
                         <label style="line-height:1.1">Launch Delay<br>(seconds)</label>
-                        <input type="text" id="LaunchDelay" value="3" maxlength="3" inputmode="numeric">
+                        <input type="text" id="LaunchDelay" value="3" maxlength="3" inputmode="numeric" title="Seconds to wait between each account">
                     </div>
 
-                    <button class="BtnSave" id="SaveSettingsBtn">SAVE SETTINGS</button>
+                    <button class="BtnSave" id="SaveSettingsBtn" title="Save Max Instances and Launch Delay">SAVE SETTINGS</button>
                     <div class="SettingsFooter">
                         <div class="StatusMessage" id="StatusMessage"></div>
                         <div class="AppVersion" id="AppVersion"></div>

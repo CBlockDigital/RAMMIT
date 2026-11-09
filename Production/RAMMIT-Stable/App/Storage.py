@@ -271,8 +271,9 @@ def SaveConfigs(Configs):
 
 
 # ---------------------------------------------------------------- accounts
-# In memory: {"Username", "DisplayName", "Cookie" (plain text or None), "Stored" (on-disk cookie string)}
-# Cookie is None when the saved login cannot be decrypted (folder copied from another PC/user).
+# In memory: {"Username", "DisplayName", "UserId" (Roblox's numeric id, or None until known), "Cookie" (plain text or
+# None), "Stored" (on-disk cookie string)}. Cookie is None when the saved login cannot be decrypted (folder copied from
+# another PC/user). UserId tells a renewed login apart from a different account (usernames can change).
 
 def LoadAccounts():
     Disk = ReadJson(Paths.AccountsFile, [])
@@ -296,9 +297,11 @@ def LoadAccounts():
             Cookie = Stored
             Stored = None
             NeedsMigration = True
+        UserId = Entry.get("userId")
         Accounts.append({
             "Username": CleanText(Entry["username"], 50),
             "DisplayName": CleanText(Entry.get("displayName") or Entry["username"], 50),
+            "UserId": UserId if isinstance(UserId, int) and not isinstance(UserId, bool) and UserId > 0 else None,
             "Cookie": Cookie,
             "Stored": Stored,
         })
@@ -313,5 +316,8 @@ def SaveAccounts(Accounts):
     for Account in Accounts:
         if not Account.get("Stored"):
             Account["Stored"] = Crypto.Encrypt(Account["Cookie"])
-        Disk.append({"username": Account["Username"], "displayName": Account["DisplayName"], "cookie": Account["Stored"]})
+        Entry = {"username": Account["Username"], "displayName": Account["DisplayName"], "cookie": Account["Stored"]}
+        if Account.get("UserId"):
+            Entry["userId"] = Account["UserId"]
+        Disk.append(Entry)
     WriteJsonAtomic(Paths.AccountsFile, Disk)

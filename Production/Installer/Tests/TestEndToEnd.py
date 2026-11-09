@@ -84,7 +84,8 @@ class TestEndToEnd(unittest.TestCase):
         self.assertGreater(Entry["EstimatedSize"], 10000)
         for LinkPath in Setup.ShortcutPaths():
             self.assertTrue(LinkPath.startswith(self.Env.Root))
-            self.assertEqual(os.path.normcase(Setup.ReadShortcut(LinkPath)[0]), os.path.normcase(self.File("RAMMIT.exe")))
+            self.assertEqual(Setup.ReadUrlShortcut(LinkPath), self.L.ProtocolName + ":")
+        self.assertEqual(os.path.normcase(Setup.ProtocolTarget()), os.path.normcase(self.File("RAMMIT.exe")))
         State = self.Api.GetState()
         self.assertEqual((State["Installed"], State["Version"], State["UndoVersion"]), (True, "1.0.0", ""))
         self.assertTrue(self.Api.ListVersions(False)["UpdateAvailable"])

@@ -8,7 +8,7 @@ A theme is just a folder. Every theme RAMMIT can use lives in the
     Src\
       Dark\            the default look            (comes with RAMMIT)
       Light\           the 2016 Roblox look         (comes with RAMMIT)
-      CBlock\          the CBlock / Industrialist look (comes with RAMMIT)
+      CBlock\          the CBlock look (comes with RAMMIT)
       MyCustomTheme\   an example custom theme      (comes with RAMMIT)
       OceanBlue\       <- your theme goes here, next to the others
 
@@ -37,16 +37,16 @@ press the "?" button, then "Making your own theme".
             "Name": "Ocean Blue",
             "Author": "Your Name",
             "Description": "Deep blue with a teal accent.",
-            "SupportedVersions": ["1.0"]
+            "SupportedVersions": ["1.2"]
         }
 
     "SupportedVersions" says which RAMMIT versions your theme was made
     for. The version is at the bottom of the Settings panel
-    (for example "RAMMIT v1.1.1 - Stable").
+    (for example "RAMMIT v1.2.0 - Stable").
         "1.0"    any 1.0.x  (1.0.0, 1.0.1, ...)
         "1.0.2"  exactly 1.0.2
         "1.2+"   1.2.0 and everything newer
-    You can list several: ["1.0", "1.1"].
+    You can list several: ["1.1", "1.2"].
     If someone picks your theme on a RAMMIT version it doesn't list,
     RAMMIT asks them first. After a RAMMIT update it opens in Dark and
     asks before using your theme. Leave the field out and RAMMIT never
@@ -87,8 +87,10 @@ press the "?" button, then "Making your own theme".
    --AccentHover      Accent when the mouse is over it
    --Success          launched marks, CONFIRM, the channel tick
    --SuccessHover
-   --Danger           - REMOVE, errors, CANCEL
+   --Danger           - REMOVE, errors, CANCEL, the row of an expired login
    --DangerHover
+   --OnExpired        text on an expired login's red row: white, or a dark
+                      colour if your --Danger is light (check it's readable)
    --Warning          "launching" marks and warnings
    --Border           thin lines
    --BorderLight      slightly brighter lines
@@ -102,6 +104,8 @@ press the "?" button, then "Making your own theme".
                       e.g. 'Bahnschrift', 'Segoe UI', sans-serif
    --Radius           corner rounding of panels, e.g. 8px
    --ButtonRadius     corner rounding of buttons and boxes, e.g. 6px
+   --TooltipRadius    corner rounding of tooltips, e.g. 4px (optional:
+                      leave it out for square ones)
 
  Tip: light theme?  Start from the "Light" folder - it already has dark
  text on light panels. Starting from Dark and only changing the

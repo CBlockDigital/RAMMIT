@@ -56,23 +56,26 @@ README.txt, HowToMakeATheme.txt
 | `Storage.py` | Config files: atomic writes, settings schema + validation, legacy migration, configs, accounts |
 | `Crypto.py` | DPAPI encryption of saved login cookies |
 | `Roblox.py` | Roblox web APIs, server picking, VIP links, the `roblox-player:` launch URI, launcher path, registry channel |
-| `MultiInstance.py` | Singleton-name mutex and cookie-file lock; counts running clients (pywin32 + psutil) |
+| `MultiInstance.py` | Singleton-name mutex and cookie-file lock; counts running clients (game windows only) and tracks which client is which account (`ClientTracker`: the launched process, its children, then the launch ticket) |
 | `LocalServer.py` | Hardened static server for the active theme folder |
 | `Themes.py` | Theme discovery, `HeightMap.json`, fallback to Dark |
 | `Paths.py`, `Log.py`, `Version.py` | Locations, the log file, the version string |
+| `WindowSize.py` | Resizes the main window and the config wizard; while the title bar is held, waits and applies the height once it is let go |
+| `Install.py` | When the installed folder was moved by hand, points the installer's registry entries and the `RAMMIT:` shortcut protocol at the new place |
 
 ### Frontend (`Src/<Theme>/JS/`, plain ES modules, no build step)
 
 | Module | Responsibility |
 |---|---|
 | `Main.js` / `Wizard.js` | Entry points of `Index.html` / `Wizard.html` |
-| `Bridge.js` | `Api.X()` proxy to Python, `On(event)` for Python→JS events, `ReportError` |
+| `Bridge.js` | `Api.X()` proxy to Python, `On(event)` for Python→JS events, `ReportError`, `OneAtATime` (calls such as resizes, one at a time) |
 | `State.js` | Shared main-window state |
 | `Dom.js` | `El()` element builder (always `textContent`), `Debounce`, helpers |
 | `Select.js` | The custom drop-down component |
 | `LaunchForm.js` | Launch-method fields + Players/Ping filters (shared by both pages) |
 | `Accounts.js`, `Configs.js`, `Launch.js`, `Settings.js`, `Themes.js` | One per panel |
 | `Status.js` | The two status lines |
+| `Tooltip.js` | Themed tooltips for every `title` / `data-tooltip` (shown as plain text) |
 | `TourData.js` / `Tours.js` | Tutorial content / tutorial engine |
 
 ## Where to change X

@@ -1,21 +1,42 @@
-"""Starts RAMMIT: logging -> multi-instance lock -> local UI server -> main window."""
+"""Starts RAMMIT: logging -> install registry check -> multi-instance lock -> local UI server -> main window."""
 import os
+import sys
 
 import webview
 
-from App import MultiInstance, Paths, Themes
+from App import Install, MultiInstance, Paths, Themes
 from App.Splash import SplashScreen
 from App.Api import Api, GuardNavigation
 from App.LocalServer import LocalServer
 from App.Log import Logger, Setup as SetupLog
 from App.Version import VersionLabel
 
-WindowWidth, WindowHeight, WindowScale = 900, 700, 0.85
+WindowWidth, WindowScale = 900, 0.85
+
+
+def StartHeight(Bridge):
+    """Opening height from this theme's HeightMap.json for the saved launch option, so the window opens at
+    the right size. The page still resizes on boot (it alone can measure a theme note)."""
+    Map = Themes.LoadHeightMap(Bridge._ActiveThemeId())[0]["MainWindow"]
+    Settings = Bridge._Settings
+    Height = Map.get(Settings.get("LaunchOption"), Map["Home"])
+    if (Settings.get("LaunchParams") or {}).get("PlayerMode") in ("min_only", "max_only", "range"):
+        Height += Map["PlayerFilterExtra"]
+    return max(400, min(Height, 1400))  # same limits as Api.ResizeWindow
 
 
 def Run():
     SetupLog()
     Logger.info("RAMMIT %s starting from %s", VersionLabel(), Paths.BaseDir)
+    if getattr(sys, "frozen", False):  # only the installed exe: running from source never touches the registry
+        try:
+            Done = Install.Sync(Paths.BaseDir)
+            if Done == "Moved":
+                Logger.info("RAMMIT was moved here: the registry and the RAMMIT: shortcuts now point at this folder")
+            elif Done:
+                Logger.info("RAMMIT: shortcuts re-pointed at this folder")
+        except OSError as Error:
+            Logger.warning("Could not update the install's registry entries: %s", type(Error).__name__)
     os.chdir(Paths.BaseDir)
     Paths.EnsureConfigDir()
     MultiInstance.Enable()
@@ -29,7 +50,7 @@ def Run():
         url=Server.Url("Index.html"),
         js_api=Bridge,
         width=int(WindowWidth * WindowScale),
-        height=int(WindowHeight * WindowScale),
+        height=int(StartHeight(Bridge) * WindowScale),
         resizable=False,
         background_color=Themes.BackgroundColor(Bridge._ActiveThemeId()),
     )
@@ -47,6 +68,7 @@ def Run():
                 Bridge._DestroyQuietly(Other)
     Window.events.closed += OnMainClosed
 
+    Bridge._StartLoginChecks()  # expired saved logins turn red (first check now, then every few minutes)
     webview.start()
     Server.Stop()
     Logger.info("RAMMIT closed")

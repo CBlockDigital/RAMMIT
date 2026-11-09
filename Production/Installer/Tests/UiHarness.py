@@ -15,6 +15,8 @@ Test-only routes (never part of the shipped server):
     POST /__TestHook/Server      {"HoldList", "ChunkDelay", "Offline", "Forget"} -> fake release server behaviour (Forget: drop the cached list)
     POST /__TestHook/Running     {"Running": true|false} -> pretend RAMMIT is (not) running
     POST /__TestHook/SlowUninstall {"Delay": seconds per progress step}
+    POST /__TestHook/SlowResize  {"Delay": seconds} -> every ResizeInstaller call takes that long (and resets the
+                                 most calls seen in flight at once, which State reports as ResizesInFlight)
     POST /__TestHook/Legacy      makes a fake Test1 install at <ScratchDir>\\OldRAMMIT and points the registry at it
     POST /__TestHook/Accounts    {"Path"} -> writes a dummy Config\\Accounts.json there (no cookies)
     POST /__TestHook/StartScreen {"Screen"} -> as if started with /Uninstall
@@ -36,6 +38,7 @@ os.environ.update({
     "RAMMIT_INSTALLER_TEST_ROOT": ScratchDir,
     "RAMMIT_INSTALLER_REGKEY": r"Software\CBlock Digital\RAMMIT-InstallerTest-Ui",
     "RAMMIT_INSTALLER_UNINSTALL_NAME": "RAMMIT-InstallerTest-Ui",
+    "RAMMIT_INSTALLER_PROTOCOL": "RAMMIT-InstallerTest-Ui",
 })
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import Support  # noqa: E402  (also puts Installer\ on sys.path)
@@ -64,6 +67,7 @@ def DeleteKeys():
             winreg.DeleteKey(winreg.HKEY_CURRENT_USER, Path)
         except OSError:
             pass
+    Setup.UnregisterProtocol()
     # Creating the test key also created "Software\CBlock Digital": remove it again if nothing else is in it.
     Parent = L.RegKeyPath.rsplit("\\", 1)[0]
     try:
@@ -76,7 +80,8 @@ def DeleteKeys():
 
 
 DeleteKeys()
-Fake = {"Events": [], "EventLog": [], "Lock": threading.Lock(), "LastResize": None, "Launches": 0, "Closed": 0, "Running": False, "UninstallDelay": 0.0}
+Fake = {"Events": [], "EventLog": [], "Lock": threading.Lock(), "LastResize": None, "Launches": 0, "Closed": 0, "Running": False, "UninstallDelay": 0.0,
+        "ResizeDelay": 0.0, "InFlight": 0, "MostInFlight": 0, "LastAsked": None}
 
 
 class FakeWindow:
@@ -116,6 +121,25 @@ def SlowUninstallProgress(**Data):
 
 
 Bridge._UninstallProgress = SlowUninstallProgress
+RealResizeInstaller = Bridge.ResizeInstaller
+
+
+def CountedResizeInstaller(Height, ViewportHeight=None):
+    """The real ResizeInstaller, counting how many calls overlap (the page must send them one at a time, #8)."""
+    with Fake["Lock"]:
+        Fake["InFlight"] += 1
+        Fake["MostInFlight"] = max(Fake["MostInFlight"], Fake["InFlight"])
+    try:
+        if Fake["ResizeDelay"]:
+            time.sleep(Fake["ResizeDelay"])
+        Fake["LastAsked"] = Height
+        return RealResizeInstaller(Height, ViewportHeight)
+    finally:
+        with Fake["Lock"]:
+            Fake["InFlight"] -= 1
+
+
+Bridge.ResizeInstaller = CountedResizeInstaller
 
 
 class TestHandler(UiServer._Handler):
@@ -138,6 +162,11 @@ class TestHandler(UiServer._Handler):
             Result = {"Ok": True}
         elif self.path == "/__TestHook/SlowUninstall":
             Fake["UninstallDelay"] = float(Body["Delay"])
+            Result = {"Ok": True}
+        elif self.path == "/__TestHook/SlowResize":
+            with Fake["Lock"]:
+                Fake["ResizeDelay"] = float(Body["Delay"])
+                Fake["MostInFlight"] = Fake["InFlight"]
             Result = {"Ok": True}
         elif self.path == "/__TestHook/Legacy":
             Old = os.path.join(ScratchDir, "OldRAMMIT")
@@ -173,6 +202,7 @@ class TestHandler(UiServer._Handler):
                 return self._Json(list(Fake["EventLog"]))
         if self.path == "/__TestHook/State":
             return self._Json({"LastResize": Fake["LastResize"], "Launches": Fake["Launches"], "Closed": Fake["Closed"],
+                               "ResizesInFlight": Fake["MostInFlight"], "LastAskedHeight": Fake["LastAsked"],
                                "Registry": Support.RegValues(L.RegKeyPath), "Apps": Support.RegValues(L.UninstallKeyPath)})
         return super().do_GET()
 

@@ -11,6 +11,7 @@ import { InitSettingsPanel, RestoreSettingsPanel } from './Settings.js';
 import { InitThemePicker, LoadThemes } from './Themes.js';
 import { InitTours, StartTour } from './Tours.js';
 import { ShowLaunchError, ShowStatus } from './Status.js';
+import { InitTooltips } from './Tooltip.js';
 
 function WireButtons() {
     ById('AddAccountBtn').addEventListener('click', () => AddAccount().catch(ReportError));
@@ -22,6 +23,7 @@ function WireButtons() {
 }
 
 async function Boot() {
+    InitTooltips();
     WireButtons();
     InitLaunchPanel();
     InitSettingsPanel();

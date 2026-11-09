@@ -163,8 +163,36 @@ function ApplyState(S) {
         ById('LegacyVer').textContent = S.Legacy.Version ? 'v' + S.Legacy.Version : 'unknown version';
         ById('LegacyPath').textContent = S.Legacy.Path;
         ById('LegacyConfirmPath').textContent = S.Legacy.Path;
+        document.querySelectorAll('.LegacyMenuVer').forEach(E => { E.textContent = ById('LegacyVer').textContent; });
+        document.querySelectorAll('.LegacyMenuPath').forEach(E => { E.textContent = S.Legacy.Path; });
     }
+    ShowLegacyButtons();
     UpdateUndo();
+}
+
+// An old version put off with Ignore: reachable from either menu, on the same screen with the same four choices.
+// With RAMMIT already installed, the two "move" choices don't reinstall it (MoveIntoInstalled).
+function ShowLegacyButtons() {
+    const PutOff = !!(State.Legacy && State.Legacy.Deferred);
+    ById('FreshLegacyBtn').hidden = ById('InstalledLegacyBtn').hidden = !PutOff;
+    ById('FreshLegacyLine').hidden = ById('InstalledLegacyLine').hidden = !PutOff;
+}
+
+// Choices 1/2 with RAMMIT already installed: only the old version's accounts and settings come across (and
+// MoveRemove then removes it). Asks which accounts to keep when both have some, like an install does.
+async function MoveIntoInstalled(ConfigChoice) {
+    const Back = () => Go('Legacy', 'LegacyMove');
+    const Check = await Api.CheckLegacyMove().catch(Error => ({ Error: String(Error) }));
+    if (Check.Running) { ShowRunning('move your accounts', () => MoveIntoInstalled(ConfigChoice), Back); return; }
+    if (Check.Error) { ShowError(Check.Error, '', null, Back); return; }
+    if (Check.NeedsConfigChoice && !ConfigChoice) {
+        ById('UseOldBtn').textContent = "USE THE OLD VERSION'S ACCOUNTS";
+        Go('ConfigConflict', 'LegacyMove');
+        return;
+    }
+    ResetUninstallProgress('Moving your accounts...');
+    Go('ProgressUninstall', 'LegacyMove');
+    StartJob('LegacyMove', () => Api.StartLegacyMove(State.LegacyMode, ConfigChoice || ''), Back);
 }
 
 // Accounts an earlier uninstall kept (or Test1's uninstall): mentioned on the fresh menu, offered on Install.
@@ -255,7 +283,8 @@ async function StartInstall(ConfigChoice) {
     ById('InstallPath').value = Check.Path;
     ResetProgress('Installing RAMMIT...');
     Go('Progress', Flow);
-    StartJob('Install', () => Api.StartInstall(Version, Check.Path, { Legacy: State.LegacyMode, ConfigChoice: ConfigChoice || '', KeptConfig: Kept }), Back);
+    const Shortcuts = [['ShortcutDesktop', 'Desktop'], ['ShortcutStartMenu', 'StartMenu']].filter(([Id]) => ById(Id).checked).map(([, Name]) => Name);
+    StartJob('Install', () => Api.StartInstall(Version, Check.Path, { Legacy: State.LegacyMode, ConfigChoice: ConfigChoice || '', KeptConfig: Kept, Shortcuts }), Back);
 }
 
 // '' (nothing kept, or the old Test1 flow), 'Use' (bring the kept accounts back) or 'Fresh' (start without them).
@@ -264,6 +293,14 @@ const KeptChoice = () => (State.KeptConfig && !State.LegacyMode ? (ById('UseKept
 // ------------------------------------------------------------ results (Test1's OnActionDone)
 
 const Warn = Result => (Result.Warnings || []).map(Text => [Text]);
+
+// What the install made, from the ticked shortcut boxes: [] when neither was ticked.
+function ShortcutLine(Made) {
+    const Places = { Desktop: 'the Desktop', StartMenu: 'the Start Menu' };
+    const Where = (Made || []).map(Name => Places[Name]).filter(Boolean);
+    if (!Where.length) return [];
+    return [[Where.length > 1 ? `Shortcuts were added to ${Where.join(' and ')}.` : `A shortcut was added to ${Where[0]}.`]];
+}
 
 On('Progress', UpdateProgress);
 On('UninstallProgress', UpdateUninstallProgress);
@@ -276,7 +313,7 @@ On('Done', async Result => {
             ['Installed ', { Em: WithBranch(Result.Version, Result.Branch) }, ' to ', { Em: Result.Path, Class: 'Path' }, '.'],
             ...(Result.MovedLegacy ? [['Your accounts and settings came across from the old version.']] : []),
             ...(Result.KeptLine ? [[Result.KeptLine]] : []),
-            ['A desktop shortcut has been created.'],
+            ...ShortcutLine(Result.Shortcuts),
             ...Warn(Result),
             [],
             ['Have fun - and ping us if anything breaks.'],
@@ -289,11 +326,25 @@ On('Done', async Result => {
         Lines.push([], ["If something broke, please open an issue - we'd love a second chance."]);
         SetLines(ById('UninstallDoneText'), Lines);
         Go('UninstallDone');
+    } else if (Result.Action === 'LegacyMove') {
+        State.Legacy = null;
+        State.LegacyMode = '';
+        ShowLegacyButtons();
+        const Lines = [['Your accounts and settings from the old version are now in ', { Em: Result.InstallPath, Class: 'Path' }, '.']];
+        if (Result.Mode === 'MoveRemove') Lines.push(['The old version was removed from ', { Em: Result.Path, Class: 'Path' }, '.']);
+        else Lines.push(['The old version was left as it is in ', { Em: Result.Path, Class: 'Path' }, '.']);
+        if (Result.Left && Result.Left.length) Lines.push(['Files it didn\'t install were left there: ', { Em: Result.Left.slice(0, 3).join(', ') }, '.']);
+        Lines.push(...Warn(Result), ['Press ', { Em: 'Continue' }, ' to go back to the menu.']);
+        ById('LegacyDoneTitle').textContent = 'Accounts moved.';
+        SetLines(ById('LegacyDoneText'), Lines);
+        Go('LegacyDone');
     } else if (Result.Action === 'LegacyRemove') {
         State.Legacy = null;
+        ShowLegacyButtons();
+        ById('LegacyDoneTitle').textContent = 'Old version removed.';
         const Lines = [['The old test version was removed from ', { Em: Result.Path, Class: 'Path' }, '.']];
         if (Result.Left && Result.Left.length) Lines.push(['Files it didn\'t install were left there: ', { Em: Result.Left.slice(0, 3).join(', ') }, '.']);
-        Lines.push(['Press ', { Em: 'Continue' }, ' to install the new RAMMIT.']);
+        Lines.push(['Press ', { Em: 'Continue' }, State.Installed ? ' to go back to the menu.' : ' to install the new RAMMIT.']);
         SetLines(ById('LegacyDoneText'), Lines);
         Go('LegacyDone');
     } else {
@@ -344,6 +395,8 @@ const CloseWindow = () => Api.CloseWindow().catch(() => window.close());
 
 Click('FreshInstallBtn', () => NeedVersions(() => Go('Version', 'Install'), () => Go('MenuFresh', 'Install')));
 Click('FreshCancelBtn', CloseWindow);
+Click('FreshLegacyBtn', () => Go('Legacy', 'LegacyInstall'));
+Click('InstalledLegacyBtn', () => Go('Legacy', 'LegacyMove'));
 Click('InstalledCancelBtn', CloseWindow);
 Click('UpdateBtn', () => {
     ById('ChangeVersionError').textContent = State.VersionsLoaded ? '' : "Couldn't load the version list. You can still undo the last change.";
@@ -367,16 +420,24 @@ Click('UninstallConfirmBtn', () => StartAction('Uninstall'));
 Click('InstallDoneCloseBtn', CloseWindow);
 Click('ActionDoneCloseBtn', CloseWindow);
 Click('UninstallDoneCloseBtn', CloseWindow);
-Click('LaunchBtn', async () => {
+// LAUNCH RAMMIT on both done screens (install, and update / repair / undo): starts it and closes the installer.
+async function LaunchRammit(DoneScreen) {
     const Result = await Api.Launch();
-    if (Result && Result.Error) ShowError(Result.Error, '', null, () => Go('InstallDone'), "RAMMIT didn't start.");
+    if (Result && Result.Error) ShowError(Result.Error, '', null, () => Go(DoneScreen), "RAMMIT didn't start.");
     else CloseWindow();
-});
+}
+Click('LaunchBtn', () => LaunchRammit('InstallDone'));
+Click('ActionLaunchBtn', () => LaunchRammit('ActionDone'));
 
 // Older RAMMIT found
-Click('LegacyMoveRemoveBtn', () => { State.LegacyMode = 'MoveRemove'; NeedVersions(() => Go('Version', 'LegacyInstall'), () => Go('Legacy', 'LegacyInstall')); });
+Click('LegacyMoveRemoveBtn', () => {
+    State.LegacyMode = 'MoveRemove';
+    if (State.Installed) { MoveIntoInstalled(); return; }
+    NeedVersions(() => Go('Version', 'LegacyInstall'), () => Go('Legacy', 'LegacyInstall'));
+});
 Click('LegacyMoveKeepBtn', () => {
     State.LegacyMode = 'MoveKeep';
+    if (State.Installed) { MoveIntoInstalled(); return; }
     // The new one can't share the old one's folder when the old one stays.
     if (State.Legacy && ById('InstallPath').value.trim().toLowerCase() === State.Legacy.Path.toLowerCase()) ById('InstallPath').value = State.Legacy.Path + '-New';
     NeedVersions(() => Go('Version', 'LegacyInstall'), () => Go('Legacy', 'LegacyInstall'));
@@ -386,7 +447,10 @@ Click('LegacyIgnoreBtn', async () => {
     const Result = await Api.IgnoreLegacy(ById('LegacyDontAsk').checked);
     if (Result && Result.Error) { ShowError(Result.Error, '', null, () => Go('Legacy')); return; }
     State.LegacyMode = '';
-    Go('MenuFresh', 'Install');
+    // Ticked: gone for good. Unticked: put off - it stays on the menu as OLD VERSION.
+    State.Legacy = ById('LegacyDontAsk').checked ? null : Object.assign({}, State.Legacy, { Deferred: true });
+    ShowLegacyButtons();
+    Go(Nav.CurrentMenu, State.Installed ? 'Update' : 'Install');
 });
 Click('LegacyConfirmBackBtn', () => Go('Legacy', 'LegacyRemove'));
 Click('LegacyConfirmRemoveBtn', () => {
@@ -397,12 +461,13 @@ Click('LegacyConfirmRemoveBtn', () => {
         StartJob('LegacyRemove', () => Api.StartLegacyRemove(), Back);
     }, Back);
 });
-Click('LegacyDoneContinueBtn', () => { State.LegacyMode = ''; Go('MenuFresh', 'Install'); });
+Click('LegacyDoneContinueBtn', () => { State.LegacyMode = ''; Go(Nav.CurrentMenu, State.Installed ? 'Update' : 'Install'); });
 
 // Settings clash
-Click('KeepNewBtn', () => StartInstall('KeepNew'));
-Click('UseOldBtn', () => StartInstall('UseOld'));
-Click('ConflictBackBtn', () => Go('Version', State.LegacyMode ? 'LegacyInstall' : 'Install'));
+const MovingIntoInstalled = () => !!(State.Installed && State.LegacyMode);
+Click('KeepNewBtn', () => (MovingIntoInstalled() ? MoveIntoInstalled('KeepNew') : StartInstall('KeepNew')));
+Click('UseOldBtn', () => (MovingIntoInstalled() ? MoveIntoInstalled('UseOld') : StartInstall('UseOld')));
+Click('ConflictBackBtn', () => (MovingIntoInstalled() ? Go('Legacy', 'LegacyMove') : Go('Version', State.LegacyMode ? 'LegacyInstall' : 'Install')));
 
 // Running
 Click('RunningCloseBtn', async () => {
@@ -447,7 +512,7 @@ ById('InstallPath').addEventListener('input', () => { ById('PathError').textCont
 async function Boot() {
     // A reload can bring back old tick boxes (browser form restore) that no longer match State.
     document.querySelectorAll('.ShowTestVersions, #RemoveConfigs, #LegacyDontAsk').forEach(Box => { Box.checked = false; });
-    ById('UseKept').checked = true;
+    ['UseKept', 'ShortcutDesktop', 'ShortcutStartMenu'].forEach(Id => { ById(Id).checked = true; });
     WatchSize();
     BuildCrumbs();
     FitWindow();
@@ -471,13 +536,14 @@ async function Load() {
         ById('FooterVersion').textContent = State.Installed ? V(State.Version) : '';
         ShowChangeButton();
         if (State.Installed) { Go('MenuInstalled', 'Update'); return; }  // Repair/Undo/Uninstall still work
-        if (State.Legacy) { Go('Legacy', 'LegacyInstall'); return; }
+        if (State.Legacy && !State.Legacy.Deferred) { Go('Legacy', 'LegacyInstall'); return; }
+        if (State.Legacy) { Go('MenuFresh', 'Install'); return; }  // put off: the menu, with OLD VERSION
         ShowError(Result.Error, Result.Details, () => { Go('Loading'); Load().catch(ReportError); }, null, "Couldn't load the versions.");
         return;
     }
     if (State.Installed) Go('MenuInstalled', 'Update');
-    else if (State.Legacy) Go('Legacy', 'LegacyInstall');
-    else Go('MenuFresh', 'Install');
+    else if (State.Legacy && !State.Legacy.Deferred) Go('Legacy', 'LegacyInstall');
+    else Go('MenuFresh', 'Install');  // with OLD VERSION when the old one was put off
 }
 
 Boot().catch(Error => { ReportError(Error); ShowError(String(Error), '', null, null); });

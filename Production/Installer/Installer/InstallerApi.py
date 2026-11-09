@@ -11,6 +11,8 @@ Long jobs (install, update, ...) run on one worker thread at a time and report b
 window.InstallerEvents.<Event>(payload): Progress / UninstallProgress (Test1's progress fields),
 Done (the result) and Failed ({Message, Details, Running}).
 """
+import ctypes
+import ctypes.wintypes
 import json
 import os
 import threading
@@ -25,6 +27,7 @@ import Setup
 from Log import Logger
 
 WindowWidth = 560
+SwpNoMove, SwpNoZOrder, SwpNoActivate = 0x2, 0x4, 0x10
 Events = ("Progress", "UninstallProgress", "Done", "Failed")
 LegacyModes = ("", "MoveRemove", "MoveKeep")
 ConfigChoices = ("", "KeepNew", "UseOld")
@@ -47,12 +50,58 @@ class InstallerApi:
         self._LastHeight = 0  # Installer.py sets the start height
         self._Frame = None
         self._Resized = False
+        self._Dragging = False
+        self._ResizeLock = threading.Lock()  # ResizeInstaller and the let-go reapply run on different threads
         self._LastPath = ""
 
     # ------------------------------------------------------------ wiring (Installer.py)
 
     def _AttachWindow(self, Window):
         self._Window = Window
+        if hasattr(Window, "events"):  # the tests' stand-in window has none
+            Window.events.shown += self._WatchDrags
+
+    def _WatchDrags(self):
+        """Grabbing or dragging the title bar starts Windows' move loop, which keeps the size the window had when it
+        began: a resize sent meanwhile is undone (it only flickers). So while the window is held, ResizeInstaller just
+        records the height, and when the loop ends (ResizeEnd fires for moves too) it is applied once."""
+        try:
+            Native = self._Window.native
+            Native.ResizeBegin += lambda _Sender, _Args: setattr(self, "_Dragging", True)
+            Native.ResizeEnd += self._OnLetGo
+        except Exception as Error:
+            Logger.warning("Can't watch window drags: %s", type(Error).__name__)
+
+    def _OnLetGo(self, _Sender, _Args):
+        self._Dragging = False
+        threading.Thread(target=self._ReapplyHeight, daemon=True).start()
+
+    def _ReapplyHeight(self):
+        with self._ResizeLock:
+            Window, Target = self._Window, self._LastHeight
+            if not Window or not Target:
+                return
+            try:
+                Native = Window.native
+                Scale = self._WindowScale(Native)
+                if abs(Native.Height / Scale - Target) >= 2:
+                    self._SetHeight(Native, round(Target * Scale))
+            except Exception:
+                pass
+
+    @staticmethod
+    def _WindowScale(Native):
+        """The window's real DPI scale. Not Form.DeviceDpi: pywebview's SetProcessDPIAware leaves that at 96."""
+        return max(1.0, ctypes.windll.user32.GetDpiForWindow(ctypes.wintypes.HWND(Native.Handle.ToInt64())) / 96.0)
+
+    @staticmethod
+    def _SetHeight(Native, PhysicalHeight):
+        """Size only (SWP_NOMOVE): pywebview's resize also writes a position read a moment ago, which drags the
+        window back if it is still moving."""
+        Hwnd = ctypes.wintypes.HWND(Native.Handle.ToInt64())
+        Rect = ctypes.wintypes.RECT()
+        ctypes.windll.user32.GetWindowRect(Hwnd, ctypes.byref(Rect))
+        ctypes.windll.user32.SetWindowPos(Hwnd, None, 0, 0, Rect.right - Rect.left, PhysicalHeight, SwpNoMove | SwpNoZOrder | SwpNoActivate)
 
     def _Emit(self, Event, Payload):
         """window.InstallerEvents.<Event>(Payload). Payload is JSON-encoded, never spliced raw."""
@@ -123,7 +172,7 @@ class InstallerApi:
 
     def GetState(self):
         State = Setup.InstalledState()
-        LegacyInfo = None if State["Installed"] else Legacy.Detect()
+        LegacyInfo = Legacy.Detect()  # also when installed: an old version put off with Ignore stays on the menu
         Kept = None if State["Installed"] or LegacyInfo else Setup.FindKeptConfig()
         DefaultPath = State["Path"] or (Kept["Path"] if Kept and Kept["Installable"] else Locations.Current.DefaultInstallPath)
         return {
@@ -132,7 +181,8 @@ class InstallerApi:
             "Branch": State["Branch"],
             "Path": State["Path"],
             "DefaultPath": DefaultPath,
-            "Legacy": {"Path": LegacyInfo["Path"], "Version": LegacyInfo["Version"]} if LegacyInfo else None,
+            "Legacy": {"Path": LegacyInfo["Path"], "Version": LegacyInfo["Version"], "Deferred": LegacyInfo["Deferred"]}
+                      if LegacyInfo else None,
             "KeptConfig": {"Path": Kept["Path"], "Accounts": Kept["Accounts"], "Test1": Kept["Test1"]} if Kept else None,
             "UndoVersion": Setup.UndoVersion(State["Version"]) if State["Installed"] else "",
             "StartScreen": "ConfirmUninstall" if self._StartScreen == "ConfirmUninstall" and State["Installed"] else "",
@@ -228,8 +278,10 @@ class InstallerApi:
         Options = Options if isinstance(Options, dict) else {}
         LegacyMode, ConfigChoice = Options.get("Legacy", ""), Options.get("ConfigChoice", "")
         KeptChoice = Options.get("KeptConfig", "")
+        Shortcuts = Options.get("Shortcuts", list(Setup.ShortcutNames))  # the ticked shortcut boxes
         if (LegacyMode not in LegacyModes or ConfigChoice not in ConfigChoices or KeptChoice not in KeptChoices
-                or not isinstance(InstallPath, str)):
+                or not isinstance(InstallPath, str) or not isinstance(Shortcuts, list)
+                or not all(Name in Setup.ShortcutNames for Name in Shortcuts)):
             return {"Error": "Bad request."}
         LegacyInfo = Legacy.Detect() if LegacyMode else None
         if LegacyMode and not LegacyInfo:
@@ -241,7 +293,8 @@ class InstallerApi:
             Kept = Setup.FindKeptConfig() if KeptChoice and not LegacyMode else None
             return Setup.RunInstall(Release["Version"], InstallPath, self._Progress, Release=Release, Kind="Install",
                                     LegacyMode=LegacyMode, LegacyPath=LegacyInfo["Path"] if LegacyInfo else "",
-                                    ConfigChoice=ConfigChoice or "KeepNew", Kept=Kept, UseKept=KeptChoice == "Use")
+                                    ConfigChoice=ConfigChoice or "KeepNew", Kept=Kept, UseKept=KeptChoice == "Use",
+                                    Shortcuts=Shortcuts)
         return self._StartJob("Install", Job)
 
     def _InstalledOrError(self):
@@ -304,11 +357,39 @@ class InstallerApi:
             return Legacy.RunRemove(LegacyInfo["Path"], self._UninstallProgress)
         return self._StartJob("LegacyRemove", Job)
 
+    def _LegacyAndInstalled(self):
+        State = Setup.InstalledState()
+        LegacyInfo = Legacy.Detect()
+        if not State["Installed"] or not LegacyInfo:
+            raise Setup.SetupError("The old version can't be found any more." if State["Installed"] else "RAMMIT isn't installed.")
+        return LegacyInfo["Path"], State["Path"]
+
+    def CheckLegacyMove(self):
+        """Choices 1/2 with RAMMIT already installed (no reinstall): asks which accounts to keep when both have some."""
+        try:
+            Folder, InstallPath = self._LegacyAndInstalled()
+        except Setup.SetupError as Error:
+            return {"Error": str(Error)}
+        if Setup.FindRunning([Folder, InstallPath]):
+            return {"Error": "RAMMIT is running.", "Running": True}
+        return {"Ok": True, "NeedsConfigChoice": Legacy.AccountsPresent(os.path.join(InstallPath, "Config"))
+                and Legacy.AccountsPresent(Legacy.ConfigDir(Folder))}
+
+    def StartLegacyMove(self, Mode, ConfigChoice=""):
+        if Mode not in ("MoveRemove", "MoveKeep") or ConfigChoice not in ConfigChoices:
+            return {"Error": "Bad request."}
+
+        def Job():
+            Folder, InstallPath = self._LegacyAndInstalled()
+            return Legacy.RunMove(Folder, InstallPath, Mode, ConfigChoice or "KeepNew", self._UninstallProgress)
+        return self._StartJob("LegacyMove", Job)
+
     def IgnoreLegacy(self, DontAskAgain):
         if not isinstance(DontAskAgain, bool):
             return {"Error": "Bad request."}
         try:
-            Legacy.Ignore(DontAskAgain)
+            LegacyInfo = Legacy.Detect()  # the folder comes from the registry, never from the page
+            Legacy.Ignore(DontAskAgain, LegacyInfo["Path"] if LegacyInfo else "")
         except OSError:
             return {"Error": "Couldn't save that choice."}
         return {"Ok": True}
@@ -338,23 +419,26 @@ class InstallerApi:
         Window = self._Window
         if not Window:
             return
-        if self._Frame is None and self._LastHeight and not self._Resized and 0 < Viewport < self._LastHeight:
-            self._Frame = self._LastHeight - Viewport
-        Target = Height + (self._Frame if self._Frame is not None else self._FrameHeight())
-        self._Resized = True
-        if abs(Target - self._LastHeight) < 2:
-            return
-        self._LastHeight = Target
-        try:
-            Window.resize(WindowWidth, Target)
-        except Exception:
-            pass
+        with self._ResizeLock:
+            if self._Frame is None and self._LastHeight and not self._Resized and 0 < Viewport < self._LastHeight:
+                self._Frame = self._LastHeight - Viewport
+            Target = Height + (self._Frame if self._Frame is not None else self._FrameHeight())
+            self._Resized = True
+            if abs(Target - self._LastHeight) < 2:
+                return
+            self._LastHeight = Target
+            if self._Dragging:
+                return  # held: Windows would undo it (flicker); _OnLetGo applies it
+            try:
+                Window.resize(WindowWidth, Target)
+            except Exception:
+                pass
 
     def _FrameHeight(self):
         """Fallback when the page didn't send its viewport height: title bar + borders read from the native form."""
         try:
             Native = self._Window.native
-            Scale = max(1.0, Native.DeviceDpi / 96.0)
+            Scale = self._WindowScale(Native)  # not Native.DeviceDpi, which stays at 96 (see _WindowScale)
             return int(round((Native.Height - Native.ClientSize.Height) / Scale))
         except Exception:
             return 39

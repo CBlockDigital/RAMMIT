@@ -17,6 +17,30 @@ export const Api = new Proxy({}, {
     },
 });
 
+// Fn(...Args) one call at a time. pywebview runs every call to Python on its own thread, so two calls in flight can
+// finish in either order (two resizes would leave the window at the older height). While one runs, only the newest
+// arguments wait and are sent when it has finished; older ones are dropped. Errors are ignored, like a resize's.
+// A call that never answers stops holding the others up after GiveUpMs (App/WindowSize.py applies resizes under one
+// lock, so a late one still lands before the next).
+export function OneAtATime(Fn, GiveUpMs = 3000) {
+    let Running = false;
+    let Waiting = null;
+    const Run = (...Args) => {
+        if (Running) { Waiting = Args; return; }
+        Running = true;
+        const GiveUp = new Promise(Resolve => setTimeout(Resolve, GiveUpMs));
+        Promise.race([Promise.resolve().then(() => Fn(...Args)), GiveUp]).catch(() => {}).finally(() => {
+            Running = false;
+            if (Waiting) {
+                const Next = Waiting;
+                Waiting = null;
+                Run(...Next);
+            }
+        });
+    };
+    return Run;
+}
+
 const Handlers = {};
 window.RammitEvents = {
     AccountsChanged: Payload => Fire('AccountsChanged', Payload),

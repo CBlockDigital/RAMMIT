@@ -51,6 +51,7 @@ class InstallerApi:
         self._Frame = None
         self._Resized = False
         self._Dragging = False
+        self._ResizeLock = threading.Lock()  # ResizeInstaller and the let-go reapply run on different threads
         self._LastPath = ""
 
     # ------------------------------------------------------------ wiring (Installer.py)
@@ -76,16 +77,17 @@ class InstallerApi:
         threading.Thread(target=self._ReapplyHeight, daemon=True).start()
 
     def _ReapplyHeight(self):
-        Window, Target = self._Window, self._LastHeight
-        if not Window or not Target:
-            return
-        try:
-            Native = Window.native
-            Scale = self._WindowScale(Native)
-            if abs(Native.Height / Scale - Target) >= 2:
-                self._SetHeight(Native, round(Target * Scale))
-        except Exception:
-            pass
+        with self._ResizeLock:
+            Window, Target = self._Window, self._LastHeight
+            if not Window or not Target:
+                return
+            try:
+                Native = Window.native
+                Scale = self._WindowScale(Native)
+                if abs(Native.Height / Scale - Target) >= 2:
+                    self._SetHeight(Native, round(Target * Scale))
+            except Exception:
+                pass
 
     @staticmethod
     def _WindowScale(Native):
@@ -417,25 +419,26 @@ class InstallerApi:
         Window = self._Window
         if not Window:
             return
-        if self._Frame is None and self._LastHeight and not self._Resized and 0 < Viewport < self._LastHeight:
-            self._Frame = self._LastHeight - Viewport
-        Target = Height + (self._Frame if self._Frame is not None else self._FrameHeight())
-        self._Resized = True
-        if abs(Target - self._LastHeight) < 2:
-            return
-        self._LastHeight = Target
-        if self._Dragging:
-            return  # held: Windows would undo it (flicker); _OnLetGo applies it
-        try:
-            Window.resize(WindowWidth, Target)
-        except Exception:
-            pass
+        with self._ResizeLock:
+            if self._Frame is None and self._LastHeight and not self._Resized and 0 < Viewport < self._LastHeight:
+                self._Frame = self._LastHeight - Viewport
+            Target = Height + (self._Frame if self._Frame is not None else self._FrameHeight())
+            self._Resized = True
+            if abs(Target - self._LastHeight) < 2:
+                return
+            self._LastHeight = Target
+            if self._Dragging:
+                return  # held: Windows would undo it (flicker); _OnLetGo applies it
+            try:
+                Window.resize(WindowWidth, Target)
+            except Exception:
+                pass
 
     def _FrameHeight(self):
         """Fallback when the page didn't send its viewport height: title bar + borders read from the native form."""
         try:
             Native = self._Window.native
-            Scale = max(1.0, Native.DeviceDpi / 96.0)
+            Scale = self._WindowScale(Native)  # not Native.DeviceDpi, which stays at 96 (see _WindowScale)
             return int(round((Native.Height - Native.ClientSize.Height) / Scale))
         except Exception:
             return 39

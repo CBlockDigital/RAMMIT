@@ -68,6 +68,31 @@ const Pick = async (Id, Value) => {
     await Page.evaluate((Id2, V) => [...document.querySelectorAll(`#${Id2} .CustomSelectOption`)].find(O => O.dataset.value === V).click(), Id, Value);
     await Wait(350);
 };
+// WCAG contrast ratio between FgSel's text colour and BgSel's background colour. A see-through text colour
+// (rgba) is first blended over the background, as the screen shows it.
+const Contrast = (FgSel, BgSel) => Page.evaluate((Fg, Bg) => {
+    const Rgba = Text => { const [R, G, B, A = 1] = Text.match(/[\d.]+/g).map(Number); return [R, G, B, A]; };
+    const Lum = Colour => {
+        const [R, G, B] = Colour.map(V => { V /= 255; return V <= 0.03928 ? V / 12.92 : ((V + 0.055) / 1.055) ** 2.4; });
+        return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+    };
+    const Back = Rgba(getComputedStyle(document.querySelector(Bg)).backgroundColor).slice(0, 3);
+    const [R, G, B, Alpha] = Rgba(getComputedStyle(document.querySelector(Fg)).color);
+    const Front = [R, G, B].map((V, I) => V * Alpha + Back[I] * (1 - Alpha));
+    const A = Lum(Front), C = Lum(Back);
+    return (Math.max(A, C) + 0.05) / (Math.min(A, C) + 0.05);
+}, FgSel, BgSel);
+// An expired login's row and its @username are readable, unselected and selected, in the theme that is showing.
+const ExpiredRowContrast = async () => {
+    const Row = '#AccountList .ListItem:nth-child(1)';
+    await WaitFor(async () => !!(await Page.$(Row + '.Expired')));
+    const Plain = Math.min(await Contrast(Row, Row), await Contrast(Row + ' .AcctUser', Row));
+    await RowClick(0);
+    const Picked = Math.min(await Contrast(Row, Row), await Contrast(Row + ' .AcctUser', Row));
+    await RowClick(0);  // clicking the only selected row again clears it
+    return [Plain, Picked];
+};
+const TipText = () => Page.$eval('.Tooltip', E => E.classList.contains('Visible') ? E.textContent : '').catch(() => '');
 const SetValue = async (Target, Sel, Value) => { await Target.$eval(Sel, E => { E.value = ''; E.focus(); }); await Target.type(Sel, Value); };
 const Shot = async Name => { if (ShotDir) await Page.screenshot({ path: path.join(ShotDir, Name + '.png') }); };
 const WaitLaunchDone = async () => { for (let I = 0; I < 60; I++) { const T = await Text('#LaunchStatus'); if (T && T.startsWith('Launched')) return T; await Wait(150); } return Text('#LaunchStatus'); };
@@ -190,6 +215,15 @@ try {
     St = await Hook('State');
     Check('launch via saved config', Done4 === 'Launched 1/1' && St.Launches.at(-1).includes('placeId=2753915549') && St.Launches.at(-1).includes('gameId=11111111'), Done4 + ' ' + St.Launches.at(-1));
 
+    // The real ClientTracker decides the marks: "•••" until the client's game window shows, then "✓".
+    await Hook('Windows', [false]);
+    await Page.click('#LaunchBtn');
+    Check('row shows ••• while Roblox starts', await WaitFor(async () => (await Text('#AccountList .ListItem:nth-child(4) .AcctStatus.Launching')) === '•••'));
+    Check('status waits for the game window', (await Text('#LaunchStatus') || '').startsWith('Launching'), await Text('#LaunchStatus'));
+    await Hook('Windows', [true]);
+    const Done5 = await WaitLaunchDone();
+    Check('row shows ✓ once the window is open', Done5 === 'Launched 1/1' && (await Text('#AccountList .ListItem:nth-child(4) .AcctStatus.Ok')) === '✓', Done5);
+
     const Wiz = await Browser.newPage();
     await Wiz.setViewport({ width: 400, height: 640 });
     await Wiz.evaluateOnNewDocument(Shim);
@@ -227,6 +261,40 @@ try {
     await RowClick(4);
     await Page.click('#RemoveAccountBtn');
     Check('remove account (after confirm)', await WaitFor(async () => await Count('#AccountList .ListItem') === 4));
+
+    // ------------------------------------------------------------ expired logins, RENEW, tooltips
+    await Hook('Expire', []);  // a first check saves each account's Roblox user id
+    await Hook('Expire', ['ObbyQueen']);
+    Check('expired login turns its row red', await WaitFor(async () => await Count('#AccountList .ListItem.Expired') === 1
+        && !!(await Page.$('#AccountList .ListItem:nth-child(3).Expired'))));
+    Check('expired row text readable', await Contrast('#AccountList .ListItem:nth-child(3)', '#AccountList .ListItem:nth-child(3)') >= 4.5);
+    await RowClick(2);
+    Check('one expired account selected: RENEW / RENEW AND LAUNCH', (await Text('#AddAccountBtn')) === 'RENEW' && (await Text('#LaunchBtn')) === 'RENEW AND LAUNCH');
+    const Sel = '#AccountList .ListItem:nth-child(3)';
+    Check('selected expired row text readable', await Contrast(Sel, Sel) >= 4.5 && await Contrast(Sel + ' .AcctUser', Sel) >= 4.5,
+        String(await Contrast(Sel, Sel)));
+    Check('selected expired row is marked', await Page.$eval(Sel, E => getComputedStyle(E).boxShadow) !== 'none');
+    await Page.hover('#AddAccountBtn'); await Wait(200);
+    Check('themed tooltip shows the button\'s current text', (await TipText()) === 'Sign in again as @ObbyQueen (its saved login expired)', await TipText());
+    Check('native title taken over, kept as the description for screen readers', !(await Page.$eval('#AddAccountBtn', E => E.hasAttribute('title')))
+        && (await Page.$eval('#AddAccountBtn', E => E.getAttribute('aria-description'))) === 'Sign in again as @ObbyQueen (its saved login expired)');
+    await Page.$eval('#AddAccountBtn', E => { E.dataset.tooltip = 'Changed meanwhile'; }); await Wait(150);
+    Check('tooltip follows a changed text while shown', (await TipText()) === 'Changed meanwhile', await TipText());
+    await Page.hover('#ReloadThemesBtn'); await Wait(200);
+    Check('icon-only button keeps its name for screen readers', (await Page.$eval('#ReloadThemesBtn', E => E.getAttribute('aria-label'))) === 'Reload this theme (after editing its files)');
+    await Page.mouse.move(5, 5); await Wait(200);
+    Check('tooltip hides', (await TipText()) === '');
+    // Renewed as the same Roblox user under a new name: it stays selected and RENEW AND LAUNCH goes on to launch it.
+    await Hook('SameUser', ['ObbyQueen2', 'ObbyQueen']);
+    await Hook('NextLogin', ['ObbyQueen2']);
+    const LaunchesBefore = (await Hook('State')).Launches.length;
+    await Page.$eval('#LaunchStatus', E => { E.textContent = ''; });  // so an older "Launched" line can't count
+    await Page.click('#LaunchBtn');
+    const Done6 = await WaitLaunchDone();
+    St = await Hook('State');
+    Check('RENEW AND LAUNCH after a rename launches the renamed account', Done6 === 'Launched 1/1' && St.Launches.length === LaunchesBefore + 1, Done6);
+    Check('renamed account stays selected, no longer red', (await Text(Sel + ' .AcctUser')) === '(@ObbyQueen2)'
+        && !!(await Page.$(Sel + '.Selected')) && await Count('#AccountList .ListItem.Expired') === 0);
     Check('add while login window open is refused', !!(await CallApi('AddAccount')).Ok && !!(await CallApi('AddAccount')).Error);
 
     // ------------------------------------------------------------ themes
@@ -236,6 +304,13 @@ try {
     Check('Light theme loads', (await Bg()) === 'rgb(228, 228, 228)' && (await Text('#ThemeSelect .CustomSelectText')) === '2016 Roblox', await Bg());
     Check('Light uses its own stylesheet', await Page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--Accent').trim()) === '#00a2ff');
     await Shot('03-Light');
+    await Hook('Expire', ['NovaBuilds']);
+    const LightExpired = await ExpiredRowContrast();
+    Check('Light: expired row and @username readable', Math.min(...LightExpired) >= 4.5, LightExpired.join(' / '));
+    await Promise.all([Page.waitForNavigation({ waitUntil: 'load' }), Pick('ThemeSelect', 'CBlock')]); await Wait(900);
+    const CBlockExpired = await ExpiredRowContrast();
+    Check('CBlock: expired row and @username readable (dark text on its light red)', Math.min(...CBlockExpired) >= 4.5, CBlockExpired.join(' / '));
+    await Hook('Expire', []);
     await Promise.all([Page.waitForNavigation({ waitUntil: 'load' }), Pick('ThemeSelect', 'MyCustomTheme')]); await Wait(900);
     Check('MyCustomTheme loads', (await Bg()) === 'rgb(13, 15, 26)', await Bg());
     await Shot('04-MyCustomTheme');

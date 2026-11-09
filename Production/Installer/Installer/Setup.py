@@ -171,7 +171,7 @@ def _FolderSize(Folder):
 # A shortcut that names a path breaks when the RAMMIT folder is moved. These open the RAMMIT: protocol instead
 # (HKCU\Software\Classes\RAMMIT, pointing at RAMMIT.exe), which RAMMIT points back at itself when it starts from a
 # moved folder (App/Install.py), so every shortcut keeps working wherever it is, copies the user made included.
-# Their icon is a copy in RAMMIT-Setup\, which never moves. Installers before 1.1.2 made RAMMIT.lnk files straight
+# Their icon is a copy in RAMMIT-Setup\, which never moves. Installers before 1.2.0 made RAMMIT.lnk files straight
 # at RAMMIT.exe (and Test1 made PowerShell ones, see Legacy.py); ours are replaced by .url ones on the next install.
 
 ShortcutNames = ("Desktop", "StartMenu")  # the two the installer offers (tick boxes on the Version screen)
@@ -192,7 +192,7 @@ def ShortcutPaths():
 
 
 def LinkPaths():
-    """Where the RAMMIT.lnk shortcuts of Test1 and of installers before 1.1.2 are."""
+    """Where the RAMMIT.lnk shortcuts of Test1 and of installers before 1.2.0 are."""
     return [os.path.join(_ShortcutDir(Name), "RAMMIT.lnk") for Name in ShortcutNames]
 
 
@@ -286,7 +286,12 @@ def CreateShortcuts(InstallPath, Names=ShortcutNames):
     """RAMMIT.url for each ticked name (register the protocol first). Our old RAMMIT.lnk files go."""
     _RemoveOldLinks(InstallPath)
     Icon = _ShortcutIcon(InstallPath)
-    Text = f"[InternetShortcut]\nURL={Locations.Current.ProtocolName}:\nIconFile={Icon}\nIconIndex=0\n"
+    Text = f"[InternetShortcut]\nURL={Locations.Current.ProtocolName}:\n"
+    try:
+        Icon.encode("mbcs")  # .url files are read in the ANSI code page
+        Text += f"IconFile={Icon}\nIconIndex=0\n"
+    except UnicodeEncodeError:  # e.g. a user name outside it: a broken icon path would be worse than the default icon
+        Logger.warning("Shortcut icon path can't be written in the ANSI code page; using the default icon")
     for Path in [ShortcutPath(Name) for Name in ShortcutNames if Name in Names]:
         os.makedirs(os.path.dirname(Path), exist_ok=True)
         with open(Path, "w", encoding="mbcs", errors="replace") as File:
@@ -294,7 +299,7 @@ def CreateShortcuts(InstallPath, Names=ShortcutNames):
 
 
 def _RemoveOldLinks(InstallPath):
-    """Removes RAMMIT.lnk only where it points at this install's RAMMIT.exe (made by installers before 1.1.2)."""
+    """Removes RAMMIT.lnk only where it points at this install's RAMMIT.exe (made by installers before 1.2.0)."""
     Exe = os.path.join(InstallPath, "RAMMIT.exe")
     for LinkPath in LinkPaths():
         if os.path.isfile(LinkPath):
@@ -589,9 +594,14 @@ def BackupConfig(InstallPath, Label, Source=None, Keep=BackupKeep):
     while os.path.exists(Target):
         Extra += 1
         Target = os.path.join(Root, f"{Base}-{Extra}")
-    shutil.copytree(Source, Target)
+    shutil.copytree(Source, Target, ignore=_Links)
     PruneBackups(Root, Keep)
     return Target
+
+
+def _Links(Folder, Names):
+    """copytree's ignore: links and junctions are left out, so a backup never copies what one points at."""
+    return {Name for Name in Names if os.path.islink(os.path.join(Folder, Name)) or os.path.isjunction(os.path.join(Folder, Name))}
 
 
 def PruneBackups(Root, Keep=BackupKeep):
@@ -982,7 +992,8 @@ def RunInstall(Version, InstallPath, Report, Release=None, CachedSlot="", Kind="
         Report(StageDetail="Writing registry", StagePct=25, OverallPct=93)
         RegWrite("InstallPath", InstallPath)
         RegWrite("Version", Version)
-        RegWrite(ShortcutsValue, ",".join(Shortcuts))
+        RegWrite(ShortcutsValue, ",".join(Shortcuts))  # the user's choice, kept even if making them fails below:
+        # the next update / repair then tries again
         try:
             CopySetupExe()
             WriteUninstallEntry(InstallPath, Version)

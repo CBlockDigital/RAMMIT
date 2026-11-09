@@ -1,9 +1,11 @@
 /* RAMMIT installer styles.
  *
- * Everything from "BASE" down to "SCREEN SLIDE TRANSITIONS" is Test1's installer CSS, copied unchanged:
- * the :root colours and reset from the top of Test1's Src/CSS/Style.css, its CUSTOM SELECT section (used by the
- * version picker) and its whole INSTALLER section. The installer always uses this fixed Dark look, because it
- * runs before any theme has been picked.
+ * Everything from "BASE" down to "SCREEN SLIDE TRANSITIONS" is Test1's installer CSS: the :root colours and
+ * reset from the top of Test1's Src/CSS/Style.css, its CUSTOM SELECT section (used by the version picker) and its
+ * whole INSTALLER section. The installer always uses this fixed Dark look, because it runs before any theme has
+ * been picked. It is copied unchanged except for these, which sit next to the rules they belong with:
+ *   - --Legacy and .BtnInst.Legacy (the OLD VERSION button), and .InstCheckboxPair (the two shortcut tick boxes);
+ *   - .InstCheckboxRow .CheckboxBox i: the check mark is hidden while unticked (#2).
  *
  * New rules for the screens the new installer adds are at the end, under "ADDITIONS"; they reuse the same
  * variables and sizes so those screens look native.
@@ -703,7 +705,6 @@ body {
 
 .InstCheckboxRow .CheckboxBox i {
     font-size: 11px;
-    color: var(--Accent);
     /* hidden, not display: none, so the box keeps its size while unticked (#2) */
     visibility: hidden;
 }

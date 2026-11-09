@@ -7,7 +7,7 @@
 //     drop-down closed + ExtraPadding, plus only the part of an open drop-down that would be cut off.
 // The CSS keeps the same box model as Test1's wizard, so its heights apply 1:1.
 
-import { Api, WaitForApi, ReportError } from './Bridge.js';
+import { Api, WaitForApi, ReportError, OneAtATime } from './Bridge.js';
 import { ById } from './Dom.js';
 import { InitSelect, SetSelectValue, GetSelectValue } from './Select.js';
 import { CreateLaunchForm, FilterMethods } from './LaunchForm.js';
@@ -15,6 +15,7 @@ import { InitTooltips } from './Tooltip.js';
 
 let SizeMap = { Home: 287, ExtraPadding: 20 };
 let InitDone = false;
+const ResizeWizard = OneAtATime(Height => Api.ResizeWizard(Height));
 
 function FitToContent() {
     setTimeout(() => {
@@ -29,7 +30,7 @@ function FitToContent() {
             const Clipped = OpenSelect.querySelector('.CustomSelectOptions').getBoundingClientRect().bottom - window.innerHeight;
             if (Clipped > 0) Needed += Clipped + 5;
         }
-        Api.ResizeWizard(Needed).catch(() => {});
+        ResizeWizard(Needed);
     }, 10);
 }
 
@@ -43,7 +44,7 @@ const Form = CreateLaunchForm(ById('DynamicFields'), {
 
 InitSelect(ById('MethodSelect'), Method => {
     Form.Render(Method, {});
-    if (InitDone) Api.ResizeWizard(SizeMap[Method] || SizeMap.Home).catch(() => {});
+    if (InitDone) ResizeWizard(SizeMap[Method] || SizeMap.Home);
 });
 // Opening/closing any drop-down, and clicks elsewhere, re-measure. Picking a method does not
 // (it snaps to the map above), so clicks inside the method list are skipped.

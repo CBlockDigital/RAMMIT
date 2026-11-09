@@ -20,6 +20,7 @@
     --SuccessHover: #029a49;
     --Danger: #e2231a;              /* - REMOVE, errors, cancel */
     --DangerHover: #c41d15;
+    --OnExpired: #ffffff;           /* text on an expired login's red row */
     --Warning: #f5a623;             /* "launching" marks, warnings */
     --Border: #d5d5d5;
     --BorderLight: #c2c2c2;
@@ -174,9 +175,12 @@ body {
     color: var(--OnAccent);
 }
 
-/* A saved login Roblox rejected (expired): red row until it's renewed. */
+/* A saved login Roblox rejected (expired): red row until it's renewed. Its text is --OnExpired (white, or a dark
+   colour where --Danger is light). Selected, it stays red and gets a ring in that colour: the accent can be as dark
+   as the red. Themes from before --OnExpired get white. */
 .ListItem.Expired {
     background: var(--Danger);
+    color: var(--OnExpired, #ffffff);
 }
 
 .ListItem.Expired:hover {
@@ -185,8 +189,9 @@ body {
 
 .ListItem.Expired.Selected {
     background: var(--Danger);
+    color: var(--OnExpired, #ffffff);
     font-weight: 700;
-    color: var(--Accent);
+    box-shadow: inset 0 0 0 2px var(--OnExpired, #ffffff);
 }
 
 .ListButtons {
@@ -706,6 +711,16 @@ body {
 .ListItem.Selected .AcctStatus.Ok,
 .ListItem.Selected .AcctStatus.Error {
     color: var(--OnAccent);
+}
+
+/* On an expired login's red row (selected or not), the @username and the status mark use the row's text colour:
+   a red error mark on the red row would vanish. */
+.ListItem.Expired .AcctUser,
+.ListItem.Expired .AcctStatus.Queued,
+.ListItem.Expired .AcctStatus.Launching,
+.ListItem.Expired .AcctStatus.Ok,
+.ListItem.Expired .AcctStatus.Error {
+    color: var(--OnExpired, #ffffff);
 }
 
 .BtnSelect {
@@ -1269,7 +1284,7 @@ body.WizardBody {
 
 /* Tooltips (JS/Tooltip.js): follow the cursor, flip to its other side at the window's edges. Outside .Container, so
    not zoomed. Square unless the theme sets --TooltipRadius. Width is the text's own (max-content), so measuring it
-   does not depend on where it currently sits; long text wraps, and "\n" starts a new line. */
+   does not depend on where it currently sits; long text wraps, and a line break in the text starts a new line. */
 .Tooltip {
     position: fixed;
     left: 0;

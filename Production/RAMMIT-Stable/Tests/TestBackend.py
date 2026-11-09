@@ -54,7 +54,8 @@ class TestInstallSync(unittest.TestCase):
         self.Old, self.New = os.path.join(self.Root, "Old"), os.path.join(self.Root, "New")
         for Folder in (self.Old, self.New):
             os.makedirs(Folder)
-            open(os.path.join(Folder, "RAMMIT.exe"), "w").close()
+            for Name in ("RAMMIT.exe", "Manifest.json"):  # what an installer-made folder has
+                open(os.path.join(Folder, Name), "w").close()
 
     def tearDown(self):
         import winreg
@@ -95,6 +96,24 @@ class TestInstallSync(unittest.TestCase):
         self.assertEqual(self.Sync(self.New), "")  # already right
         Install._Write(ProtocolKey + r"\shell\open\command", "", '"C:\\Elsewhere\\RAMMIT.exe"')
         self.assertEqual(self.Sync(self.New), "Fixed")
+        self.assertNotIn("%", Install._Read(ProtocolKey + r"\shell\open\command"))  # nothing from the link is passed on
+
+    def test_OnlyAnInstallerMadeFolderTakesOver(self):
+        from App import Install
+        RegKey, ProtocolKey, _UninstallKey = self.Keys
+        Install._Write(RegKey, "InstallPath", self.Old)
+        os.remove(os.path.join(self.Old, "RAMMIT.exe"))  # the installed RAMMIT is gone
+        os.remove(os.path.join(self.New, "Manifest.json"))  # e.g. a copy unzipped from a release
+        self.assertEqual(self.Sync(self.New), "")
+        self.assertEqual(Install._Read(RegKey, "InstallPath"), self.Old)
+        self.assertIsNone(Install._Read(ProtocolKey + r"\shell\open\command"))
+        open(os.path.join(self.New, "Manifest.json"), "w").close()
+        with mock.patch.object(Install, "_OnRemovableDrive", return_value=True):
+            self.assertEqual(self.Sync(self.New), "")  # a USB stick: it would break again once the stick is gone
+        with mock.patch.dict(os.environ, {"RAMMIT_INSTALLER_TEST": "1"}):
+            self.assertEqual(self.Sync(self.New), "")  # started by the installer's test mode
+        self.assertEqual(Install._Read(RegKey, "InstallPath"), self.Old)
+        self.assertEqual(self.Sync(self.New), "Moved")
 
 
 class TestVersion(unittest.TestCase):
@@ -221,6 +240,47 @@ class TestRoblox(unittest.TestCase):
         for Args in [("T+x", None, None, None), ("T", "1+x", None, None), ("T", "1", "nope", None), ("T", "1", None, "a+b"), ("", None, None, None)]:
             with self.assertRaises(ValueError, msg=Args):
                 Roblox.BuildLaunchUrl(*Args)
+
+    @staticmethod
+    def Reply(Status, Body=None, Headers=None):
+        Response = mock.Mock(status_code=Status, headers=Headers or {})
+        Response.json.side_effect = (lambda: Body) if not isinstance(Body, Exception) else Body
+        return Response
+
+    def test_CheckLoginOnlyA401MeansExpired(self):
+        # Being offline, rate limited or answered oddly must never turn an account red.
+        Get = "App.Roblox.requests.get"
+        Valid = {"id": 7, "name": "Bob", "displayName": "Bobby"}
+        with mock.patch(Get, return_value=self.Reply(200, Valid)):
+            self.assertEqual(Roblox.CheckLogin("fake"), ("Valid", (7, "Bob", "Bobby")))
+        with mock.patch(Get, return_value=self.Reply(401)):
+            self.assertEqual(Roblox.CheckLogin("fake"), ("Expired", None))
+        for Status in (403, 429, 500, 503):
+            with mock.patch(Get, return_value=self.Reply(Status)):
+                self.assertEqual(Roblox.CheckLogin("fake"), ("Unknown", None), Status)
+        for Body in ({"id": "7", "name": "Bob"}, {"name": "Bob"}, [], ValueError("not JSON")):
+            with mock.patch(Get, return_value=self.Reply(200, Body)):
+                self.assertEqual(Roblox.CheckLogin("fake"), ("Unknown", None), Body)
+        with mock.patch(Get, side_effect=Roblox.requests.ConnectionError):
+            self.assertEqual(Roblox.CheckLogin("fake"), ("Unknown", None))
+
+    def test_GetAuthTicketOnlyA401MeansExpired(self):
+        Post = "App.Roblox.requests.post"
+        Csrf = self.Reply(403, Headers={"x-csrf-token": "csrf"})
+        with mock.patch(Post, side_effect=[Csrf, self.Reply(200, Headers={"rbx-authentication-ticket": "T"})]):
+            self.assertEqual(Roblox.GetAuthTicket("fake"), "T")
+        with mock.patch(Post, return_value=self.Reply(401)):
+            self.assertIs(Roblox.GetAuthTicket("fake"), Roblox.LoginExpired)  # rejected at the CSRF step
+        with mock.patch(Post, side_effect=[Csrf, self.Reply(401)]):
+            self.assertIs(Roblox.GetAuthTicket("fake"), Roblox.LoginExpired)  # rejected at the ticket step
+        with mock.patch(Post, return_value=self.Reply(403)):
+            self.assertIsNone(Roblox.GetAuthTicket("fake"))  # no CSRF token: not "expired"
+        with mock.patch(Post, side_effect=[Csrf, self.Reply(500)]):
+            self.assertIsNone(Roblox.GetAuthTicket("fake"))
+        with mock.patch(Post, side_effect=Roblox.requests.ConnectionError):
+            self.assertIsNone(Roblox.GetAuthTicket("fake"))
+        with mock.patch(Post, side_effect=[Csrf] + [self.Reply(429)] * 4), mock.patch("App.Roblox.time.sleep"):
+            self.assertIsNone(Roblox.GetAuthTicket("fake"))  # still rate limited after the retries
 
     Servers = [{"id": "f" * 8 + JobA[8:], "playing": 10, "maxPlayers": 10, "ping": 5},
                {"id": "a" * 8 + JobA[8:], "playing": 1, "maxPlayers": 10, "ping": 200},
@@ -466,16 +526,23 @@ class TestApi(unittest.TestCase):
         self.assertEqual(Args[0], "C:\\R.exe")
         self.assertIn("placeId=123", Args[1])
         self.assertEqual(self.Api._Clients._Owners[4242]["User"], "B")  # the started process belongs to the account
-        self.assertEqual(self.Api._Clients._Expected, [])
+        Entries = self.Api._Clients._Expected  # the ticket stays until the game window shows (ticket fallback)
+        self.assertEqual([(E["User"], E["Pid"]) for E in Entries], [("B", 4242)])
+
+    def test_LaunchThatCantStartIsForgotten(self):
+        with mock.patch.object(ApiModule.MultiInstance, "CountRunning", return_value=0), \
+                mock.patch.object(ApiModule.MultiInstance, "LockCookieFile"), \
+                mock.patch.object(ApiModule.MultiInstance, "HoldMutex", return_value=True), \
+                mock.patch.object(ApiModule.Roblox, "FindLauncherPath", return_value="C:\\R.exe"), \
+                mock.patch.object(ApiModule.Roblox, "GetAuthTicket", return_value="TICKET"), \
+                mock.patch.object(ApiModule.subprocess, "Popen", side_effect=FileNotFoundError):
+            self.assertEqual(self.Api._LaunchOne("A", "Home", {}), {"Error": "Could not start Roblox."})
+        self.assertEqual(self.Api._Clients._Expected, [])  # it doesn't count as "starting" for 2 minutes
 
     def test_ClientTrackerFollowsLaunchesToTheirGameWindows(self):
         # As seen on a real PC: the process RAMMIT starts can hand the game to a "--launch-to-tray" child that opens the
         # window; a game that closes leaves a tray child too, which must not take the account over.
         from App import MultiInstance
-        Tracker = MultiInstance.ClientTracker()
-        Tracker.Expect("TICKETA", "A")
-        Tracker.Started("TICKETA", 20)  # A: RAMMIT started pid 20
-        Tracker.Expect("TICKETB", "B")  # B: its process is only found by its ticket (pid 30)
         Lines = {20: "RobloxPlayerBeta.exe roblox-player:1+launchmode:play+gameinfo:TICKETA+launchtime:1",
                  21: "RobloxPlayerBeta.exe --launch-to-tray", 22: "RobloxPlayerBeta.exe --launch-to-tray",
                  30: "RobloxPlayerBeta.exe roblox-player:1+launchmode:play+gameinfo:TICKETB+launchtime:2"}
@@ -489,8 +556,15 @@ class TestApi(unittest.TestCase):
                     mock.patch.object(MultiInstance, "_GameWindowPids", return_value=set(Windows)), \
                     mock.patch.object(MultiInstance, "_CommandLine", side_effect=lambda Pid: Lines[Pid]), \
                     mock.patch.object(MultiInstance, "_ParentPid", side_effect=lambda Pid: Parents[Pid]), \
+                    mock.patch.object(MultiInstance, "_CreateTime", side_effect=lambda Pid: 1000.0 + Pid), \
                     mock.patch.object(MultiInstance, "_Alive", side_effect=lambda Pid: Pid in Players):
                 return Tracker.Scan(IncludeStarting), Tracker.Accounts()
+
+        with mock.patch.object(MultiInstance, "_CreateTime", side_effect=lambda Pid: 1000.0 + Pid):
+            Tracker = MultiInstance.ClientTracker()
+            Tracker.Expect("TICKETA", "A")
+            Tracker.Started("TICKETA", 20)  # A: RAMMIT started pid 20
+            Tracker.Expect("TICKETB", "B")  # B: its process is only found by its ticket (pid 30)
 
         self.assertEqual(Scan([20], []), (2, {"A": "starting", "B": "starting"}))  # no windows yet: count for the limit
         self.assertEqual(Scan([20], [], IncludeStarting=False)[0], 0)  # but not on the counter label
@@ -498,6 +572,129 @@ class TestApi(unittest.TestCase):
         self.assertEqual(Scan([21, 30], [21, 30]), (2, {"A": "running", "B": "running"}))  # B found by its ticket
         self.assertEqual(Scan([22, 30], [30]), (1, {"B": "running"}))  # A closed; its tray child 22 isn't A
         self.assertEqual(Scan([22], []), (0, {}))
+
+    def TrackerScanner(self, Tracker, Lines, Parents, Created):
+        """Scan(Running, Windows) with the OS probes faked. Created: pid -> process start time."""
+        from App import MultiInstance
+        Players = set()
+
+        def Scan(Running, Windows, IncludeStarting=True):
+            Players.clear()
+            Players.update(Running)
+            with mock.patch.object(MultiInstance, "_PlayerPids", return_value=set(Running)), \
+                    mock.patch.object(MultiInstance, "_GameWindowPids", return_value=set(Windows)), \
+                    mock.patch.object(MultiInstance, "_CommandLine", side_effect=lambda Pid: Lines.get(Pid, "")), \
+                    mock.patch.object(MultiInstance, "_ParentPid", side_effect=lambda Pid: Parents.get(Pid, 1)), \
+                    mock.patch.object(MultiInstance, "_CreateTime", side_effect=lambda Pid: Created.get(Pid)), \
+                    mock.patch.object(MultiInstance, "_Alive", side_effect=lambda Pid: Pid in Players):
+                return Tracker.Scan(IncludeStarting), Tracker.Accounts()
+        return Scan
+
+    def test_ClientTrackerFindsALaterProcessByItsTicket(self):
+        # Roblox's updater can start the real client with the original link: not a child of the process RAMMIT started.
+        from App import MultiInstance
+        Created = {20: 1.0, 40: 2.0}
+        with mock.patch.object(MultiInstance, "_CreateTime", side_effect=lambda Pid: Created.get(Pid)):
+            Tracker = MultiInstance.ClientTracker()
+            Tracker.Expect("TICKETA", "A")
+            Tracker.Started("TICKETA", 20)
+        Scan = self.TrackerScanner(Tracker, {40: "RobloxPlayerBeta.exe roblox-player:1+gameinfo:TICKETA+x"}, {40: 99}, Created)
+        self.assertEqual(Scan([20], []), (1, {"A": "starting"}))
+        self.assertEqual(Scan([40], []), (1, {"A": "starting"}))  # 20 exited; 40 carries A's ticket: still one launch
+        self.assertEqual(Scan([40], [40]), (1, {"A": "running"}))
+        self.assertEqual(Tracker._Expected, [])  # window shown: the ticket is dropped
+
+    def test_ClientTrackerIgnoresAReusedPid(self):
+        from App import MultiInstance
+        Created = {20: 1.0}
+        with mock.patch.object(MultiInstance, "_CreateTime", side_effect=lambda Pid: Created.get(Pid)):
+            Tracker = MultiInstance.ClientTracker()
+            Tracker.Expect("TICKETA", "A")
+            Tracker.Started("TICKETA", 20)
+        Scan = self.TrackerScanner(Tracker, {}, {}, Created)
+        self.assertEqual(Scan([20], [20]), (1, {"A": "running"}))
+        Created[20] = 5.0  # A's client closed and Windows gave pid 20 to an unrelated Roblox process
+        self.assertEqual(Scan([20], [20]), (1, {}))  # counted as a client, but not as A's
+
+    def test_ClientTrackerCountsEachLaunchOnce(self):
+        # Relaunching an account that already has a game open counts towards the limit, and a launch that hands over to
+        # a child is still one launch.
+        from App import MultiInstance
+        Created = {20: 1.0, 21: 2.0, 50: 3.0}
+        with mock.patch.object(MultiInstance, "_CreateTime", side_effect=lambda Pid: Created.get(Pid)):
+            Tracker = MultiInstance.ClientTracker()
+            Tracker.Expect("T1", "A")
+            Tracker.Started("T1", 20)
+        Scan = self.TrackerScanner(Tracker, {}, {21: 20}, Created)
+        self.assertEqual(Scan([20], [20]), (1, {"A": "running"}))
+        with mock.patch.object(MultiInstance, "_CreateTime", side_effect=lambda Pid: Created.get(Pid)):
+            Tracker.Expect("T2", "A")
+            Tracker.Started("T2", 50)
+        self.assertEqual(Scan([20, 50], [20]), (2, {"A": "starting"}))  # A's second launch counts, and isn't open yet
+        Parents = {21: 20}
+        Scan = self.TrackerScanner(Tracker, {}, Parents, Created)
+        self.assertEqual(Scan([20, 21, 50], [20])[0], 2)  # 21 is a child of 20, whose launch is open: takes nothing
+        self.assertEqual(Scan([20, 21, 50], [20, 50]), (2, {"A": "running"}))
+
+    def test_ClientTrackerCountsTwoStartingLaunchesOfOneAccount(self):
+        # e.g. a second batch started before the first one's window showed: two clients are on their way
+        from App import MultiInstance
+        Created = {20: 1.0, 50: 2.0}
+        with mock.patch.object(MultiInstance, "_CreateTime", side_effect=lambda Pid: Created.get(Pid)):
+            Tracker = MultiInstance.ClientTracker()
+            for Ticket, Pid in (("T1", 20), ("T2", 50)):
+                Tracker.Expect(Ticket, "A")
+                Tracker.Started(Ticket, Pid)
+        Scan = self.TrackerScanner(Tracker, {}, {}, Created)
+        self.assertEqual(Scan([20, 50], []), (2, {"A": "starting"}))
+
+    def test_ClientTrackerAdoptsAGonePidReusedByAHandoffChild(self):
+        # Alice's client (pid 100) closed; Bob's launch hands its game to a child that Windows gives pid 100.
+        from App import MultiInstance
+        Created = {100: 1.0, 200: 2.0}
+        with mock.patch.object(MultiInstance, "_CreateTime", side_effect=lambda Pid: Created.get(Pid)):
+            Tracker = MultiInstance.ClientTracker()
+            Tracker.Expect("TA", "Alice")
+            Tracker.Started("TA", 100)
+        Parents = {100: 1}
+        Scan = self.TrackerScanner(Tracker, {}, Parents, Created)
+        self.assertEqual(Scan([100], [100]), (1, {"Alice": "running"}))
+        self.assertEqual(Scan([], []), (0, {}))  # Alice closed: pid 100 is remembered as Gone for a while
+        with mock.patch.object(MultiInstance, "_CreateTime", side_effect=lambda Pid: Created.get(Pid)):
+            Tracker.Expect("TB", "Bob")
+            Tracker.Started("TB", 200)
+        Created[100], Parents[100] = 3.0, 200  # Bob's child reuses pid 100, and 200 exits
+        self.assertEqual(Scan([100], []), (1, {"Bob": "starting"}))  # adopted at once, not after the Gone wait
+        self.assertEqual(Scan([100], [100]), (1, {"Bob": "running"}))
+
+    def test_ClientTrackerDropsALauncherPidReusedByAnotherProgram(self):
+        # A Bloxstrap launcher (not a RobloxPlayerBeta) died before any window; Windows gave its pid to notepad.
+        from App import MultiInstance
+        Created = {300: 1.0}
+        with mock.patch.object(MultiInstance, "_CreateTime", side_effect=lambda Pid: Created.get(Pid)):
+            Tracker = MultiInstance.ClientTracker()
+            Tracker.Expect("TC", "Carol")
+            Tracker.Started("TC", 300)
+        Created[300] = 9.0  # notepad.exe now has pid 300: alive, but not a RobloxPlayerBeta
+        with mock.patch.object(MultiInstance, "_PlayerPids", return_value=set()), \
+                mock.patch.object(MultiInstance, "_GameWindowPids", return_value=set()), \
+                mock.patch.object(MultiInstance, "_CreateTime", side_effect=lambda Pid: Created.get(Pid)), \
+                mock.patch.object(MultiInstance, "_Alive", return_value=True):
+            self.assertEqual(Tracker.Scan(), 0)  # no longer a launch "starting" for 10 minutes
+        self.assertEqual(Tracker.Accounts(), {})
+        self.assertNotIn(300, Tracker._Owners)
+
+    def test_ClientTrackerRenameAndForget(self):
+        from App import MultiInstance
+        with mock.patch.object(MultiInstance, "_CreateTime", return_value=1.0):
+            Tracker = MultiInstance.ClientTracker()
+            Tracker.Expect("T1", "A")
+            Tracker.Started("T1", 20)
+            Tracker.Expect("T2", "B")
+        Tracker.Forget("T2")
+        Tracker.Rename("A", "A2")
+        Scan = self.TrackerScanner(Tracker, {}, {}, {20: 1.0})
+        self.assertEqual(Scan([20], [20]), (1, {"A2": "running"}))
 
     def test_OnlyGameWindowsCount(self):
         # Roblox's tray right-click menu (SystrayContextMenu) is a visible window too, and a hidden game window isn't open yet.
@@ -534,7 +731,9 @@ class TestApi(unittest.TestCase):
         self.Api._Expired = {"a", "b", "c"}
         self.Api.UpdateSetting("SelectedAccounts", ["A"])
         with mock.patch.object(ApiModule.Roblox, "CheckLogin", return_value=("Valid", (7, "A2", "Renamed"))):
-            self.assertEqual(self.Api._FinishLogin("new-A", "A"), "Renewed")  # same user id: renamed on Roblox, same row
+            Outcome = {}
+            self.assertEqual(self.Api._FinishLogin("new-A", "A", Outcome), "Renewed")  # same user id: renamed on Roblox
+            self.assertEqual(Outcome["Username"], "A2")  # RENEW AND LAUNCH selects it under its new name
         with mock.patch.object(ApiModule.Roblox, "CheckLogin", return_value=("Valid", (12, "C", "c"))):
             self.assertEqual(self.Api._FinishLogin("new-C", "C"), "Renewed")  # no id saved yet: same username counts
         with mock.patch.object(ApiModule.Roblox, "CheckLogin", return_value=("Valid", (9, "Other", "o"))):
@@ -554,6 +753,81 @@ class TestApi(unittest.TestCase):
                 mock.patch.object(ApiModule.Roblox, "GetAuthTicket", return_value=ApiModule.Roblox.LoginExpired):
             self.assertEqual(self.Api._LaunchOne("A", "Home", {}), {"Error": ApiModule.ExpiredMessage})
         self.assertTrue(self.Api.GetAccounts()[0]["Expired"])
+
+    def test_ExpiredAtLaunchDoesNotMarkAJustRenewedLogin(self):
+        self.Api._Expired.clear()
+        Account = self.Api._Accounts[0]
+
+        def RenewedMeanwhile(_Cookie):  # RENEW saved a new login while this launch was asking for a ticket
+            Account["Cookie"] = "renewed-A"
+            return ApiModule.Roblox.LoginExpired
+        with mock.patch.object(ApiModule.MultiInstance, "CountRunning", return_value=0), \
+                mock.patch.object(ApiModule.MultiInstance, "LockCookieFile"), \
+                mock.patch.object(ApiModule.MultiInstance, "HoldMutex", return_value=True), \
+                mock.patch.object(ApiModule.Roblox, "FindLauncherPath", return_value="C:\\R.exe"), \
+                mock.patch.object(ApiModule.Roblox, "GetAuthTicket", side_effect=RenewedMeanwhile):
+            self.assertEqual(self.Api._LaunchOne("A", "Home", {}), {"Error": ApiModule.ExpiredMessage})
+        self.assertFalse(self.Api.GetAccounts()[0]["Expired"])
+
+    def test_ExpiredAtLaunchDoesNotMarkAReaddedLogin(self):
+        self.Api._Expired.clear()
+
+        def ReaddedMeanwhile(_Cookie):  # + ADD saved a new login for the same account while this launch waited
+            with mock.patch.object(ApiModule.Roblox, "CheckLogin", return_value=("Valid", (55, "A", "a"))):
+                self.Api._FinishLogin("new-A")
+            return ApiModule.Roblox.LoginExpired
+        with mock.patch.object(ApiModule.MultiInstance, "CountRunning", return_value=0), \
+                mock.patch.object(ApiModule.MultiInstance, "LockCookieFile"), \
+                mock.patch.object(ApiModule.MultiInstance, "HoldMutex", return_value=True), \
+                mock.patch.object(ApiModule.Roblox, "FindLauncherPath", return_value="C:\\R.exe"), \
+                mock.patch.object(ApiModule.Roblox, "GetAuthTicket", side_effect=ReaddedMeanwhile):
+            self.assertEqual(self.Api._LaunchOne("A", "Home", {}), {"Error": ApiModule.ExpiredMessage})
+        self.assertFalse({A["Username"]: A["Expired"] for A in self.Api.GetAccounts()}["A"])
+
+    def test_RenewAccountReturnsTheNewName(self):
+        def FakeOpenLogin(_Title, RenewFor=None, Done=None, Outcome=None):
+            Outcome.update({"Result": "Renewed", "Username": "A2"})
+            Done.set()
+            return {"Ok": True}
+        with mock.patch.object(self.Api, "_OpenLogin", side_effect=FakeOpenLogin):
+            self.assertEqual(self.Api.RenewAccount("A"), {"Ok": True, "Renewed": True, "Username": "A2"})
+
+        def Closed(_Title, RenewFor=None, Done=None, Outcome=None):
+            Done.set()
+            return {"Ok": True}
+        with mock.patch.object(self.Api, "_OpenLogin", side_effect=Closed):
+            self.assertEqual(self.Api.RenewAccount("A"), {"Ok": True, "Renewed": False})
+
+    def test_WindowSizeWiresUpTheDragEvents(self):
+        from App import WindowSize
+
+        class Event:  # what pythonnet's .NET events and pywebview's events support: += and firing
+            def __init__(self):
+                self.Handlers = []
+
+            def __iadd__(self, Handler):
+                self.Handlers.append(Handler)
+                return self
+
+            def Fire(self, *Args):
+                for Handler in self.Handlers:
+                    Handler(*Args)
+
+        Window = mock.MagicMock()
+        Window.events.shown = Event()
+        Window.native = mock.Mock(Height=595, ResizeBegin=Event(), ResizeEnd=Event())
+        Sizer = WindowSize.HeldWindow(Window)
+        Window.events.shown.Fire()  # the window is up: ResizeBegin / ResizeEnd are watched
+        Window.native.ResizeBegin.Fire(None, None)  # title bar grabbed
+        Sizer.Resize(765, 800)
+        Window.resize.assert_not_called()
+        with mock.patch.object(WindowSize.HeldWindow, "_SetHeight") as SetHeight, \
+                mock.patch.object(WindowSize.HeldWindow, "_WindowScale", return_value=1.25), \
+                mock.patch.object(WindowSize.threading, "Thread", side_effect=lambda target, daemon: mock.Mock(start=target)):
+            Window.native.ResizeEnd.Fire(None, None)  # let go: applied once, size only
+            SetHeight.assert_called_once_with(Window.native, 1000)
+        Sizer.Resize(765, 700)
+        Window.resize.assert_called_once_with(765, 700)
 
     def test_RemoveAccountsByName(self):
         self.Api.UpdateSetting("SelectedAccounts", ["A", "B"])

@@ -52,14 +52,18 @@ def ReadVersion(Folder):
 
 
 IgnoredForGood = "Ignore"  # LegacyInstallPath's value once the user ticked "don't ask again" and pressed Ignore
-OldIgnoreValue = "IgnoreLegacyInstall"  # where installers before 1.1.2 kept that; moved over by Detect()
+OldIgnoreValue = "IgnoreLegacyInstall"  # where installers before 1.2.0 kept that; moved over by Detect()
 
 
 def Detect():
     """{Path, Version, Shortcuts, Deferred} for a Test1 install the registry points at (InstallPath, or LegacyInstallPath
     once the user pressed Ignore), unless the user said never ask again. Deferred = it was put off with Ignore."""
-    if Setup.RegRead(OldIgnoreValue) == "1":  # installers before 1.1.2 kept "don't ask again" in its own value
-        Ignore(True)
+    if Setup.RegRead(OldIgnoreValue) == "1":  # installers before 1.2.0 kept "don't ask again" in its own value
+        try:
+            Ignore(True)
+        except OSError as Error:  # can't move it over now: still honour it, and try again next time
+            Logger.warning("Could not move the old 'don't ask again' setting: %s", type(Error).__name__)
+            return None
     PutOff = Setup.RegRead("LegacyInstallPath")
     if PutOff == IgnoredForGood:
         return None
@@ -101,12 +105,20 @@ def MoveConfig(LegacyFolder, InstallPath, Choice="KeepNew"):
     Config that already holds accounts: Choice KeepNew keeps it (and backs up the old files), UseOld replaces it
     (after backing it up). Returns notes for the result screen."""
     Source = ConfigDir(LegacyFolder)
+    if os.path.islink(Source) or os.path.isjunction(Source):  # only real files come across, never what a link points at
+        Logger.warning("Old Config folder is a link: nothing moved")
+        return []
     Present = {Name.lower(): Name for Name in _ListLower(Source)}
     Wanted = [(Present[Name.lower()], Name) for Name in ConfigFiles if Name.lower() in Present]
+    Links = [Pair for Pair in Wanted if os.path.islink(os.path.join(Source, Pair[0]))]
+    if Links:  # only real files come across, never what a link points at
+        Logger.warning("Skipped %d old config files that are links", len(Links))
+        Wanted = [Pair for Pair in Wanted if Pair not in Links]
     if not Wanted:
         return []
     Destination = os.path.join(InstallPath, "Config")
-    if AccountsPresent(Destination) and AccountsPresent(Source) and Choice != "UseOld":
+    OldAccounts = any(Name == "Accounts.json" for _Found, Name in Wanted) and AccountsPresent(Source)
+    if AccountsPresent(Destination) and OldAccounts and Choice != "UseOld":
         Setup.BackupConfig(InstallPath, "Test1", Source=Source)
         return ["Your newer accounts were kept. The old version's settings are saved in Config.Backup."]
     if os.path.isdir(Destination) and os.listdir(Destination):
@@ -167,13 +179,15 @@ def RemoveShortcuts():
 
 
 def ClearRegistry(Folder):
-    """Test1's values: Version, ConfigPath, CleanupPath, and InstallPath while it still points at the old folder;
-    plus LegacyInstallPath (the old version is dealt with)."""
-    for Name in ("Version", "ConfigPath", "CleanupPath", "LegacyInstallPath"):
+    """Test1's values: ConfigPath, CleanupPath, and InstallPath and Version while InstallPath still points at the old
+    folder (once a new RAMMIT is installed they are its own); plus LegacyInstallPath (the old version is dealt with)."""
+    for Name in ("ConfigPath", "CleanupPath", "LegacyInstallPath"):
         Setup.RegDeleteValue(Name)
     Current = Setup.RegRead("InstallPath")
-    if Current and Folder and Paths.SamePath(Current, Folder):
-        Setup.RegDeleteValue("InstallPath")
+    if not Current or (Folder and Paths.SamePath(Current, Folder)):
+        Setup.RegDeleteValue("Version")
+        if Current:
+            Setup.RegDeleteValue("InstallPath")
     Setup.TidyRegistry()
 
 

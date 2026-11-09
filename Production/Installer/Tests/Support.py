@@ -107,6 +107,7 @@ def MakeAppZip(Version, Extra=None, Prefix="RAMMIT/"):
         "Runtime/python313.dll": "fake runtime " + Version,
         "Src/Dark/HTML/Index.html": f"<html>{Version}</html>",
         "Src/Dark/Theme.json": '{"Name": "Dark"}',
+        "Src/Dark/RAMMIT.ico": "fake icon",  # what the shortcuts' icon is copied from
     }
     Files.update(Extra or {})
     Buffer = io.BytesIO()
@@ -152,7 +153,7 @@ def MakeLegacyShortcut(LinkPath):
 
 
 def MakeOldShortcut(LinkPath, Exe):
-    """What installers before 1.1.2 made: RAMMIT.lnk straight at RAMMIT.exe."""
+    """What installers before 1.2.0 made: RAMMIT.lnk straight at RAMMIT.exe."""
     import win32com.client
     os.makedirs(os.path.dirname(LinkPath), exist_ok=True)
     Link = win32com.client.Dispatch("WScript.Shell").CreateShortCut(LinkPath)

@@ -125,6 +125,30 @@ export function Go(Screen, Action) {
 
 let LastSent = 0;
 let FitQueued = false;
+// pywebview runs every call to Python on its own thread, so two ResizeInstaller calls in flight can finish in
+// either order and leave the window at the older height (issue #8). Only one is sent at a time; a height measured
+// meanwhile waits, and only the newest one is sent once the call in flight has finished. A call that never answers
+// stops holding the others up after GiveUpMs (Python applies resizes under one lock, so they still land in order).
+const GiveUpMs = 3000;
+let Sending = false;
+let Waiting = null;
+
+function SendHeight(Needed, Viewport) {
+    if (Sending) {
+        Waiting = [Needed, Viewport];
+        return;
+    }
+    Sending = true;
+    const GiveUp = new Promise(Resolve => setTimeout(Resolve, GiveUpMs));
+    Promise.race([Api.ResizeInstaller(Needed, Viewport), GiveUp]).catch(ReportError).finally(() => {
+        Sending = false;
+        if (Waiting) {
+            const [NextNeeded, NextViewport] = Waiting;
+            Waiting = null;
+            SendHeight(NextNeeded, NextViewport);
+        }
+    });
+}
 
 export function FitWindow() {
     if (FitQueued) return;
@@ -140,7 +164,7 @@ export function FitWindow() {
         window.InstallerFitHeight = Needed;  // read by the UI tests
         if (Math.abs(Needed - LastSent) < 2) return;
         LastSent = Needed;
-        Api.ResizeInstaller(Needed, window.innerHeight).catch(ReportError);
+        SendHeight(Needed, window.innerHeight);
     });
 }
 

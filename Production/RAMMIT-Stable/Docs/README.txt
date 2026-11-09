@@ -1,5 +1,5 @@
 ========================================================
-  RAMMIT  -  Roblox Multi-Account Launcher   (v1.1.2)
+  RAMMIT  -  Roblox Multi-Account Launcher   (v1.2.0)
   Setup Guide (read this first)
 ========================================================
 
@@ -10,7 +10,7 @@ them at the same time on one PC. You do NOT need Python or any other
 program installed - everything RAMMIT needs is inside this folder.
 
 The bottom of the Settings panel shows your version, for example
-"RAMMIT v1.1.2 · Stable". Please include it when you report a problem.
+"RAMMIT v1.2.0 · Stable". Please include it when you report a problem.
 
 
 WHAT YOU NEED
@@ -96,9 +96,15 @@ TROUBLESHOOTING
   * "Accounts won't launch":
       Make sure Roblox is installed and you can open it normally first.
       Hover the red X next to an account to read why it failed.
+  * An account's row turned red, or "Cookie expired. Renew this account.":
+      Its saved login expired (for example you changed your password).
+      Click that account alone: + ADD becomes RENEW (and LAUNCH becomes
+      RENEW AND LAUNCH). Press it and sign in to the same account again.
+      RAMMIT checks the saved logins with Roblox (users.roblox.com only)
+      when it starts and every 5 minutes; nothing goes anywhere else.
   * "Auth failed":
-      The saved login expired (for example you changed your password).
-      Remove the account and add it again.
+      Roblox didn't answer, or asked RAMMIT to slow down. Wait a minute and
+      try again.
   * A log file is kept at Config\RAMMIT.log (it never contains logins).
 
 

@@ -21,6 +21,7 @@ class HeldWindow:
     def __init__(self, Window):
         self._Window = Window
         self._Dragging = False
+        self._Lock = threading.Lock()  # Resize (a page call's thread) and the let-go reapply (its own thread)
         self._Width = 0   # logical px last asked for
         self._Height = 0
         Events = getattr(Window, "events", None)
@@ -36,25 +37,27 @@ class HeldWindow:
             Logger.warning("Can't watch window drags: %s", type(Error).__name__)
 
     def Resize(self, Width, Height):
-        self._Width, self._Height = Width, Height
-        if self._Dragging:
-            return  # held: Windows would undo it; _OnLetGo applies it
-        self._Window.resize(Width, Height)
+        with self._Lock:
+            self._Width, self._Height = Width, Height
+            if self._Dragging:
+                return  # held: Windows would undo it; _OnLetGo applies it
+            self._Window.resize(Width, Height)
 
     def _OnLetGo(self, _Sender, _Args):
         self._Dragging = False
         threading.Thread(target=self._ReapplyHeight, daemon=True).start()
 
     def _ReapplyHeight(self):
-        if not self._Height:
-            return
-        try:
-            Native = self._Window.native
-            Scale = self._WindowScale(Native)
-            if abs(Native.Height / Scale - self._Height) >= 2:
-                self._SetHeight(Native, round(self._Height * Scale))
-        except Exception:
-            pass
+        with self._Lock:
+            if not self._Height:
+                return
+            try:
+                Native = self._Window.native
+                Scale = self._WindowScale(Native)
+                if abs(Native.Height / Scale - self._Height) >= 2:
+                    self._SetHeight(Native, round(self._Height * Scale))
+            except Exception:
+                pass
 
     @staticmethod
     def _WindowScale(Native):

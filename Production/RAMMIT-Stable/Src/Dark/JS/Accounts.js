@@ -85,11 +85,14 @@ export function ApplySelection() {
     AddBtn.classList.toggle('BtnAdd', !Renew);
     AddBtn.classList.toggle('BtnRenew', !!Renew);
     AddBtn.textContent = Renew ? 'RENEW' : '+ ADD';
-    AddBtn.removeAttribute('title');
-    AddBtn.dataset.tooltip = Renew ? `Sign in again as @${Renew} (its saved login expired)` : 'Sign in to a Roblox account and save it';
+    AddBtn.title = Renew ? `Sign in again as @${Renew} (its saved login expired)` : 'Sign in to a Roblox account and save it';
     ById('SelectionCount').textContent = Count ? ` (${Count} SELECTED)` : '';
     ById('SelectAllBtn').textContent = (State.Accounts.length > 0 && Count >= State.Accounts.length) ? 'CLEAR' : 'SELECT ALL';
-    if (!State.BatchRunning) ById('LaunchBtn').textContent = Renew ? 'RENEW AND LAUNCH' : Count > 1 ? `LAUNCH ${Count} SELECTED` : 'LAUNCH SELECTED';
+    if (!State.BatchRunning) {
+        const LaunchBtn = ById('LaunchBtn');
+        LaunchBtn.textContent = Renew ? 'RENEW AND LAUNCH' : Count > 1 ? `LAUNCH ${Count} SELECTED` : 'LAUNCH SELECTED';
+        LaunchBtn.title = Renew ? `Sign in again as @${Renew}, then launch it` : 'Launch every ticked account, one after another';
+    }
 }
 
 export function ApplyAccountStatus() {
@@ -119,9 +122,14 @@ export async function AddAccount() {
 }
 
 // Sign in again for an expired account. True when that same Roblox user signed in (a different one is added instead).
+// An account renamed on Roblox comes back under its new name; it stays selected under that name.
 export async function RenewAccount(Username) {
     const Result = await Api.RenewAccount(Username);
     if (Result && Result.Error) ShowLaunchError(Result.Error);
+    if (Result && Result.Renewed && Result.Username && Result.Username !== Username) {
+        State.Selected.delete(Username);
+        State.Selected.add(Result.Username);
+    }
     await RefreshAccounts();
     return !!(Result && Result.Renewed);
 }

@@ -40,7 +40,7 @@ export const Tours = [
               Body: 'The button counts what you picked — <b>LAUNCH 4 SELECTED</b>.<br><br>They open one after another rather than all in the same instant. Changed your mind halfway? The button turns into <b>CANCEL LAUNCH</b> and stops the ones that have not started yet.' },
             { Target: '#AccountList', Title: 'Watch how each one goes',
               Body: 'While a launch runs, every row shows where it is up to:',
-              Keys: [['…', 'waiting its turn'], ['•••', 'starting up now'], ['✓', 'launched'], ['✗', 'failed — hover it to read why']] },
+              Keys: [['…', 'waiting its turn'], ['•••', 'starting up now'], ['✓', 'its game window is open (clears when it closes)'], ['✗', 'failed — hover it to read why']] },
             { Target: '.StatusFooter', Title: 'Keeping score',
               Body: '<b>RUNNING</b> shows how many instances are open against your limit.<br><br>Underneath it, the line reads <b>Launching 3 / 5...</b> as it works, then <b>Launched 5/5</b> when it is done. If any failed, it tells you how many and what went wrong.' },
         ],

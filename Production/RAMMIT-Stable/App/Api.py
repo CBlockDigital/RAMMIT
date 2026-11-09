@@ -111,8 +111,9 @@ class Api:
 
     def RenewAccount(self, Username):
         """Sign in again for an expired account (RENEW). Waits until the login window is done, so RENEW AND LAUNCH can
-        launch right after: {"Renewed": True} when the same Roblox user signed in, {"Renewed": False} when it was a
-        different account (added as a new one) or the window was closed."""
+        launch right after: {"Renewed": True, "Username": its name now} when the same Roblox user signed in (the name
+        changes when the account was renamed on Roblox), {"Renewed": False} when it was a different account (added as a
+        new one) or the window was closed."""
         Account = self._AccountByName(Username)
         if not Account:
             return {"Error": "Account not found."}
@@ -122,7 +123,9 @@ class Api:
         if "Error" in Opened:
             return Opened
         Done.wait(LoginTimeoutSeconds + 10)
-        return {"Ok": True, "Renewed": Outcome.get("Result") == "Renewed"}
+        if Outcome.get("Result") == "Renewed":
+            return {"Ok": True, "Renewed": True, "Username": Outcome.get("Username", Account["Username"])}
+        return {"Ok": True, "Renewed": False}
 
     def _OpenLogin(self, Title, RenewFor=None, Done=None, Outcome=None):
         with self._LoginLock:
@@ -154,7 +157,7 @@ class Api:
                         Window.clear_cookies()
                     except Exception:
                         pass
-                    Result = self._FinishLogin(Cookie, RenewFor)
+                    Result = self._FinishLogin(Cookie, RenewFor, Outcome)
                     if Outcome is not None:
                         Outcome["Result"] = Result
                     break
@@ -175,10 +178,10 @@ class Api:
                     return Morsel.value
         return None
 
-    def _FinishLogin(self, Cookie, RenewFor=None):
+    def _FinishLogin(self, Cookie, RenewFor=None, Outcome=None):
         """Saves a new login. Renewing (RenewFor = an account's username): the same Roblox user replaces that account's
         login in place (same user id, or same username if its id isn't known yet); a different user is added as a new
-        account instead. Returns "Renewed", "Added", or None on failure."""
+        account instead. Returns "Renewed", "Added", or None on failure; Outcome["Username"] gets the saved name."""
         State, User = Roblox.CheckLogin(Cookie)
         if State != "Valid":
             self._Notify("ShowMessage", {"Text": "Login worked but Roblox did not confirm the account. Try again.", "Error": True})
@@ -193,9 +196,10 @@ class Api:
                     OldName = Target["Username"]
                     Target.update({"Username": Username, "DisplayName": DisplayName, "UserId": UserId, "Cookie": Cookie, "Stored": None})
                     self._Expired.discard(OldName.lower())
-                    if OldName != Username:  # renamed on Roblox: keep it selected under its new name
+                    if OldName != Username:  # renamed on Roblox: keep it selected, and its open client, under its new name
                         self._Settings["SelectedAccounts"] = [Username if N == OldName else N for N in self._Settings["SelectedAccounts"]]
                         self._SaveSettings()
+                        self._Clients.Rename(OldName, Username)
                 else:
                     self._Accounts = [A for A in self._Accounts if A["Username"].lower() != Username.lower() and A["UserId"] != UserId]
                     self._Accounts.append({"Username": Username, "DisplayName": DisplayName, "UserId": UserId, "Cookie": Cookie, "Stored": None})
@@ -205,6 +209,8 @@ class Api:
             Logger.error("Could not save account %s: %s", Username, type(Error).__name__)
             self._Notify("ShowMessage", {"Text": "Could not save the account securely.", "Error": True})
             return None
+        if Outcome is not None:
+            Outcome["Username"] = Username
         if Same:
             Logger.info("Renewed account %s", Username)
         else:
@@ -422,8 +428,12 @@ class Api:
             Ticket = Roblox.GetAuthTicket(Cookie)
             if Ticket is Roblox.LoginExpired:
                 with self._DataLock:
-                    self._Expired.add(Account["Username"].lower())
-                self._Notify("AccountsChanged")
+                    # Not when a new login was saved meanwhile: RENEW updates this same entry, + ADD replaces it.
+                    Marked = any(A is Account for A in self._Accounts) and Account["Cookie"] is Cookie
+                    if Marked:
+                        self._Expired.add(Account["Username"].lower())
+                if Marked:
+                    self._Notify("AccountsChanged")
                 return {"Error": ExpiredMessage}
             if not Ticket:
                 return {"Error": "Auth failed."}
@@ -432,7 +442,12 @@ class Api:
             except ValueError as Error:
                 return {"Error": str(Error)}
             self._Clients.Expect(Ticket, Account["Username"])  # before the client exists, so no scan can miss it
-            Proc = subprocess.Popen([Exe, LaunchUrl], creationflags=subprocess.CREATE_NO_WINDOW)
+            try:
+                Proc = subprocess.Popen([Exe, LaunchUrl], creationflags=subprocess.CREATE_NO_WINDOW)
+            except OSError as Error:
+                self._Clients.Forget(Ticket)  # or it would count as "starting" until it times out
+                Logger.warning("Could not start Roblox: %s", type(Error).__name__)
+                return {"Error": "Could not start Roblox."}
             self._Clients.Started(Ticket, Proc.pid)
             Logger.info("Launched %s (%s)", Username, Option)
             return {"Ok": True}

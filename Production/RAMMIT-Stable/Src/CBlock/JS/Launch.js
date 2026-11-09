@@ -1,7 +1,7 @@
 // LAUNCHER CONTROLS panel: launch option + its boxes, the launch/cancel button, batch progress,
 // the RUNNING counter, and window height.
 
-import { Api, ReportError } from './Bridge.js';
+import { Api, ReportError, OneAtATime } from './Bridge.js';
 import { ById, Debounce } from './Dom.js';
 import { InitSelect, SetSelectValue, GetSelectValue } from './Select.js';
 import { CreateLaunchForm } from './LaunchForm.js';
@@ -17,6 +17,7 @@ let Form = null;
 let BatchPoll = null;
 
 const SaveParams = Debounce(() => Api.UpdateSetting('LaunchParams', Form.GetParams()).catch(ReportError), 300);
+const ResizeWindow = OneAtATime(Height => Api.ResizeWindow(Height));
 
 export async function LoadHeightMap() {
     const Map = await Api.GetHeightMap();
@@ -44,7 +45,7 @@ export function ResizeForCurrentOption() {
     const PlayerSel = ById('PlayerModeSelect');
     if (PlayerSel && ['min_only', 'max_only', 'range'].includes(GetSelectValue(PlayerSel))) Height += HeightMap.PlayerFilterExtra || 0;
     Height += ThemeNoteExtra();  // exactly as much as a note under the Theme list adds (0 when there is none)
-    Api.ResizeWindow(Height).catch(() => {});
+    ResizeWindow(Height);
 }
 
 function OnLaunchClick() {
@@ -87,8 +88,10 @@ function SetBatchRunning(Running) {
     State.BatchRunning = Running;
     const Button = ById('LaunchBtn');
     Button.classList.toggle('Cancel', Running);
-    if (Running) Button.textContent = 'CANCEL LAUNCH';
-    else ApplySelection();
+    if (Running) {
+        Button.textContent = 'CANCEL LAUNCH';
+        Button.title = 'Stop the launch: accounts not started yet are skipped';
+    } else ApplySelection();
 }
 
 // Row marks come from two places: the batch's results (queued / launching / skipped / error) and, once an account's
@@ -120,11 +123,13 @@ function RenderAccountStatus() {
 
 // The status line only says "Launched" once the game windows are open (as RAMMIT's earlier test builds did): while an account
 // is being launched, or its window isn't open yet, it says "Launching X / Y..."; in the launch delay after an account
-// whose window is already open, "Launched X/Y". After the last launch it waits for the windows, then ShowLaunchDone
-// (which clears itself); it gives up waiting after WindowWait.
+// whose window is already open, "X / Y done, next launch soon...". After the last launch it waits for the windows,
+// then ShowLaunchDone (which clears itself); it gives up waiting after WindowWait. The windows count as open only on
+// a counter poll that started after the batch ended: an earlier one can still show a client that has since closed.
 const WindowWait = 30000;
 let LastProgress = null;
 let Waiting = null;  // { Names, Ok, Total, Since } after a batch, until its windows are open
+let LastPollAsked = 0;  // when the newest counter poll whose answer is in LiveAccounts was sent
 
 const IsOpen = Name => LiveAccounts[Name] === 'running';
 
@@ -132,13 +137,14 @@ function BatchStatusText(Progress) {
     const Results = Progress.Results || {};
     if (Object.values(Results).includes('launching')) return `Launching ${Math.min(Progress.Done + 1, Progress.Total)} / ${Progress.Total}...`;
     const Last = Object.keys(Results).filter(Name => Results[Name] === 'ok').pop();
-    return Last && IsOpen(Last) ? `Launched ${Progress.Done}/${Progress.Total}` : `Launching ${Progress.Done} / ${Progress.Total}...`;
+    // Waiting out the launch delay: not "Launched ...", which only ever means the whole batch is done
+    return Last && IsOpen(Last) ? `${Progress.Done} / ${Progress.Total} done, next launch soon...` : `Launching ${Progress.Done} / ${Progress.Total}...`;
 }
 
 function RenderLaunchStatus() {
     if (State.BatchRunning && LastProgress) { SetLaunchStatus(BatchStatusText(LastProgress)); return; }
     if (!Waiting) return;
-    if (Waiting.Names.every(IsOpen) || Date.now() - Waiting.Since > WindowWait) {
+    if ((LastPollAsked >= Waiting.Since && Waiting.Names.every(IsOpen)) || Date.now() - Waiting.Since > WindowWait) {
         ShowLaunchDone(`Launched ${Waiting.Ok}/${Waiting.Total}`);
         Waiting = null;
     } else {
@@ -172,6 +178,7 @@ function FinishBatch(Progress) {
 
 export async function UpdateCounter() {
     try {
+        const Asked = Date.now();
         const Counter = await Api.GetCounter();
         const Label = ById('CounterLabel');
         // MultiReady is false when Roblox was already open before RAMMIT started (see App/MultiInstance.py).
@@ -179,6 +186,7 @@ export async function UpdateCounter() {
         Label.title = Counter.MultiReady === false
             ? 'Roblox was already open when RAMMIT started, so only one client can run. Close every Roblox window and RAMMIT will take over on the next launch.' : '';
         LiveAccounts = Counter.Accounts || {};
+        LastPollAsked = Math.max(LastPollAsked, Asked);
         RenderAccountStatus();
         RenderLaunchStatus();
     } catch (_) { /* backend busy - next tick */ }

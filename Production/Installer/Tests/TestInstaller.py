@@ -357,7 +357,7 @@ class TestUninstall(InstallerTestCase):
 
     def test_ShortcutsOpenTheProtocolAndReplaceOldLinks(self):
         Old = Setup.LinkPaths()
-        for LinkPath in Old:  # an install from before 1.1.2: .lnk files straight at RAMMIT.exe
+        for LinkPath in Old:  # an install from before 1.2.0: .lnk files straight at RAMMIT.exe
             Support.MakeOldShortcut(LinkPath, os.path.join(self.Target, "RAMMIT.exe"))
         Elsewhere = os.path.join(self.Env.Root, "Mine", "RAMMIT.lnk")  # one the user made: never touched
         Support.MakeOldShortcut(Elsewhere, os.path.join(self.Target, "RAMMIT.exe"))
@@ -367,12 +367,28 @@ class TestUninstall(InstallerTestCase):
         self.assertTrue(all(Setup.IsOurShortcut(P) for P in Setup.ShortcutPaths()))
         Values = Support.RegValues(self.L.ProtocolKeyPath)
         self.assertEqual((Values[""], Values["URL Protocol"]), ("URL:" + self.L.ProtocolName, ""))
+        Command = Support.RegValues(self.L.ProtocolKeyPath + r"\shell\open\command")[""]
+        self.assertEqual(Command, '"' + os.path.join(self.Target, "RAMMIT.exe") + '"')  # nothing from the link (no %1)
+        self.assertTrue(os.path.isfile(self.L.IconPath))  # the icon is a copy in RAMMIT-Setup\, which never moves
+        with open(Setup.ShortcutPath("Desktop"), encoding="mbcs") as File:
+            self.assertIn("IconFile=" + self.L.IconPath + "\n", File.read())
         Somebody = os.path.join(self.L.DesktopDir, "Other.url")  # not ours: uninstall leaves it alone
         with open(Somebody, "w") as File:
             File.write("[InternetShortcut]\nURL=https://example.com/\n")
         Setup.RunUninstall(self.Target, True, NoReport)
         self.assertTrue(os.path.isfile(Somebody))
         self.assertFalse(any(os.path.exists(P) for P in Setup.ShortcutPaths()))
+        self.assertIsNone(Support.RegValues(self.L.ProtocolKeyPath))
+        self.assertFalse(os.path.exists(self.L.IconPath))
+
+    def test_ShortcutIconPathOutsideTheAnsiCodePageFallsBackToTheDefaultIcon(self):
+        # An emoji: no Windows ANSI code page can write it, whatever language this PC is set to
+        with mock.patch.object(Setup, "_ShortcutIcon", return_value="C:\\Users\\\U0001F600\\RAMMIT.ico"):
+            Setup.CreateShortcuts(self.Target, ["Desktop"])
+        with open(Setup.ShortcutPath("Desktop"), encoding="mbcs") as File:
+            Text = File.read()
+        self.assertTrue(Setup.IsOurShortcut(Setup.ShortcutPath("Desktop")))  # it still opens RAMMIT
+        self.assertNotIn("IconFile", Text)  # a "?"-mangled icon path would be worse than the default icon
 
     def test_ShortcutsAreTheTickedOnesAndUpdatesKeepTheChoice(self):
         Desktop, StartMenu = Setup.ShortcutPath("Desktop"), Setup.ShortcutPath("StartMenu")
@@ -634,7 +650,7 @@ class TestLegacy(InstallerTestCase):
         self.assertEqual(os.listdir(self.Old), ["MyStuff.txt"])
         self.assertIsNone(Setup.RegRead("InstallPath"))
         self.assertIsNone(Setup.RegRead("Version"))
-        self.assertFalse(any(os.path.exists(P) for P in Setup.ShortcutPaths()))
+        self.assertFalse(any(os.path.exists(P) for P in Setup.LinkPaths()))  # Test1's PowerShell shortcuts
         os.remove(os.path.join(self.Old, "MyStuff.txt"))
         Support.MakeLegacyInstall(self.Old)
         Legacy.RunRemove(self.Old, lambda **_P: None)
@@ -659,6 +675,53 @@ class TestLegacy(InstallerTestCase):
         Legacy.RunRemove(self.Old, lambda **_P: None)  # dealt with: forgotten
         self.assertIsNone(Setup.RegRead("LegacyInstallPath"))
         self.assertIsNone(Legacy.Detect())
+        self.assertEqual((Setup.RegRead("InstallPath"), Setup.RegRead("Version")), (self.Target, "1.1.0"))  # the new one's
+
+    def test_OldDontAskAgainStillHonouredWhenItCantBeMoved(self):
+        Setup.RegWrite(Legacy.OldIgnoreValue, "1")
+        with mock.patch.object(Setup, "RegWrite", side_effect=OSError):
+            self.assertIsNone(Legacy.Detect())  # no error on the way into the installer
+        self.assertEqual(Setup.RegRead(Legacy.OldIgnoreValue), "1")  # moved over next time instead
+
+    def test_MoveConfigSkipsLinkedFiles(self):
+        # Making a real symbolic link needs Developer Mode or admin, so the old accounts file only reports being one.
+        Accounts = os.path.join(self.Old, "Config", "accounts.json")
+        RealIsLink = os.path.islink
+        Destination = os.path.join(self.Env.Root, "NewRAMMIT")
+        os.makedirs(Destination)
+        with mock.patch.object(Legacy.os.path, "islink", side_effect=lambda P: Paths.SamePath(P, Accounts) or RealIsLink(P)):
+            Legacy.MoveConfig(self.Old, Destination)
+        self.assertFalse(os.path.exists(os.path.join(Destination, "Config", "Accounts.json")))
+        self.assertTrue(os.path.isfile(os.path.join(Destination, "Config", "Settings.json")))  # real files still come
+
+    def test_MoveConfigLeavesALinkedConfigFolderAlone(self):
+        import _winapi  # a junction needs no admin rights, unlike a symbolic link
+        Outside = os.path.join(self.Env.Root, "Outside")
+        os.makedirs(Outside)
+        Write(os.path.join(Outside, "accounts.json"), '[{"Username": "NotTheirs"}]')
+        shutil.rmtree(os.path.join(self.Old, "Config"))
+        _winapi.CreateJunction(Outside, os.path.join(self.Old, "Config"))
+        Destination = os.path.join(self.Env.Root, "NewRAMMIT")
+        os.makedirs(Destination)
+        self.assertEqual(Legacy.MoveConfig(self.Old, Destination), [])
+        self.assertFalse(os.path.exists(os.path.join(Destination, "Config")))
+        os.rmdir(os.path.join(self.Old, "Config"))  # removes the junction only
+
+    def test_ConfigBackupNeverCopiesWhatALinkPointsAt(self):
+        import _winapi
+        Outside = os.path.join(self.Env.Root, "Outside")
+        os.makedirs(Outside)
+        Write(os.path.join(Outside, "Secret.txt"), "not part of the config")
+        Config = os.path.join(self.Env.Root, "NewRAMMIT", "Config")
+        os.makedirs(Config)
+        Write(os.path.join(Config, "Accounts.json"), '[{"Username": "Mine"}]')
+        _winapi.CreateJunction(Outside, os.path.join(Config, "Linked"))
+        try:
+            Backup = Setup.BackupConfig(os.path.dirname(Config), "Test")
+            self.assertTrue(os.path.isfile(os.path.join(Backup, "Accounts.json")))
+            self.assertFalse(os.path.exists(os.path.join(Backup, "Linked")))
+        finally:
+            os.rmdir(os.path.join(Config, "Linked"))
 
     def test_Choice4DontAskAgainForgetsAPutOffOne(self):
         Legacy.Ignore(False, self.Old)
@@ -667,7 +730,7 @@ class TestLegacy(InstallerTestCase):
         self.assertIsNone(Legacy.Detect())
 
     def test_OldDontAskAgainValueIsCarriedOver(self):
-        Setup.RegWrite(Legacy.OldIgnoreValue, "1")  # what installers before 1.1.2 wrote
+        Setup.RegWrite(Legacy.OldIgnoreValue, "1")  # what installers before 1.2.0 wrote
         self.assertIsNone(Legacy.Detect())
         self.assertIsNone(Setup.RegRead(Legacy.OldIgnoreValue))
         self.assertEqual(Setup.RegRead("LegacyInstallPath"), Legacy.IgnoredForGood)
@@ -701,8 +764,7 @@ class TestLegacy(InstallerTestCase):
         Legacy.RunMove(self.Old, self.Target, "MoveRemove", "KeepNew", NoReport)
         self.assertIn("OldTester", Read(os.path.join(self.Target, "Config", "Accounts.json")))
         self.assertFalse(os.path.exists(self.Old))
-        self.assertFalse(any(os.path.exists(P) for P in Setup.ShortcutPaths()
-                             if Setup.ReadShortcut(P)[0].lower().endswith("powershell.exe")))
+        self.assertFalse(any(os.path.exists(P) for P in Setup.LinkPaths()))  # Test1's PowerShell shortcuts
         self.assertEqual((Setup.RegRead("InstallPath"), Setup.RegRead("Version")), (self.Target, "1.1.0"))
         self.assertIsNone(Legacy.Detect())
 
@@ -811,6 +873,38 @@ class TestApiSurface(InstallerTestCase):
             Window.native.Height = round(450 * 1.25)  # already right: nothing to do
             Api._ReapplyHeight()
             SetHeight.assert_not_called()
+
+    def test_ResizeWatchesTheTitleBarOnceTheWindowIsUp(self):
+        class Event:  # what pythonnet's .NET events and pywebview's events support: += and firing
+            def __init__(self):
+                self.Handlers = []
+
+            def __iadd__(self, Handler):
+                self.Handlers.append(Handler)
+                return self
+
+            def Fire(self, *Args):
+                for Handler in self.Handlers:
+                    Handler(*Args)
+
+        Window = Support.EventWindow()
+        Window.events = mock.Mock(shown=Event())
+        Window.native = mock.Mock(Height=409, ResizeBegin=Event(), ResizeEnd=Event())
+        Api = InstallerApi.InstallerApi()
+        Api._AttachWindow(Window)
+        Api._LastHeight, Api._Frame = 327, 39
+        Window.events.shown.Fire()  # ResizeBegin / ResizeEnd are watched from now on
+        Window.native.ResizeBegin.Fire(None, None)  # title bar grabbed
+        Api.ResizeInstaller(411, 288)
+        self.assertIsNone(Window.LastResize)
+        with mock.patch.object(InstallerApi.InstallerApi, "_SetHeight") as SetHeight, \
+                mock.patch.object(InstallerApi.InstallerApi, "_WindowScale", return_value=1.25), \
+                mock.patch.object(InstallerApi.threading, "Thread", side_effect=lambda target, daemon: mock.Mock(start=target)):
+            Window.native.ResizeEnd.Fire(None, None)  # let go: applied once, size only
+            SetHeight.assert_called_once_with(Window.native, round(450 * 1.25))
+        self.assertFalse(Api._Dragging)
+        Api.ResizeInstaller(361, 288)  # not held: straight through
+        self.assertEqual(Window.LastResize, [InstallerApi.WindowWidth, 400])
 
 
 class TestUiServer(unittest.TestCase):

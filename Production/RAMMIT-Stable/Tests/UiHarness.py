@@ -9,7 +9,15 @@ Test-only routes (never part of the shipped server):
     POST /__TestApi/<Method>   body = JSON list of args -> calls Api.<Method>(*args)
     GET  /__TestHook/Events    pending Python->JS notifications
     POST /__TestHook/Login     body = ["Username"] -> simulates a finished Roblox login
+    POST /__TestHook/NextLogin body = ["Username"] -> the next login window signs in as Username (RENEW)
+    POST /__TestHook/SameUser  body = ["NewName", "OldName"] -> NewName is OldName renamed on Roblox (same user id)
+    POST /__TestHook/Expire    body = ["Username", ...] -> Roblox now rejects those logins; runs the login check
+    POST /__TestHook/Windows   body = [false] -> every client closes, and new ones don't show their game window
+                               ("starting"); [true] -> they all show it
     GET  /__TestHook/State     launches so far, fake running count, last main-window resize
+
+The client tracking (MultiInstance.ClientTracker) is the real one: only the process and window probes are faked, over
+one fake Roblox process per launch.
 """
 import json
 import os
@@ -41,7 +49,8 @@ with open(os.path.join(ScratchDir, "Config", "Settings.json"), "w") as File:
 import webview  # noqa: E402
 from App import Api as ApiModule, LocalServer as ServerModule, MultiInstance, Roblox, Themes  # noqa: E402
 
-Fake = {"Launches": [], "Running": 0, "Channel": "production", "Events": [], "Lock": threading.Lock()}
+Fake = {"Launches": [], "Running": 0, "Channel": "production", "Events": [], "Lock": threading.Lock(),
+        "Pids": set(), "Windows": set(), "ShowWindows": True, "Expired": set(), "Ids": {}, "NextLogin": None}
 FakeServers = [{"id": "11111111-1111-1111-1111-111111111111", "playing": 3, "maxPlayers": 20, "ping": 80},
                {"id": "22222222-2222-2222-2222-222222222222", "playing": 15, "maxPlayers": 20, "ping": 30},
                {"id": "33333333-3333-3333-3333-333333333333", "playing": 20, "maxPlayers": 20, "ping": 10}]
@@ -69,7 +78,9 @@ class FakeWindow:
         pass
 
     def get_cookies(self):
-        return []
+        with Fake["Lock"]:
+            Name, Fake["NextLogin"] = Fake["NextLogin"], None
+        return [{".ROBLOSECURITY": types.SimpleNamespace(value="FakeCookie-" + Name)}] if Name else []
 
     def clear_cookies(self):
         pass
@@ -84,23 +95,45 @@ def FakePopen(Args, **_Kw):
     Fake["Running"] += 1
     Proc = FakeProc()
     Proc.pid = FakeProc.pid - len(Fake["Launches"])  # one pid per launch, like real ones
+    with Fake["Lock"]:
+        Fake["Pids"].add(Proc.pid)
+        if Fake["ShowWindows"]:
+            Fake["Windows"].add(Proc.pid)
     return Proc
+
+
+def FakeCountRunning(Tracker=None, IncludeStarting=True):
+    if Tracker:
+        Tracker.Scan(IncludeStarting)  # the real tracking, over the fake processes and windows below
+    return Fake["Running"]
+
+
+def FakeUserId(Name):
+    return Fake["Ids"].get(Name) or int.from_bytes(Name.encode(), "big")  # one id per name, unless renamed
+
+
+def FakeCheckLogin(Cookie):
+    Name = Cookie.split("-", 1)[1]
+    return ("Expired", None) if Name in Fake["Expired"] else ("Valid", (FakeUserId(Name), Name, "New " + Name))
 
 
 webview.create_window = FakeWindow
 ApiModule.webview.create_window = FakeWindow
 ApiModule.subprocess = types.SimpleNamespace(Popen=FakePopen, CREATE_NO_WINDOW=0)
 MultiInstance.Enable = MultiInstance.LockCookieFile = MultiInstance.HoldMutex = MultiInstance.IsReady = lambda: True
-MultiInstance.CountRunning = lambda _Tracker=None, IncludeStarting=True: Fake["Running"]
-# No real clients here: every account RAMMIT launched counts as open (its row shows the running mark).
-MultiInstance.ClientTracker.Accounts = lambda Self: {Info["User"]: "running" for Info in Self._Owners.values() if Info["User"]}
+MultiInstance.CountRunning = FakeCountRunning
+MultiInstance._PlayerPids = lambda: set(Fake["Pids"])
+MultiInstance._GameWindowPids = lambda: set(Fake["Windows"])
+MultiInstance._CommandLine = lambda _Pid: ""
+MultiInstance._ParentPid = lambda _Pid: 1
+MultiInstance._CreateTime = lambda _Pid: 1.0
+MultiInstance._Alive = lambda Pid: Pid in Fake["Pids"]
 Roblox.GetAuthTicket = lambda _Cookie: "FAKETICKET0123"
 Roblox.FindLauncherPath = lambda _L: r"C:\Fake\RobloxPlayerBeta.exe"
 Roblox.FetchServers = lambda _P, _C=None, MaxPages=10: [dict(S) for S in FakeServers]
 Roblox.GetGameMaxPlayers = lambda _P: 20
 Roblox.ResolveVipLink = lambda Url, _C=None: ("606849621", "AbC123") if "share" in Url or "privateServerLinkCode" in Url else (None, None)
-Roblox.CheckLogin = lambda Cookie: ("Valid", (int.from_bytes(Cookie.split("-", 1)[1].encode(), "big"),  # one id per name
-                                               Cookie.split("-", 1)[1], "New " + Cookie.split("-", 1)[1]))
+Roblox.CheckLogin = FakeCheckLogin
 Roblox.GetChannel = lambda: Fake["Channel"]
 Roblox.SetChannel = lambda C: bool(Roblox.ChannelPattern.match(C)) and (Fake.__setitem__("Channel", C) or True)
 Themes.OpenThemesFolder = lambda: None
@@ -115,6 +148,25 @@ class TestHandler(ServerModule._Handler):
             Result = Method(*Body) if callable(Method) else {"HarnessError": "no such method " + Name}
         elif self.path == "/__TestHook/Login":
             Bridge._FinishLogin("FakeCookie-" + Body[0])
+            Result = {"Ok": True}
+        elif self.path == "/__TestHook/NextLogin":
+            Fake["NextLogin"] = Body[0]
+            Result = {"Ok": True}
+        elif self.path == "/__TestHook/SameUser":
+            Fake["Ids"][Body[0]] = FakeUserId(Body[1])
+            Result = {"Ok": True}
+        elif self.path == "/__TestHook/Expire":
+            Fake["Expired"] = set(Body)
+            Bridge._CheckLogins(Forever=False)
+            Result = {"Ok": True}
+        elif self.path == "/__TestHook/Windows":
+            with Fake["Lock"]:
+                Fake["ShowWindows"] = bool(Body[0])
+                if Fake["ShowWindows"]:
+                    Fake["Windows"] |= Fake["Pids"]
+                else:  # every client so far closes
+                    Fake["Pids"].clear()
+                    Fake["Windows"].clear()
             Result = {"Ok": True}
         else:
             Result = {"HarnessError": "unknown"}
@@ -136,7 +188,10 @@ class TestHandler(ServerModule._Handler):
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(Data)))
         self.end_headers()
-        self.wfile.write(Data)
+        try:
+            self.wfile.write(Data)
+        except (ConnectionAbortedError, BrokenPipeError):
+            pass  # the page navigated away mid-request (theme switch): nothing to answer
 
 
 Bridge = None

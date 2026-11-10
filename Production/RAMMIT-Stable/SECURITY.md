@@ -43,3 +43,44 @@
   is still the only guarantee.
 - `requests` talks to `*.roblox.com` only; certificate validation is left at its secure default.
 - DPAPI protects against file theft, not against malware already running as the same Windows user.
+
+---
+
+# 1.2.1 audit ("Blessed Frank", 2026-11-10)
+
+**Subject:** `Production/RAMMIT-Stable` (app), `Production/Installer` (RAMMIT-Setup, the update path), `.github/workflows/CI.yml`, the release workflow draft and `Web/Website`, at 1.2.0 (commit `5988b8d`).
+**Method:** line-by-line review of every Python module, the bridge-facing JavaScript, both workflows and the website. Each fix has a test in `Tests/TestBackend.py` or `Production/Installer/Tests/TestInstaller.py`. The tests were written and run on Linux with stand-ins for the Windows-only modules; **the full Windows suites and the real exe have not been run for this release yet** (CI runs them on the pull request).
+
+## Findings and fixes
+
+| # | Severity | Finding (1.2.0) | Fix (1.2.1) |
+|---|---|---|---|
+| F1 | Medium | **Installer: release files accepted from any GitHub repo.** The release list says where the zip and its `.sha256` are; any `https://github.com/...` link passed `_CheckUrl`. A list naming a file in someone else's repo, plus a checksum matching it, would have been downloaded, "verified" and installed. Needs a forged list (a broken TLS connection, or control of the list in some other way). | `Releases._CheckAssetUrl`: the zip and checksum must be under `github.com/CBlockDigital/RAMMIT/releases/download/`, checked before any request. Redirects are still limited to GitHub's file hosts. URLs with a port or user name are refused. |
+| F2 | Medium | **Login window: a cookie from any site counted as the Roblox login.** `_FindLoginCookie` took the first `.ROBLOSECURITY` cookie whatever its domain. The login window is an ordinary browser window, so a site it ended up on could set that cookie and have *its* account saved (the user then plays, buys or trades on an account someone else controls). | Only a cookie whose domain is `roblox.com` or a subdomain counts, and its value must be printable with no `;` or line break (`Roblox.IsRobloxCookieDomain`, `IsCookieValue`). |
+| F3 | Low | **Installer test mode could download from the network.** `RAMMIT_INSTALLER_TEST=1` + `RAMMIT_INSTALLER_RELEASES_URL` work in the released exe too and allowed any host over plain `http`. Needs control of the user's environment variables; installs go to the test folders, but the downloaded `RAMMIT.exe` can be launched from the done screen. | The override must be `127.0.0.1`, `localhost` or `[::1]`; test mode refuses to start otherwise. |
+| F4 | Low | **Release workflow draft: script injection through the tag name.** `${{ github.ref_name }}` was pasted into `run:` scripts in a job holding `contents: write`. A tag such as `v1";<command>;"` would have run `<command>`. Needs push access; the file is a draft, not yet under `.github/workflows/`. | The tag and ref are passed through `env:` and the version is read from `App/Version.py`. |
+| F5 | Low | **Local UI servers:** the CSP was only sent with `.html`. An `.svg` in a theme folder, opened as a document, ran its script without it. No idle timeout, so a local program could hold the server's threads open. | CSP on every response (also errors); 15 s idle timeout. App and installer. |
+| F6 | Low | **A theme colour could stop RAMMIT starting.** `hsl(1.2.3, 5%, 5%)` passed the swatch pattern, then `float()` raised while the window colour was worked out, before the window existed. | `Themes._ToHex` returns no colour for it; the default is used. |
+| F7 | Low | **Defence in depth: requests followed redirects.** `requests` drops a hand-set `Cookie` header on a redirect, so no login leaked, but the CSRF token and the rest travelled on, and it relied on a library detail. | Every request passes `allow_redirects=False`; a test counts the calls so a new one can't forget it. |
+| F8 | Info | A non-numeric `ping` raised inside the server sort (launch failed with "Launch failed (TypeError)"). An odd release list (`assets` not a list, `size` not a number) raised out of `ListVersions`. `LogClientError` in the installer let `\r` and other control characters into `Setup.log`; a user name read from `Accounts.json` was logged unchecked. | All handled; log lines are single lines. |
+| F9 | Info | The website had no Content-Security-Policy and showed v1.1.1. | CSP `<meta>` (own files + the Google font; the one inline script by hash), checked in headless Chrome with a deliberately wrong hash as the control. |
+
+## Checked and found sound
+
+- Zip extraction (`Setup.ExtractToStaging`): path escapes, device names, zip bombs, reserved names, staging marker.
+- Swap, rollback, manifest-only uninstall, backups never following links.
+- Bridge inputs in `Api.py` and `InstallerApi.py`: validated, state private, errors returned.
+- `roblox-player:` URI building, registry channel, DPAPI storage, atomic writes, the log rule.
+- DOM building in every theme and the installer page (`El` / `textContent`; the one `innerHTML` is static tour text).
+- `RAMMIT:` protocol: nothing from the link reaches RAMMIT.
+- CI: actions pinned to commit SHAs, `contents: read`, no credentials kept.
+- Pinned packages against published advisories on 2026-11-10 (web search, not `pip-audit`: package installs were unavailable where the audit ran): requests 2.33.1 is past CVE-2026-25645 (fixed in 2.33.0) and CVE-2024-47081; PyInstaller 6.22.3 is past CVE-2025-59042; nothing found for pywebview 6.2.1, pywin32 312 or psutil 7.2.2. Run `pip-audit -r requirements.txt` before the release.
+
+## Still open (not fixable in code alone)
+
+- **The checksum is not a signature.** The `.sha256` sits next to the zip in the same release, so it catches a damaged or swapped download but not a release published from a taken-over GitHub account. Protect the account (2FA, no long-lived tokens), keep releases as drafts until checked, and sign the exe and zip when a certificate is available. The exe is still **unsigned**.
+- **`requirements.txt` has no hashes** and CI installs without `--require-hashes`. Generate them on Windows (`pip-compile --generate-hashes`) before the release workflow is switched on.
+- **Install folder outside the user profile.** `%LOCALAPPDATA%\RAMMIT` is private to the Windows user. A folder such as `D:\RAMMIT` is usually writable by every user of the PC, who could then change `RAMMIT.exe` or a theme's JavaScript there. Saved logins stay unreadable to them (DPAPI). On a shared PC, keep the default folder.
+- **`GuardNavigation` acts after the page has loaded**, so a page the main window reached would have the bridge for a moment. Nothing in the UI can navigate away (CSP, no links, no forms); stopping it earlier needs WebView2's `NavigationStarting`, which needs testing on Windows.
+- **The launch ticket is on Roblox's command line** (that is how Roblox takes it), readable by other programs of the same Windows user for the seconds it is valid.
+- Unchanged from the first audit: themes are trusted code; DPAPI doesn't protect against malware already running as the same Windows user.

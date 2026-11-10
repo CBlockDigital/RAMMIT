@@ -9,7 +9,7 @@ from App.Splash import SplashScreen
 from App.Api import Api, GuardNavigation
 from App.LocalServer import LocalServer
 from App.Log import Logger, Setup as SetupLog
-from App.Version import VersionLabel
+from App.Version import AppCodeName, VersionLabel
 
 WindowWidth, WindowScale = 900, 0.85
 
@@ -27,7 +27,7 @@ def StartHeight(Bridge):
 
 def Run():
     SetupLog()
-    Logger.info("RAMMIT %s starting from %s", VersionLabel(), Paths.BaseDir)
+    Logger.info("RAMMIT %s (%s) starting from %s", VersionLabel(), AppCodeName, Paths.BaseDir)
     if getattr(sys, "frozen", False):  # only the installed exe: running from source never touches the registry
         try:
             Done = Install.Sync(Paths.BaseDir)

@@ -42,7 +42,7 @@ press the "?" button, then "Making your own theme".
 
     "SupportedVersions" says which RAMMIT versions your theme was made
     for. The version is at the bottom of the Settings panel
-    (for example "RAMMIT v1.2.0 - Stable").
+    (for example "RAMMIT v1.2.1 - Stable").
         "1.0"    any 1.0.x  (1.0.0, 1.0.1, ...)
         "1.0.2"  exactly 1.0.2
         "1.2+"   1.2.0 and everything newer

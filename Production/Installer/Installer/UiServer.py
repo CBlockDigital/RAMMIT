@@ -8,7 +8,8 @@ Hardening, same as RAMMIT's server (see its SECURITY.md):
   * 127.0.0.1 on a random free port, GET/HEAD only
   * any Host header other than its own address is refused (blocks DNS-rebinding pages)
   * exact-path lookups in the dict: no directory listings, no ../, only allowlisted file types
-  * every response carries a strict Content-Security-Policy, nosniff and no-store
+  * every response (page, scripts, images, errors) carries a strict Content-Security-Policy, nosniff and no-store
+  * idle connections are dropped after 15 seconds
 """
 import http.server
 import os
@@ -49,6 +50,7 @@ def LoadEmbeddedUi(BundleDir):
 class _Handler(http.server.BaseHTTPRequestHandler):
     server_version = "RAMMIT-Setup"
     sys_version = ""
+    timeout = 15  # seconds a connection may sit idle: a local program can't hold threads open by never sending a request
 
     def log_message(self, format, *args):  # noqa: A002 - stdlib signature
         pass
@@ -83,8 +85,9 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Cross-Origin-Resource-Policy", "same-origin")
-        if ContentType.startswith("text/html"):
-            self.send_header("Content-Security-Policy", ContentSecurityPolicy)
+        # On every response, not only pages: an .svg opened on its own is a document too, and would otherwise
+        # run any script inside it with the bridge attached.
+        self.send_header("Content-Security-Policy", ContentSecurityPolicy)
         self.end_headers()
         if SendBody:
             self.wfile.write(Body)

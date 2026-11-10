@@ -7,7 +7,8 @@ afterwards; it is never committed.
 """
 
 AppName = "RAMMIT"
-AppVersion = "1.2.0"
+AppVersion = "1.2.1"
+AppCodeName = "Blessed Frank"  # this release's code name (the changelog, the log's first line, GetAppInfo)
 
 try:
     from App.BuildInfo import AppChannel, AppCommit

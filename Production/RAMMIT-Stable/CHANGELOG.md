@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.2.1 "Blessed Frank" (2026-11)
+
+A security release: a second audit of the app, the installer, the release workflow and the website. Nothing changes in how RAMMIT is used. Details and what was checked: [SECURITY.md](SECURITY.md) › "1.2.1 audit".
+
+- **Login window:** only a login cookie set by Roblox itself is saved. Before, a cookie with Roblox's name from any site the login window ended up on (a link on the page, a redirect) was accepted, so another site could get its own account saved in RAMMIT in place of yours.
+- **Saved logins never follow a redirect.** Every request RAMMIT makes to Roblox now stops at the address it asked for, so a login can't travel on to wherever an answer points.
+- **Installer:** the zip and its checksum are only downloaded from this repo's own releases (`github.com/CBlockDigital/RAMMIT/releases/download/...`). Before, any `github.com` link in the release list was accepted, so a list naming a file in someone else's repo, with a checksum that matched it, would have been installed. Links with a port or a user name in them are refused too.
+- **Installer:** test mode's fake release server must be on this PC (`127.0.0.1` / `localhost`). Test mode is switched on with environment variables, which the released `RAMMIT-Setup.exe` reads as well; they can no longer point a download at a server on the network.
+- **Local UI servers (app and installer):** the Content-Security-Policy is sent with every response, not only pages (an `.svg` opened on its own could run its own script), and idle connections are dropped after 15 seconds.
+- **Themes:** a colour like `hsl(1.2.3, 5%, 5%)` in a theme's `Style.css` no longer stops RAMMIT from starting; that slot falls back to the default colour.
+- A server list with a ping that isn't a number no longer fails the launch.
+- **Installer:** a release list with odd contents (assets that aren't a list, a size that isn't a number) is skipped over instead of raising an error, and messages the page sends to `Setup.log` are always one line.
+- **Release workflow draft** (`Production/Installer/Workflow/Release.yml`): the tag name is read from the environment instead of being pasted into the scripts, where a tag named like a command would have run with the job's write token.
+- **Website:** a Content-Security-Policy (only the site's own files and the Google font load), and the version shown is 1.2.1.
+- The version's code name is in `App/Version.py` (`AppCodeName`), the first line of `RAMMIT.log`, and the tooltip of the version line in Settings. The line itself still reads `RAMMIT v1.2.1 · Stable`.
+- Custom themes: nothing to change. To get the code-name tooltip in a theme of your own, copy Dark's `JS\Main.js` into it.
+
 ## 1.2.0 (2026-11)
 
 - **Installer:** the window no longer stays at the Loading screen's height. Grabbing or dragging the title bar while the screen changed undid the resize; a resize that arrives while the window is held now waits and is applied once when you let go. Two resizes sent close together could also finish in the wrong order and leave the window at the older height; they are now sent one at a time, and only the newest waiting one is sent, so the newest height always wins (#8).

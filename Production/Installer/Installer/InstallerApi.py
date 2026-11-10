@@ -453,4 +453,5 @@ class InstallerApi:
 
     def LogClientError(self, Message):
         if isinstance(Message, str):
-            Logger.warning("UI: %s", Message[:300].replace("\n", " "))
+            # One log line whatever the page sends: control characters (line breaks included) become spaces.
+            Logger.warning("UI: %s", "".join(Ch if Ch >= " " and Ch != "\x7f" else " " for Ch in Message[:300]))

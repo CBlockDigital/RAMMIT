@@ -279,6 +279,13 @@ def _ToHex(Color):
     """#rrggbb for any colour the swatch accepts (hex, rgb(a), hsl(a), CSS colour names), else None.
     The window background and the start-up spinner need plain hex, and converting every swatch
     colour keeps them identical to the swatch the user sees."""
+    try:
+        return _ToHexUnchecked(Color)
+    except (ValueError, OverflowError):  # e.g. hsl(1.2.3, ...): a theme's odd colour must never stop RAMMIT starting
+        return None
+
+
+def _ToHexUnchecked(Color):
     Color = (Color or "").strip()
     if re.fullmatch(r"#[0-9a-fA-F]{3,4}", Color):
         return "#" + "".join(Ch * 2 for Ch in Color[1:4])

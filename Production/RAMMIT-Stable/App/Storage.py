@@ -291,7 +291,7 @@ def LoadAccounts():
             try:
                 Cookie = Crypto.Decrypt(Stored)
             except Crypto.DecryptError:
-                Logger.warning("Saved login for %s cannot be decrypted on this PC/user", Entry["username"])
+                Logger.warning("Saved login for %s cannot be decrypted on this PC/user", CleanText(Entry["username"], 50))
                 Cookie = None
         else:
             Cookie = Stored

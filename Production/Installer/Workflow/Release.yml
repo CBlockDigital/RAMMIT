@@ -4,6 +4,9 @@
 #   * the paths assume the repo layout App/, Src/, Tests/, Tools/, Installer/, Installer.spec at the root
 #     (today: Production/RAMMIT-Stable + Production/Installer)
 #   * requirements.txt must pin exact versions with hashes (pip --require-hashes)
+#   * never write ${{ github.ref_name }} (or any other ${{ ... }} a pusher controls) inside a run: script. GitHub
+#     pastes it into the script before PowerShell reads it, so a tag named  v1";<command>;"  would run <command>
+#     with this job's write token. The steps below read it from $env:TagName / $env:GitRef instead.
 #
 # Tag push v1.2.3  -> checks, build, smoke test, DRAFT release with the three assets.
 # Any other push   -> the same checks and build, no release.
@@ -63,13 +66,17 @@ jobs:
 
       - name: Tag must equal App/Version.py
         if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          TagName: ${{ github.ref_name }}
         run: |
           $Version = (python -c "from App.Version import AppVersion; print(AppVersion)").Trim()
-          if ("v$Version" -ne "${{ github.ref_name }}") { throw "tag ${{ github.ref_name }} != App/Version.py v$Version" }
+          if ("v$Version" -cne $env:TagName) { throw "tag $($env:TagName) != App/Version.py v$Version" }
 
       - name: Build app zip + .sha256, and RAMMIT-Setup.exe
+        env:
+          GitRef: ${{ github.ref }}
         run: |
-          $Channel = if ("${{ github.ref }}".StartsWith("refs/tags/v")) { "Stable" } else { "Dev" }
+          $Channel = if ($env:GitRef.StartsWith("refs/tags/v")) { "Stable" } else { "Dev" }
           ./Build.ps1 -SkipChecks -Channel $Channel
           if ($LASTEXITCODE) { throw "Build.ps1" }
           $env:RAMMIT_VERSION_FILE = "$PWD/App/Version.py"
@@ -93,8 +100,11 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
+          TagName: ${{ github.ref_name }}
         run: |
-          $Version = "${{ github.ref_name }}".TrimStart("v")
-          $Pre = if ($Version.Contains("-")) { "--prerelease" } else { "" }
-          gh release create "${{ github.ref_name }}" --draft $Pre --title "RAMMIT $Version" --generate-notes `
-            "dist/RAMMIT-Setup.exe" "dist/RAMMIT-$Version.zip" "dist/RAMMIT-$Version.zip.sha256"
+          # The tag equals "v" + App/Version.py (checked above), so the version is read from there, not from the tag.
+          $Version = (python -c "from App.Version import AppVersion; print(AppVersion)").Trim()
+          $Arguments = @($env:TagName, "--draft", "--title", "RAMMIT $Version", "--generate-notes")
+          if ($Version.Contains("-")) { $Arguments += "--prerelease" }
+          gh release create @Arguments "dist/RAMMIT-Setup.exe" "dist/RAMMIT-$Version.zip" "dist/RAMMIT-$Version.zip.sha256"
+          if ($LASTEXITCODE) { throw "gh release create" }

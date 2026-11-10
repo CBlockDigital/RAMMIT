@@ -4,7 +4,8 @@ Hardening (see SECURITY.md):
   * binds to 127.0.0.1 on a random free port, GET/HEAD only
   * rejects any Host header other than its own address (blocks DNS-rebinding pages)
   * no directory listings, only an allowlist of file types, no paths outside Src/
-  * every response carries a strict Content-Security-Policy, nosniff and no-store
+  * every response (pages, scripts, images, errors) carries a strict Content-Security-Policy, nosniff and no-store
+  * idle connections are dropped after 15 seconds
 
 The web root is the active theme's folder (Src/<Theme>/, see App/Themes.py), looked up on
 every request, so switching theme is just "save the setting, reload the page".
@@ -33,6 +34,7 @@ ContentSecurityPolicy = ("default-src 'none'; script-src 'self'; style-src 'self
 class _Handler(http.server.BaseHTTPRequestHandler):
     server_version = "RAMMIT"
     sys_version = ""
+    timeout = 15  # seconds a connection may sit idle: a local program can't hold threads open by never sending a request
 
     def log_message(self, format, *args):  # noqa: A002 - stdlib signature
         pass
@@ -78,8 +80,9 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Cross-Origin-Resource-Policy", "same-origin")
-        if ContentType.startswith("text/html"):
-            self.send_header("Content-Security-Policy", ContentSecurityPolicy)
+        # On every response, not only pages: an .svg opened on its own is a document too, and would otherwise
+        # run any script inside it with the bridge attached.
+        self.send_header("Content-Security-Policy", ContentSecurityPolicy)
         self.end_headers()
         if SendBody:
             self.wfile.write(Body)

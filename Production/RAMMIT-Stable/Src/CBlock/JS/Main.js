@@ -48,6 +48,7 @@ async function Boot() {
         InitTours(Settings.ToursDone);
         const Info = await Api.GetAppInfo();
         ById('AppVersion').textContent = `${Info.Name} ${Info.Label}`;
+        if (Info.CodeName) ById('AppVersion').title = `Code name: ${Info.CodeName}`;  // themed tooltip (Tooltip.js)
     });
     StartCounterLoop();
     // Everything is loaded: let the native start-up spinner (App/Splash.py) fade out.

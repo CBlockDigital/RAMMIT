@@ -33,7 +33,7 @@ Screenshots/          written by TestUi.mjs and SmokeExe.py
 $env:RAMMIT_INSTALLER_TEST = "1"     # registry: HKCU\Software\CBlock Digital\RAMMIT-InstallerTest
                                      # Apps list: ...\Uninstall\RAMMIT-InstallerTest
                                      # folders:   %TEMP%\RAMMIT-InstallerTest\{Desktop,StartMenu,LocalAppData}
-$env:RAMMIT_INSTALLER_RELEASES_URL = "http://127.0.0.1:<port>/repos/OWNER/RAMMIT/releases"   # fake server (test mode only)
+$env:RAMMIT_INSTALLER_RELEASES_URL = "http://127.0.0.1:<port>/repos/OWNER/RAMMIT/releases"   # fake server (test mode only; must be 127.0.0.1 or localhost)
 python Installer\Installer.py
 ```
 

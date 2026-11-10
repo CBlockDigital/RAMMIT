@@ -4,7 +4,8 @@ Security rules for this file:
   * Every id that ends up in a URL or in the roblox-player: launch URI is validated first
     (PlaceId digits, JobId UUID, link codes [A-Za-z0-9_-]). The launch URI uses "+" as its
     field separator, so an unvalidated value could inject extra launch arguments.
-  * Every request has a timeout. Cookies are only ever sent to *.roblox.com over HTTPS.
+  * Every request has a timeout. Cookies are only ever sent to *.roblox.com over HTTPS, and no request
+    follows a redirect (NoRedirect), so a login never travels to wherever an answer points.
   * Never log a cookie, auth ticket or launch URI.
 """
 import os
@@ -20,6 +21,7 @@ import requests
 from App.Log import Logger
 
 Timeout = 10
+NoRedirect = {"allow_redirects": False}  # passed to every request: see the rules above
 MaxServerPages = 10          # 10 x 100 servers is plenty to pick from; huge games have 1000s of pages
 PlayerExe = "RobloxPlayerBeta.exe"
 
@@ -52,6 +54,23 @@ def IsJobId(Value):
     return isinstance(Value, str) and bool(JobIdPattern.match(Value))
 
 
+def IsRobloxCookieDomain(Domain):
+    """True for roblox.com and its subdomains (".roblox.com", "www.roblox.com"), and for an empty domain (the
+    browser didn't record one). Anything else is another site's cookie."""
+    if not Domain:
+        return True
+    if not isinstance(Domain, str):
+        return False
+    Host = Domain.strip().lstrip(".").lower()
+    return Host == "roblox.com" or Host.endswith(".roblox.com")
+
+
+def IsCookieValue(Value):
+    """A cookie value that can go into a Cookie header as it is: printable ASCII with no space, line break or ";"
+    (which would end the cookie and start another)."""
+    return isinstance(Value, str) and 0 < len(Value) <= 8192 and all(" " < Ch < "\x7f" and Ch != ";" for Ch in Value)
+
+
 def PlaceIdFromGameUrl(Url):
     Match = GameUrlPattern.search(Url or "")
     return Match.group(1) if Match else None
@@ -66,7 +85,7 @@ def CheckLogin(Cookie):
     """("Valid", (UserId, Username, DisplayName)), ("Expired", None) when Roblox rejects the login (401), or
     ("Unknown", None) for anything else (offline, rate limited, ...), so a bad connection never marks a login expired."""
     try:
-        Response = requests.get("https://users.roblox.com/v1/users/authenticated", headers=_CookieHeader(Cookie), timeout=Timeout)
+        Response = requests.get("https://users.roblox.com/v1/users/authenticated", headers=_CookieHeader(Cookie), timeout=Timeout, **NoRedirect)
         if Response.status_code == 401:
             return "Expired", None
         if Response.status_code != 200:
@@ -87,7 +106,7 @@ def GetAuthTicket(Cookie):
     Headers = {"User-Agent": "Roblox/WinInet", "Referer": "https://www.roblox.com/develop", "RBX-For-Gameauth": "true",
                "Content-Type": "application/json", **_CookieHeader(Cookie)}
     try:
-        First = requests.post(Url, headers=Headers, timeout=Timeout)
+        First = requests.post(Url, headers=Headers, timeout=Timeout, **NoRedirect)
         Csrf = First.headers.get("x-csrf-token")
         if First.status_code == 401:
             return LoginExpired
@@ -96,7 +115,7 @@ def GetAuthTicket(Cookie):
             return None
         Headers["X-CSRF-TOKEN"] = Csrf
         for Attempt in range(4):
-            Second = requests.post(Url, headers=Headers, timeout=Timeout)
+            Second = requests.post(Url, headers=Headers, timeout=Timeout, **NoRedirect)
             if Second.status_code == 200:
                 return Second.headers.get("rbx-authentication-ticket") or None
             if Second.status_code == 401:
@@ -124,7 +143,7 @@ def FetchServers(PlaceId, Cookie=None, MaxPages=MaxServerPages):
             Query["cursor"] = Cursor
         Url = f"https://games.roblox.com/v1/games/{PlaceId}/servers/Public?" + urllib.parse.urlencode(Query)
         try:
-            Response = requests.get(Url, headers=Headers, timeout=Timeout)
+            Response = requests.get(Url, headers=Headers, timeout=Timeout, **NoRedirect)
             if Response.status_code == 429 and Servers:
                 break  # rate limited mid-way: use what we have
             if Response.status_code != 200:
@@ -155,6 +174,10 @@ def PickServer(Servers, PlayerMode="any", PingMode="any", MinPlayers=0, MaxPlaye
     def Playing(S):
         return S.get("playing") if isinstance(S.get("playing"), int) else 0
 
+    def Ping(S, Missing):  # a ping that isn't a number must not crash the sort
+        Value = S.get("ping")
+        return Value if isinstance(Value, (int, float)) and not isinstance(Value, bool) else Missing
+
     Open = [S for S in Servers if isinstance(S.get("maxPlayers"), int) and Playing(S) < S["maxPlayers"] and IsJobId(S.get("id", ""))]
     if PlayerMode == "range":
         Open = [S for S in Open if MinPlayers <= Playing(S) <= MaxPlayers]
@@ -166,9 +189,9 @@ def PickServer(Servers, PlayerMode="any", PingMode="any", MinPlayers=0, MaxPlaye
         return None
     # Ping order first, so it breaks ties for smallest/biggest and picks the winner otherwise.
     if PingMode == "lowest":
-        Open.sort(key=lambda S: S.get("ping", 9999))
+        Open.sort(key=lambda S: Ping(S, 9999))
     elif PingMode == "highest":
-        Open.sort(key=lambda S: -S.get("ping", 0))
+        Open.sort(key=lambda S: -Ping(S, 0))
     if PlayerMode == "smallest":
         return min(Open, key=Playing)
     if PlayerMode == "biggest":
@@ -192,10 +215,10 @@ def ResolveVipLink(UrlOrCode, Cookie=None):
     Headers = {"Content-Type": "application/json", **_CookieHeader(Cookie)}
     for Payload in ({"linkId": Code, "linkType": "Server"}, {"code": Code, "type": "Server"}):
         try:
-            Response = requests.post(Url, headers=Headers, json=Payload, timeout=Timeout)
+            Response = requests.post(Url, headers=Headers, json=Payload, timeout=Timeout, **NoRedirect)
             if Response.status_code == 403 and Response.headers.get("x-csrf-token"):
                 Headers["X-CSRF-TOKEN"] = Response.headers["x-csrf-token"]
-                Response = requests.post(Url, headers=Headers, json=Payload, timeout=Timeout)
+                Response = requests.post(Url, headers=Headers, json=Payload, timeout=Timeout, **NoRedirect)
             if Response.status_code != 200:
                 continue
             Raw = Response.text

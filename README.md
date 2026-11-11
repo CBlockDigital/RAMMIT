@@ -24,7 +24,7 @@ Prefer no installer? Each [release](https://github.com/CBlockDigital/RAMMIT/rele
 
 The exe isn't code-signed yet, so Windows SmartScreen may warn the first time.
 
-**See it first:** [rammit-pi.vercel.app](https://rammit-pi.vercel.app), with screenshots and a 45-second promo video.
+**See it first:** [rammit-pi.vercel.app](https://rammit-pi.vercel.app), with screenshots and the 2-minute launch film.
 
 ## What it does
 
@@ -48,9 +48,14 @@ It does **not** farm, auto-play or run scripts, and it isn't affiliated with Rob
 | [`Web/Website`](Web/Website) | The website (static HTML/CSS/JS) on Vercel. |
 
 - [CHANGELOG](Production/RAMMIT-Stable/CHANGELOG.md)
-- [Security notes](Production/RAMMIT-Stable/SECURITY.md)
+- [Security policy](SECURITY.md): how to report a vulnerability privately. The [1.0.0 security audit](Production/RAMMIT-Stable/SECURITY.md) lists what was fixed.
 - [Contributing](CONTRIBUTING.md): questions go to [Discussions](https://github.com/CBlockDigital/RAMMIT/discussions), bugs to [Issues](https://github.com/CBlockDigital/RAMMIT/issues).
+- Privacy policy, terms of use and the software disclaimer: [rammit-pi.vercel.app/legal/](https://rammit-pi.vercel.app/legal/).
 
 ## License
 
-Copyright (C) 2026 CBlock Digital. RAMMIT is free software under the [GNU General Public License v3.0](LICENSE): you can use, study, change and share it. If you distribute it, or anything built from it, you must share the source under the same license.
+Copyright (C) 2026 CBlock Digital. RAMMIT is free software under the [GNU General Public License v3.0](LICENSE): you can use, study, change and share it. If you distribute it, or anything built from it, you must share the source under the same license. It comes with no warranty (sections 15 and 16 of the license).
+
+CBlock Digital is the name of the project, not a registered company. The third-party components in RAMMIT's releases and website, and their licenses, are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+RAMMIT is an independent project and is not affiliated with, sponsored or endorsed by Roblox Corporation. Roblox is a trademark of Roblox Corporation.

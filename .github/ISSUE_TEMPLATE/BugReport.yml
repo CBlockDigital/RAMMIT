@@ -50,5 +50,5 @@ body:
     id: Log
     attributes:
       label: Log
-      description: The end of `Config\RAMMIT.log` (it never contains your cookies). Screenshots help too.
+      description: The end of `Config\RAMMIT.log`. It never contains your cookies, but it does list your Roblox usernames, so replace them if you don't want them public. Screenshots help too (blur account names you'd rather not show).
       render: text

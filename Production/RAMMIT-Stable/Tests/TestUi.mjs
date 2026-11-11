@@ -121,7 +121,7 @@ try {
     await Open();
     await Shot('01-Dark');
     Check('accounts listed', await Count('#AccountList .ListItem') === 4);
-    Check('account label', (await Text('#AccountList .ListItem:nth-child(1) .AcctLabel')) === 'Nova (@NovaBuilds)');
+    Check('account label', (await Text('#AccountList .ListItem:nth-child(1) .AcctLabel')) === 'Nova (@DemoNova_RMT)');
     const State0 = await Hook('State');
     Check('Accounts.json migrated to DPAPI', State0.AccountsFile.includes('dpapi1:') && !State0.AccountsFile.includes('FakeCookie'));
     Check('legacy selected_account restored', (await Text('#SelectionCount')) === '(1 SELECTED)');

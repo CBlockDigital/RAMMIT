@@ -37,21 +37,27 @@
     <section class="Hero">
         <div class="HeroCopy">
             <h1>One click.<br>Every account.</h1>
-            <p class="Lead">RAMMIT saves your Roblox accounts and opens a separate Roblox window for each one you tick. Free and open source, for Windows 10 and 11.</p>
+            <p class="Lead">RAMMIT saves your Roblox accounts and opens a separate Roblox window for each one you tick.</p>
             <div class="HeroActions">
                 <a class="Btn BtnLaunch" href="https://github.com/CBlockDigital/RAMMIT/releases/latest/download/RAMMIT-Setup.exe">Download RAMMIT</a>
                 <a class="Btn BtnNeutral" href="https://github.com/CBlockDigital/RAMMIT" target="_blank" rel="noopener">View on GitHub</a>
             </div>
+            <ul class="FactRow" aria-label="At a glance">
+                <li><b>Free</b></li>
+                <li>Open source · <b>GPL-3.0</b></li>
+                <li>Windows <b>10 / 11</b></li>
+                <li>No Python needed</li>
+            </ul>
             <p class="HeroNote">RAMMIT-Setup.exe installs, updates and removes it. Rather not use an installer? Get the <a href="https://github.com/CBlockDigital/RAMMIT/releases/latest" target="_blank" rel="noopener">zip and checksums</a>.</p>
         </div>
 
         <figure class="HeroShot">
             <div class="AppWindow" id="LaunchPlayer" aria-label="RAMMIT launching three accounts">
-                <img class="LaunchFrame IsActive" src="Assets/Shots/main-idle.png" alt="The RAMMIT main window with demo accounts, before any are ticked" width="1913" height="1893">
+                <img class="LaunchFrame IsActive" src="Assets/Shots/main-idle.png" alt="The RAMMIT main window with demo accounts, before any are ticked" width="1913" height="1520">
                 <span class="PressRing" id="PressRing"></span>
             </div>
             <figcaption class="ShotCaption">
-                <span>Recorded from RAMMIT 1.1.1 with demo accounts</span>
+                <span>Recorded from RAMMIT 1.2.0 with demo accounts</span>
                 <span class="CaptionStatus" id="LaunchStatus">RUNNING: 0 / 3</span>
             </figcaption>
         </figure>
@@ -61,19 +67,26 @@
     <section class="Panel" id="HowItWorks">
         <div class="PanelHead"><h2 class="PanelLabel">How it works</h2><span class="PanelTab"></span></div>
         <div class="PanelBody">
-            <p class="PanelLead">Switching alts by hand means logging out and back in for every account. RAMMIT keeps them all signed in and opens them together.</p>
-            <ol class="Steps">
-                <li>
+            <p class="PanelTitle">Stop logging out and back in.</p>
+            <p class="PanelSub">Switching alts by hand means signing in again for every account. RAMMIT keeps them all signed in and opens them together.</p>
+            <ol class="StepCards">
+                <li class="StepCard">
                     <span class="StepNum">1</span>
-                    <p>Add each account once with <span class="UiBtn UiAdd">+ Add</span>. They're listed as <strong>Display Name (@username)</strong>.</p>
+                    <h3>Save</h3>
+                    <p>Add each account once. They're listed as <strong>Display Name (@username)</strong>.</p>
+                    <span class="UiBtn UiAdd">+ Add</span>
                 </li>
-                <li>
+                <li class="StepCard">
                     <span class="StepNum">2</span>
-                    <p>Tick the ones you want. Click a row, Shift-click for a range, or press <span class="UiBtn UiNeutral">Select all</span>.</p>
+                    <h3>Tick</h3>
+                    <p>Click a row, Shift-click for a range, or take them all.</p>
+                    <span class="UiBtn UiNeutral">Select all</span>
                 </li>
-                <li>
+                <li class="StepCard">
                     <span class="StepNum">3</span>
-                    <p>Press <span class="UiBtn UiLaunch">Launch 3 selected</span>. A Roblox window opens for each account, <strong>RUNNING</strong> counts them up, and you can cancel halfway.</p>
+                    <h3>Launch</h3>
+                    <p>A Roblox window opens for each account. <strong>RUNNING</strong> counts them up, and you can cancel halfway.</p>
+                    <span class="UiBtn UiLaunch">Launch 3 selected</span>
                 </li>
             </ol>
         </div>
@@ -85,7 +98,7 @@
         <div class="PanelBody">
             <div class="Split">
                 <div>
-                    <p class="PanelLead">Choose where every ticked account goes.</p>
+                    <p class="PanelTitle">Send every account to the same place.</p>
                     <div class="Table" role="table" aria-label="Launch options">
                         <div class="TableHead" role="row"><span role="columnheader">Option</span><span role="columnheader">What you give it</span></div>
                         <div class="TableRow" role="row"><span role="cell">Home</span><span role="cell">Nothing. Each account opens to the Roblox home page.</span></div>
@@ -95,23 +108,40 @@
                         <div class="TableRow" role="row"><span role="cell">VIP link</span><span role="cell">A private server link.</span></div>
                         <div class="TableRow" role="row"><span role="cell">Saved config</span><span role="cell">A name you saved earlier with the config wizard.</span></div>
                     </div>
-                </div>
-                <img class="Shot" src="Assets/Shots/launch-option-crop.png" alt="Launch Option menu listing Home, Config, Game URL, Place ID, Place ID + Job ID and VIP Link" width="830" height="540" loading="lazy">
-            </div>
 
-            <div class="Split SplitServer">
-                <div>
-                    <h3>Picking the server</h3>
-                    <p class="Body">With a Game URL or Place ID, RAMMIT can pick the server for you instead of leaving it to Roblox.</p>
-                    <dl class="ModeList">
-                        <dt>Players</dt>
-                        <dd>Smallest server, biggest server that isn't full, a minimum, a maximum, or a range.</dd>
-                        <dt>Ping</dt>
-                        <dd>Lowest or highest.</dd>
-                    </dl>
+                    <h3 class="SubHead">Or let RAMMIT pick the server</h3>
+                    <p class="Body">With a Game URL or Place ID, it can choose for you instead of leaving it to Roblox.</p>
+                    <div class="ModeCards">
+                        <div class="ModeCard">
+                            <h4>Players</h4>
+                            <p>Smallest server, biggest that isn't full, a minimum, a maximum, or a range.</p>
+                        </div>
+                        <div class="ModeCard">
+                            <h4>Ping</h4>
+                            <p>Lowest or highest.</p>
+                        </div>
+                    </div>
                 </div>
-                <img class="Shot ShotNarrow" src="Assets/Shots/player-mode-crop.png" alt="Players menu: Any, Smallest Server, Biggest (Non-Full), Min Players, Max Players, Player Range" width="830" height="820" loading="lazy">
+                <div class="ShotStack">
+                    <img class="Shot" src="Assets/Shots/launch-option-crop.png" alt="Launch Option menu listing Home, Config, Game URL, Place ID, Place ID + Job ID and VIP Link" width="830" height="540" loading="lazy">
+                    <img class="Shot" src="Assets/Shots/player-mode-crop.png" alt="Players menu: Any, Smallest Server, Biggest (Non-Full), Min Players, Max Players, Player Range" width="830" height="820" loading="lazy">
+                </div>
             </div>
+        </div>
+    </section>
+
+    <!-- ===== SAFETY ===== -->
+    <section class="TrustBand" id="Safety" aria-labelledby="SafetyTitle">
+        <div class="TrustInner">
+            <div>
+                <h2 class="PanelTitle" id="SafetyTitle">Your accounts stay on your PC.</h2>
+                <p class="PanelSub">Nothing is sent to us. RAMMIT only talks to Roblox.</p>
+            </div>
+            <ul class="TrustList">
+                <li>Logins are saved in the <strong>Config</strong> folder next to RAMMIT.exe, encrypted with Windows DPAPI so only your Windows user can read them.</li>
+                <li>Free and open source under the <strong>GPL-3.0</strong>. The code, every release and its SHA-256 checksum are on <a href="https://github.com/CBlockDigital/RAMMIT" target="_blank" rel="noopener">GitHub</a>.</li>
+                <li>It only opens official Roblox clients. No farming, auto-play or scripts, and it isn't affiliated with Roblox Corporation.</li>
+            </ul>
         </div>
     </section>
 
@@ -119,31 +149,31 @@
     <section class="Panel" id="Settings">
         <div class="PanelHead"><h2 class="PanelLabel">Settings</h2><span class="PanelTab"></span></div>
         <div class="PanelBody">
-            <p class="PanelLead">Everything else lives in one panel.</p>
-            <div class="SettingList">
-                <div class="SettingRow">
+            <p class="PanelTitle">Everything else lives in one panel.</p>
+            <div class="SettingTiles">
+                <div class="SettingTile">
                     <span class="SettingName">Theme</span>
                     <span class="SettingValue IsSelect">Dark</span>
                     <p>Dark, 2016 Roblox or CBlock, or make your own.</p>
                 </div>
-                <div class="SettingRow">
+                <div class="SettingTile">
                     <span class="SettingName">Launcher</span>
                     <span class="SettingValue IsSelect">Roblox</span>
                     <p>Roblox, Bloxstrap or Fishstrap.</p>
                 </div>
-                <div class="SettingRow">
+                <div class="SettingTile">
                     <span class="SettingName">Channel</span>
                     <span class="SettingValue">production</span>
                     <p>Which Roblox channel to launch on.</p>
                 </div>
-                <div class="SettingRow">
+                <div class="SettingTile">
                     <span class="SettingName">Max instances</span>
                     <span class="SettingValue">5</span>
                     <p>How many Roblox windows can run at once.</p>
                 </div>
-                <div class="SettingRow">
-                    <span class="SettingName">Launch delay (seconds)</span>
-                    <span class="SettingValue">2</span>
+                <div class="SettingTile">
+                    <span class="SettingName">Launch delay</span>
+                    <span class="SettingValue">2 seconds</span>
                     <p>The gap between each window opening.</p>
                 </div>
             </div>
@@ -165,7 +195,7 @@
     <section class="Panel" id="Faq">
         <div class="PanelHead"><h2 class="PanelLabel">FAQ</h2><span class="PanelTab"></span></div>
         <div class="PanelBody">
-            <div class="FaqList">
+            <div class="FaqList IsTwoCol">
                 <details>
                     <summary>Is it free?</summary>
                     <p>Yes. RAMMIT is free and open source under the <a href="https://github.com/CBlockDigital/RAMMIT/blob/main/LICENSE" target="_blank" rel="noopener">GPL-3.0</a>. The code, every release and its SHA-256 checksum are on <a href="https://github.com/CBlockDigital/RAMMIT" target="_blank" rel="noopener">GitHub</a>.</p>

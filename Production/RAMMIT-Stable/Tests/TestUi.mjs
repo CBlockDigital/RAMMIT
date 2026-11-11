@@ -151,8 +151,7 @@ try {
     Check('launch button counts', (await Text('#LaunchBtn')) === 'LAUNCH 4 SELECTED');
     await Page.click('#SelectAllBtn'); await Wait(150);
     Check('clear all', await Count('#AccountList .Selected') === 0);
-    const Persisted = await CallApi('GetSettings');
-    Check('selection persisted by username', Array.isArray(Persisted.SelectedAccounts) && Persisted.SelectedAccounts.length === 0);
+    Check('selection persisted by username', await WaitFor(async () => Array.isArray((await CallApi('GetSettings')).SelectedAccounts) && (await CallApi('GetSettings')).SelectedAccounts.length === 0));
 
     // ------------------------------------------------------------ launching
     await Pick('LaunchOptionSelect', 'Home');
@@ -192,8 +191,8 @@ try {
     await Page.click('#SaveSettingsBtn'); await Wait(200);
     Check('max instances 0 rejected', /1 to 100/.test(await Text('#StatusMessage')), await Text('#StatusMessage') + ' / ' + await Page.$eval('#MaxInstances', E => E.value));
     await SetValue(Page, '#MaxInstances', '10');
-    await Page.click('#SaveSettingsBtn'); await Wait(300);
-    Check('settings saved', (await Text('#StatusMessage')) === 'Settings saved' && (await CallApi('GetSettings')).MaxInstances === 10);
+    await Page.click('#SaveSettingsBtn');
+    Check('settings saved', await WaitFor(async () => (await Text('#StatusMessage')) === 'Settings saved' && (await CallApi('GetSettings')).MaxInstances === 10));
     Check('backend rejects bad types', !!(await CallApi('UpdateSetting', 'MaxInstances', 'lots')).Error && !!(await CallApi('UpdateSetting', 'Bogus', 1)).Error);
     await SetValue(Page, '#ChannelEntry', 'bad channel!');
     await Page.click('#SaveChannelBtn'); await Wait(250);
@@ -201,8 +200,8 @@ try {
     await SetValue(Page, '#ChannelEntry', 'zbeta');
     await Page.click('#SaveChannelBtn'); await Wait(250);
     Check('valid channel saved', (await Text('#StatusMessage')) === 'Channel updated', await Text('#StatusMessage'));
-    await Page.click('#SettingsToggle'); await Wait(450);
-    Check('settings fold away', await Page.$eval('#SettingsPanel', E => E.classList.contains('Collapsed')) && (await CallApi('GetSettings')).SettingsCollapsed === true);
+    await Page.click('#SettingsToggle');
+    Check('settings fold away', await WaitFor(async () => (await Page.$eval('#SettingsPanel', E => E.classList.contains('Collapsed'))) && (await CallApi('GetSettings')).SettingsCollapsed === true));
     await Page.click('#SettingsToggle'); await Wait(450);
 
     // ------------------------------------------------------------ configs + wizard
@@ -300,9 +299,9 @@ try {
     // ------------------------------------------------------------ themes
     Check('theme list has 4 themes', await Count('#ThemeSelect .CustomSelectOption') === 4 && await Count('#ThemeSelect .CustomSelectOption .ThemeSwatch') === 4 && await Count('#ThemeSelect .CustomSelectText .ThemeSwatch') === 0 && !!(await Page.$('#ActiveThemeSwatch')));
     const DarkBg = await Bg();
-    await Promise.all([Page.waitForNavigation({ waitUntil: 'load' }), Pick('ThemeSelect', 'Light')]); await Wait(900);
-    Check('Light theme loads', (await Bg()) === 'rgb(228, 228, 228)' && (await Text('#ThemeSelect .CustomSelectText')) === '2016 Roblox', await Bg());
-    Check('Light uses its own stylesheet', await Page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--Accent').trim()) === '#00a2ff');
+    await Promise.all([Page.waitForNavigation({ waitUntil: 'load' }), Pick('ThemeSelect', 'Light')]);
+    Check('Light theme loads', await WaitFor(async () => (await Bg()) === 'rgb(228, 228, 228)' && (await Text('#ThemeSelect .CustomSelectText')) === '2016 Roblox'), await Bg());
+    Check('Light uses its own stylesheet', await WaitFor(async () => (await Page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--Accent').trim())) === '#00a2ff'));
     await Shot('03-Light');
     await Hook('Expire', ['NovaBuilds']);
     const LightExpired = await ExpiredRowContrast();

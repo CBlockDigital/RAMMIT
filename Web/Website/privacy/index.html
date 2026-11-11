@@ -52,16 +52,17 @@
         <div class="PanelHead"><p class="PanelLabel">Legal</p><span class="PanelTab"></span></div>
         <div class="PanelBody LegalBody">
             <h1 id="DocTitle">Privacy Policy</h1>
-            <p class="LegalMeta">Last updated <time datetime="2026-11-03">3 November 2026</time> <span class="Status IsDraft">Draft</span></p>
+            <p class="LegalMeta">Last updated <time datetime="2026-11-11">11 November 2026</time> · <span class="Status IsCurrent">Current</span></p>
             <p class="LegalLead">How the RAMMIT website, app and installer handle data. This page is not legal advice.</p>
 
 <h2 id="Summary">In short</h2>
 <ul><li>This website sets no cookies, uses no analytics and has no forms.</li>
 <li>The RAMMIT app keeps your accounts on your own PC. The maintainers never receive them.</li>
-<li>The services RAMMIT relies on (Vercel, GitHub, Roblox, Microsoft) process data under their own privacy policies.</li></ul>
+<li>The services RAMMIT relies on (Vercel, GitHub, Roblox, Microsoft) process data under their own privacy policies.</li>
+<li>The only personal data the maintainers ever receive is what you send them yourself, by email or in a public post on GitHub.</li></ul>
 <h2 id="Who">Who this policy is from</h2>
-<p>RAMMIT is published on GitHub by <a href="https://github.com/CBlockDigital" target="_blank" rel="noopener">CBlockDigital</a>. CBlock Digital is the project's name, not a registered company.</p>
-<div class="ReviewNote" role="note"><span class="NoteLabel">Owner review</span><p>The legal name and country of the person responsible for RAMMIT (the data controller, where a law requires one) are not published yet.</p></div>
+<p>RAMMIT is published on GitHub by <a href="https://github.com/CBlockDigital" target="_blank" rel="noopener">CBlockDigital</a>. CBlock Digital is the project's name, not a registered company. The project is run from India by its maintainers, who publish under the project name. Where a law requires a data controller or data fiduciary, it is the CBlock Digital project, and you can reach it at <a href="mailto:cblockadmin@gmail.com">cblockadmin@gmail.com</a>.</p>
+
 <h2 id="Website">This website</h2>
 <p>The site is static HTML hosted on Vercel. It loads no third-party scripts, fonts or trackers, and does not use Vercel Speed Insights or Web Analytics. Like any web host, Vercel processes technical request data, such as your IP address and browser details, to deliver the pages and protect the service. See <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">Vercel's privacy policy</a>. The maintainers do not receive a list of individual visitors.</p>
 <h2 id="Downloads">Downloads and GitHub</h2>
@@ -69,17 +70,19 @@
 <h2 id="App">The RAMMIT app</h2>
 <ul><li><strong>What it stores:</strong> for each account you add, the Roblox login cookie, user ID, username and display name, plus your launch configs and settings, all in the <code>Config</code> folder next to RAMMIT.exe.</li>
 <li><strong>How:</strong> login cookies are encrypted with Windows DPAPI for your Windows user. Usernames, display names and settings are plain text. A log file (<code>RAMMIT.log</code>, up to about 512 KB with its backup) records actions and includes usernames, never cookies.</li>
-<li><strong>Where it connects:</strong> only Roblox services (roblox.com and its subdomains), to sign in, look up servers and launch games. Signing in happens in a private Microsoft WebView2 window; RAMMIT never handles your password.</li>
+<li><strong>Where it connects:</strong> only Roblox services (roblox.com and its subdomains), to sign in, check every few minutes that your saved logins still work, look up servers and launch games. Signing in happens in a private Microsoft WebView2 window; RAMMIT never handles your password.</li>
 <li><strong>No telemetry:</strong> the app sends nothing to the maintainers.</li></ul>
 <h2 id="Installer">The installer</h2>
 <p>RAMMIT-Setup.exe contacts only GitHub, to find and download releases, and checks each download's SHA-256 checksum. It installs to <code>%LOCALAPPDATA%\RAMMIT</code>. When you uninstall, your Config folder and backups are kept unless you tick <strong>Uninstall Config/ folder too</strong>.</p>
 <h2 id="ThirdParties">Roblox and Microsoft</h2>
 <p>When RAMMIT signs in or launches Roblox, Roblox processes your account data under its own privacy policy, linked from <a href="https://www.roblox.com/info/privacy" target="_blank" rel="noopener">roblox.com</a>. WebView2 is part of Windows and is covered by the <a href="https://privacy.microsoft.com/privacystatement" target="_blank" rel="noopener">Microsoft Privacy Statement</a>.</p>
+<h2 id="Email">If you email us</h2>
+<p>If you write to <a href="mailto:cblockadmin@gmail.com">cblockadmin@gmail.com</a>, the maintainers receive your email address and whatever you put in the message. It is used only to answer you, is not shared or used for anything else, and is deleted once the matter is closed. The mailbox is provided by Google (Gmail), which processes it under the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>. Never send passwords, Roblox cookies or files from your Config folder.</p>
 <h2 id="Rights">Your choices and rights</h2>
-<p>Because the maintainers hold no personal data from the app, you control it: remove an account in RAMMIT, or delete the Config folder. Depending on where you live, laws such as the GDPR, UK GDPR, India's DPDP Act or US state privacy laws may give you rights over data about you. For data held by Vercel, GitHub, Roblox or Microsoft, use their own tools. To ask the maintainers anything, see <a href="/support/">Support</a>.</p>
-<div class="ReviewNote" role="note"><span class="NoteLabel">Owner review</span><p>There is no private contact channel for privacy requests yet. Some laws expect one; until it exists, please don't post personal details publicly.</p></div>
+<p>Because the maintainers hold no personal data from the app, you control it: remove an account in RAMMIT, or delete the Config folder. Depending on where you live, laws such as the GDPR, UK GDPR, India's DPDP Act or US state privacy laws may give you rights over data about you. For data held by Vercel, GitHub, Roblox or Microsoft, use their own tools. To use those rights for anything the maintainers hold (which can only be an email you sent), or to raise a privacy complaint, write to <a href="mailto:cblockadmin@gmail.com">cblockadmin@gmail.com</a>. For everything else, see <a href="/support/">Support</a>.</p>
+
 <h2 id="Children">Children</h2>
-<p>RAMMIT is not directed at children and the maintainers collect nothing from anyone. Roblox accounts are subject to Roblox's own age rules and parental controls.</p>
+<p>RAMMIT is not directed at children and the maintainers collect nothing through the app or this website. Roblox accounts are subject to Roblox's own age rules and parental controls.</p>
 <h2 id="Changes">Changes</h2>
 <p>Changes to this policy are published on this page and in the project's GitHub history. The date at the top shows the latest version.</p>
         </div>

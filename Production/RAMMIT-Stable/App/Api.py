@@ -17,7 +17,7 @@ import webview
 
 from App import MultiInstance, Roblox, Storage, Themes
 from App.Log import Logger
-from App.Version import AppChannel, AppName, AppVersion, VersionLabel
+from App.Version import AppChannel, AppCodeName, AppName, AppVersion, VersionLabel
 from App.WindowSize import HeldWindow
 
 LockedLoginMessage = "This saved login can't be read on this PC or Windows user. Remove the account and add it again."
@@ -93,7 +93,7 @@ class Api:
             self._Splash.Dismiss()
 
     def GetAppInfo(self):
-        return {"Name": AppName, "Version": AppVersion, "Channel": AppChannel, "Label": VersionLabel()}
+        return {"Name": AppName, "Version": AppVersion, "Channel": AppChannel, "Label": VersionLabel(), "CodeName": AppCodeName}
 
     def LogClientError(self, Message):
         Logger.warning("UI: %s", Storage.CleanText(Message, 300) if isinstance(Message, str) else "non-text error")
@@ -172,9 +172,18 @@ class Api:
 
     @staticmethod
     def _FindLoginCookie(CookieJars):
+        """The Roblox login cookie from the login window, or None. Only a cookie Roblox itself set counts: the login
+        window can end up on another site (a link on the page, a redirect), and that site could set a cookie with
+        the same name to get its own account saved here. A cookie with no domain recorded is taken as before."""
         for Jar in CookieJars or []:
             for Name, Morsel in Jar.items():
-                if Name == ".ROBLOSECURITY" and Morsel.value:
+                if Name != ".ROBLOSECURITY" or not isinstance(Morsel.value, str) or not Morsel.value:
+                    continue
+                try:
+                    Domain = Morsel["domain"]
+                except (KeyError, TypeError):
+                    Domain = ""
+                if Roblox.IsRobloxCookieDomain(Domain) and Roblox.IsCookieValue(Morsel.value):
                     return Morsel.value
         return None
 

@@ -11,6 +11,14 @@ names as RAMMIT's own footer channel (App/Version.py).
 One API request lists every version (the old installer needed one request per commit and hit the
 60-per-hour limit, which is why it carried a token). The zip is only trusted after its SHA-256 matches.
 
+What is fetched, and nothing else:
+    the list        https://api.github.com/repos/<ReleaseRepo>/releases
+    zip + .sha256   https://github.com/<ReleaseRepo>/releases/download/...  (_CheckAssetUrl: this repo's own
+                    release files only, whatever link the list names), which GitHub redirects to its file
+                    hosts (AllowedDownloadHosts, checked on every redirect by _CheckUrl)
+The checksum comes from the same release as the zip: it catches a damaged or swapped download, not a release
+published by someone who took over the repo. Only signing the files can cover that (SECURITY.md).
+
 Test mode can point ReleasesUrl() at a fake server (see Locations.py).
 """
 import hashlib
@@ -84,7 +92,9 @@ def ParseReleases(Data):
         Version = CleanVersion(str(Item.get("tag_name", "")))
         if ParseVersion(Version) is None:
             continue
-        Assets = {A.get("name"): A for A in Item.get("assets", []) if isinstance(A, dict)}
+        RawAssets = Item.get("assets")
+        Assets = {A.get("name"): A for A in (RawAssets if isinstance(RawAssets, list) else [])
+                  if isinstance(A, dict) and isinstance(A.get("name"), str)}
         ZipName = f"RAMMIT-{Version}.zip"
         Zip, Sha = Assets.get(ZipName), Assets.get(ZipName + ".sha256")
         if not Zip or not Sha:
@@ -99,10 +109,15 @@ def ParseReleases(Data):
             "Published": str(Item.get("published_at") or "")[:10],
             "ZipName": ZipName,
             "ZipUrl": str(Zip.get("browser_download_url", "")),
-            "ZipSize": int(Zip.get("size") or 0),
+            "ZipSize": _Size(Zip.get("size")),
             "ShaUrl": str(Sha.get("browser_download_url", "")),
         }
     return sorted(Found.values(), key=lambda R: ParseVersion(R["Version"]), reverse=True)
+
+
+def _Size(Value):
+    """An asset's size from the list, or 0 when it isn't a sensible whole number (only used for the progress bar)."""
+    return Value if isinstance(Value, int) and not isinstance(Value, bool) and 0 <= Value <= MaxZipBytes else 0
 
 
 def LatestStable(ReleaseList):
@@ -124,8 +139,33 @@ def _CheckUrl(Url):
         Base = urllib.parse.urlsplit(Override)
         if (Parts.scheme, Parts.netloc) == (Base.scheme, Base.netloc):
             return
-    if Parts.scheme != "https" or (Parts.hostname or "") not in AllowedDownloadHosts | {"api.github.com"}:
+    try:
+        Port = Parts.port
+    except ValueError:
+        Port = -1
+    if (Parts.scheme != "https" or (Parts.hostname or "") not in AllowedDownloadHosts | {"api.github.com"}
+            or Port not in (None, 443) or Parts.username is not None or Parts.password is not None):
         raise ReleaseError("A download link pointed somewhere unexpected, so it was not used.", f"refused URL host {Parts.hostname!r}")
+
+
+def _CheckAssetUrl(Url):
+    """A release file's link (zip or .sha256) as the release list names it: only a download from this repo's own
+    releases on github.com (or the test override's server). The list is the only thing that says where the files
+    are, so without this any file on GitHub, in anyone's repo, could be named as "the RAMMIT zip" together with a
+    checksum that matches it."""
+    _CheckUrl(Url)
+    Parts = urllib.parse.urlsplit(Url)
+    Override = Locations.Current.ReleasesUrlOverride
+    if Override:
+        Base = urllib.parse.urlsplit(Override)
+        if (Parts.scheme, Parts.netloc) == (Base.scheme, Base.netloc):
+            return
+    Wanted = f"/{ReleaseRepo}/releases/download/".lower()
+    Path = urllib.parse.unquote(Parts.path)
+    if ((Parts.hostname or "") != "github.com" or Parts.port is not None or Parts.username is not None
+            or not Path.lower().startswith(Wanted) or ".." in Path or "\\" in Path):
+        raise ReleaseError("A download link pointed somewhere unexpected, so it was not used.",
+                           f"release file is not from {ReleaseRepo}'s releases: {Url[:200]!r}")
 
 
 class _CheckedRedirects(urllib.request.HTTPRedirectHandler):
@@ -173,6 +213,7 @@ def FetchReleases():
 
 
 def FetchExpectedSha(Release):
+    _CheckAssetUrl(Release["ShaUrl"])
     with _Open(Release["ShaUrl"], "application/octet-stream") as Response:
         Text = _ReadCapped(Response, MaxShaBytes).decode("ascii", "replace")
     return ParseShaFile(Text, Release["ZipName"])
@@ -216,6 +257,7 @@ def DownloadRelease(Release, DestDir, OnProgress=None):
 
 def _Download(Release, ZipPath, Expected, OnProgress):
     Done, LastReport = 0, 0.0
+    _CheckAssetUrl(Release["ZipUrl"])
     with _Open(Release["ZipUrl"], "application/octet-stream", Timeout=60) as Response:
         Total = int(Response.headers.get("Content-Length") or Release.get("ZipSize") or 0)
         if Total > MaxZipBytes:

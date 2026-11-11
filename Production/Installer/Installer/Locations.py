@@ -15,12 +15,15 @@ manual try-outs can never touch a real install:
     Apps list     ...\\Uninstall\\RAMMIT-InstallerTest                          (override: RAMMIT_INSTALLER_UNINSTALL_NAME)
     protocol      ...\\Classes\\RAMMIT-InstallerTest                            (override: RAMMIT_INSTALLER_PROTOCOL)
     folders       %TEMP%\\RAMMIT-InstallerTest\\{Desktop, StartMenu, LocalAppData}  (override: RAMMIT_INSTALLER_TEST_ROOT)
-    releases      RAMMIT_INSTALLER_RELEASES_URL may point at a fake release server (ignored outside test mode)
+    releases      RAMMIT_INSTALLER_RELEASES_URL may point at a fake release server ON THIS PC (127.0.0.1 or
+                  localhost; ignored outside test mode, and test mode refuses to start with any other address, so
+                  an environment variable can never make the installer download from somewhere on the network)
 
 Call Reload() after changing those environment variables (the tests do); everything else reads Current.
 """
 import os
 import tempfile
+import urllib.parse
 
 RealRegKeyPath = r"Software\CBlock Digital\RAMMIT"
 UninstallParentPath = r"Software\Microsoft\Windows\CurrentVersion\Uninstall"
@@ -79,6 +82,19 @@ class _Locations:
             Problems.append("install folder")
         if Problems:
             raise RuntimeError("Test mode would touch the real " + ", ".join(Problems))
+        if self.ReleasesUrlOverride and not _IsLoopbackUrl(self.ReleasesUrlOverride):
+            raise RuntimeError("Test mode's release server must be on this PC (http://127.0.0.1:<port>/...)")
+
+
+def _IsLoopbackUrl(Url):
+    """True for an http(s) URL whose host is this PC itself, written as 127.0.0.1, localhost or [::1]."""
+    try:
+        Parts = urllib.parse.urlsplit(Url)
+        Parts.port  # raises ValueError for a port that isn't a number
+    except ValueError:
+        return False
+    return (Parts.scheme in ("http", "https") and (Parts.hostname or "") in ("127.0.0.1", "localhost", "::1")
+            and Parts.username is None and Parts.password is None)
 
 
 def _KnownFolder(Name, Fallback):

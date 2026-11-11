@@ -314,6 +314,47 @@ class TestRoblox(unittest.TestCase):
             self.assertEqual(Roblox.FetchServers("1/../2"), [])
             Get.assert_not_called()
 
+    def test_NoRequestFollowsARedirect(self):
+        # 1.2.1: a saved login is only ever sent to the Roblox address RAMMIT asked for, never on to wherever an
+        # answer redirects. Every request in Roblox.py must pass allow_redirects=False.
+        Seen = []
+
+        def Fake(Url, **Kw):
+            Seen.append((Url, Kw.get("allow_redirects"), Kw.get("timeout")))
+            return mock.Mock(status_code=302, headers={"Location": "https://evil.example/", "x-csrf-token": "c"},
+                             text="", json=lambda: {})
+        with mock.patch.object(Roblox.requests, "get", Fake), mock.patch.object(Roblox.requests, "post", Fake), \
+                mock.patch("App.Roblox.time.sleep"):
+            self.assertEqual(Roblox.CheckLogin("fake"), ("Unknown", None))
+            self.assertIsNone(Roblox.GetAuthTicket("fake"))
+            self.assertEqual(Roblox.FetchServers("123", "fake"), [])
+            self.assertEqual(Roblox.ResolveVipLink("https://www.roblox.com/share?code=abc&type=Server", "fake"), (None, None))
+        self.assertGreaterEqual(len(Seen), 4)
+        for Url, Redirects, Timeout in Seen:
+            self.assertIs(Redirects, False, Url)
+            self.assertEqual(Timeout, Roblox.Timeout, Url)
+            self.assertRegex(Url, r"^https://[a-z]+\.roblox\.com/", Url)
+        with open(Roblox.__file__, encoding="utf-8") as File:  # and no new call forgets it
+            Source = File.read()
+        self.assertEqual(Source.count("requests.get(") + Source.count("requests.post("), Source.count("**NoRedirect)"))
+
+    def test_CookieDomainAndValueChecks(self):
+        for Domain in ("", None, "roblox.com", ".roblox.com", "www.roblox.com", ".ROBLOX.com", "auth.roblox.com"):
+            self.assertTrue(Roblox.IsRobloxCookieDomain(Domain), Domain)
+        for Domain in ("evil.example", "roblox.com.evil.example", "evilroblox.com", "roblox.co", 5, ["roblox.com"]):
+            self.assertFalse(Roblox.IsRobloxCookieDomain(Domain), Domain)
+        self.assertTrue(Roblox.IsCookieValue("_|WARNING:-DO-NOT-SHARE-THIS.--x|_ABCDEF0123"))
+        for Bad in ("", None, 5, "a b", "a;b=c", "a\r\nX-Evil: 1", "a\x00", "caf\u00e9", "a" * 8193):
+            self.assertFalse(Roblox.IsCookieValue(Bad), repr(Bad)[:20])
+
+    def test_PickServerSurvivesAnOddPing(self):
+        # 1.2.1: a ping that isn't a number used to raise TypeError inside the sort and fail the whole launch.
+        Odd = [{"id": "a" * 8 + JobA[8:], "playing": 1, "maxPlayers": 10, "ping": "fast"},
+               {"id": "b" * 8 + JobA[8:], "playing": 2, "maxPlayers": 10, "ping": None},
+               {"id": "c" * 8 + JobA[8:], "playing": 3, "maxPlayers": 10, "ping": 30}]
+        self.assertEqual(Roblox.PickServer(Odd, "any", "lowest")["id"][:1], "c")
+        self.assertEqual(Roblox.PickServer(Odd, "any", "highest")["id"][:1], "c")
+
     def test_FishstrapLauncher(self):
         self.assertEqual(Storage.Launchers, ("Roblox", "Bloxstrap", "Fishstrap"))
         Root = tempfile.mkdtemp(prefix="RammitAppData-")
@@ -422,6 +463,17 @@ class TestThemes(unittest.TestCase):
         self.assertTrue(any("Accent" in W for W in Themes.ThemeWarnings("SwSpinner")))
 
 
+class TestThemeColours(unittest.TestCase):
+    def test_OddColoursNeverRaise(self):
+        # 1.2.1: "hsl(1.2.3, 5%, 5%)" passes the swatch pattern but isn't a number; float() raised ValueError while
+        # the window colour was worked out, so one line in a theme's Style.css stopped RAMMIT from starting.
+        for Odd in ("hsl(1.2.3, 5%, 5%)", "hsl(..., 5%, 5%)", "hsl(1, 5.5.5%, 5%)", "rgb(999,0,0)", "#12", "", None, "nope("):
+            self.assertIsNone(Themes._ToHex(Odd), Odd)
+        self.assertEqual(Themes._ToHex("#abc"), "#aabbcc")
+        self.assertEqual(Themes._ToHex("rgb(10, 20, 30)"), "#0a141e")
+        self.assertEqual(Themes._ToHex("hsl(0, 100%, 50%)"), "#ff0000")
+
+
 class TestThemeVersions(unittest.TestCase):
     def MakeTheme(self, Name, Meta):
         TestThemes.MakeTheme(self, Name, ":root { }", Meta)
@@ -475,6 +527,33 @@ class TestThemeVersions(unittest.TestCase):
 
 
 class TestLocalServer(unittest.TestCase):
+    def test_EveryResponseCarriesThePolicy(self):
+        # 1.2.1: the Content-Security-Policy used to go out with pages only, so an .svg opened as a document could
+        # run its own script. It is now on every answer: pages, scripts, images and errors.
+        import http.client
+        Server = LocalServer.LocalServer(lambda: "Dark").Start()
+        try:
+            def Get(Path, Host=None):
+                Connection = http.client.HTTPConnection("127.0.0.1", Server.Port, timeout=10)
+                Connection.putrequest("GET", Path, skip_host=True)
+                Connection.putheader("Host", Host or f"127.0.0.1:{Server.Port}")
+                Connection.endheaders()
+                Response = Connection.getresponse()
+                Response.read()
+                Connection.close()
+                return Response.status, dict(Response.getheaders())
+            for Path, Status in (("/HTML/Index.html", 200), ("/JS/Main.js", 200), ("/RAMMIT.png", 200), ("/nope.svg", 404)):
+                Got, Headers = Get(Path)
+                self.assertEqual(Got, Status, Path)
+                self.assertIn("script-src 'self'", Headers.get("Content-Security-Policy", ""), Path)
+                self.assertEqual(Headers["X-Content-Type-Options"], "nosniff", Path)
+            Got, Headers = Get("/HTML/Index.html", Host="evil.example")
+            self.assertEqual(Got, 403)
+            self.assertIn("default-src 'none'", Headers.get("Content-Security-Policy", ""))
+        finally:
+            Server.Stop()
+        self.assertTrue(0 < LocalServer._Handler.timeout <= 60)  # idle connections are dropped
+
     def test_Resolve(self):
         Root = os.path.join(Paths.SrcDir, "Dark")
         Resolve = LocalServer._Handler._Resolve
@@ -876,10 +955,38 @@ class TestApi(unittest.TestCase):
         self.Api.ResizeWindow(716)  # not held: straight through
         Window.resize.assert_called_once_with(int(900 * 0.85), int(716 * 0.85))
 
+    @staticmethod
+    def Jar(Value, Domain=None, Name=".ROBLOSECURITY"):
+        """One cookie the way pywebview hands it over: a SimpleCookie whose morsel carries the domain."""
+        from http.cookies import SimpleCookie
+        Cookie = SimpleCookie()
+        Cookie[Name] = Value
+        if Domain is not None:
+            Cookie[Name]["domain"] = Domain
+        return Cookie
+
     def test_FindLoginCookie(self):
-        Morsel = mock.Mock(value="tok")
-        self.assertEqual(ApiModule.Api._FindLoginCookie([{"other": mock.Mock(value="x"), ".ROBLOSECURITY": Morsel}]), "tok")
-        self.assertIsNone(ApiModule.Api._FindLoginCookie([]))
+        Find = ApiModule.Api._FindLoginCookie
+        self.assertEqual(Find([self.Jar("x", ".roblox.com", "other"), self.Jar("tok", ".roblox.com")]), "tok")
+        self.assertEqual(Find([self.Jar("tok", "www.roblox.com")]), "tok")
+        self.assertEqual(Find([self.Jar("tok")]), "tok")  # no domain recorded: taken as before
+        self.assertIsNone(Find([]))
+        self.assertIsNone(Find(None))
+
+    def test_FindLoginCookieIgnoresOtherSites(self):
+        # 1.2.1: the login window can end up on another site, which could set a cookie with Roblox's name to get
+        # its own account saved here. Only Roblox's cookie counts, wherever the other one is in the list.
+        Find = ApiModule.Api._FindLoginCookie
+        for Domain in ("evil.example", ".notroblox.com", "roblox.com.evil.example", "evilroblox.com", "roblox.co"):
+            self.assertIsNone(Find([self.Jar("theirs", Domain)]), Domain)
+        self.assertEqual(Find([self.Jar("theirs", "evil.example"), self.Jar("mine", ".roblox.com")]), "mine")
+        self.assertIsNone(Find([{".ROBLOSECURITY": mock.Mock(value=None)}]))  # nothing usable never raises
+
+    def test_AppInfoCarriesTheCodeName(self):
+        Info = self.Api.GetAppInfo()
+        self.assertEqual(Info["CodeName"], Version.AppCodeName)
+        self.assertTrue(Version.AppCodeName.strip())
+        self.assertEqual(Info["Label"], Version.VersionLabel())  # the footer label itself is unchanged
 
 
 def tearDownModule():

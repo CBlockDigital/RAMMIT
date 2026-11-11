@@ -145,6 +145,57 @@ class TestDownloads(InstallerTestCase):
         Releases._CheckUrl("https://github.com/OWNER/RAMMIT/releases/download/v1.0.0/RAMMIT-1.0.0.zip")
         Releases._CheckUrl("https://objects.githubusercontent.com/abc")
 
+    def test_release_files_must_come_from_this_repos_releases(self):
+        # 1.2.1: the release list names where the zip and its checksum are. Any github.com link used to be accepted,
+        # so a list naming a file in someone else's repo (with a checksum that matches it) would have been installed.
+        os.environ.pop("RAMMIT_INSTALLER_RELEASES_URL")
+        Locations.Reload()
+        Repo = Releases.ReleaseRepo
+        Releases._CheckAssetUrl(f"https://github.com/{Repo}/releases/download/v1.0.0/RAMMIT-1.0.0.zip")
+        Releases._CheckAssetUrl(f"https://github.com/{Repo.lower()}/releases/download/v1.0.0/RAMMIT-1.0.0.zip.sha256")
+        for Bad in ("https://github.com/someone/else/releases/download/v1.0.0/RAMMIT-1.0.0.zip",
+                    f"https://github.com/{Repo}-evil/releases/download/v1.0.0/RAMMIT-1.0.0.zip",
+                    f"https://github.com/{Repo}/archive/refs/heads/main.zip",
+                    f"https://github.com/{Repo}/releases/download/../../../someone/else/x.zip",
+                    f"https://github.com/{Repo}/releases/download/%2e%2e/%2e%2e/x.zip",
+                    f"https://objects.githubusercontent.com/{Repo}/releases/download/v1.0.0/RAMMIT-1.0.0.zip",
+                    f"https://api.github.com/{Repo}/releases/download/v1.0.0/RAMMIT-1.0.0.zip",
+                    f"https://github.com:8443/{Repo}/releases/download/v1.0.0/RAMMIT-1.0.0.zip",
+                    f"https://user@github.com/{Repo}/releases/download/v1.0.0/RAMMIT-1.0.0.zip",
+                    f"https://github.com.evil.example/{Repo}/releases/download/v1.0.0/RAMMIT-1.0.0.zip",
+                    f"http://github.com/{Repo}/releases/download/v1.0.0/RAMMIT-1.0.0.zip", ""):
+            with self.assertRaises(Releases.ReleaseError, msg=Bad):
+                Releases._CheckAssetUrl(Bad)
+        for Bad in ("https://github.com:8443/x", "https://user:pw@github.com/x", "https://github.com:bad/x"):
+            with self.assertRaises(Releases.ReleaseError, msg=Bad):
+                Releases._CheckUrl(Bad)
+
+    def test_a_list_naming_another_repos_file_installs_nothing(self):
+        Elsewhere = "https://github.com/someone/else/releases/download/v1.0.0/RAMMIT-1.0.0.zip"
+        Release = dict(Releases.FindRelease(Releases.FetchReleases(), "1.0.0"))
+        os.environ.pop("RAMMIT_INSTALLER_RELEASES_URL")
+        Locations.Reload()  # as a real installer: no test server to trust
+        for Swapped in ({"ZipUrl": Elsewhere}, {"ShaUrl": Elsewhere + ".sha256"}):
+            with mock.patch.object(Releases, "_Open") as Open, self.assertRaises(Releases.ReleaseError):
+                if "ShaUrl" in Swapped:
+                    Releases.FetchExpectedSha(dict(Release, **Swapped))
+                else:
+                    Releases._Download(dict(Release, **Swapped), os.path.join(self.Env.Root, "x.zip"), "0" * 64, None)
+            Open.assert_not_called()  # refused before any request is made
+        self.assertFalse(os.path.exists(os.path.join(self.Env.Root, "x.zip")))
+
+    def test_odd_release_lists_never_crash(self):
+        def Rel(**Extra):
+            Assets = [{"name": "RAMMIT-1.0.0.zip", "browser_download_url": "https://github.com/o/r/a.zip", "size": 10},
+                      {"name": "RAMMIT-1.0.0.zip.sha256", "browser_download_url": "https://github.com/o/r/a.sha256"}]
+            return dict({"tag_name": "v1.0.0", "assets": Assets}, **Extra)
+        self.assertEqual(Releases.ParseReleases([Rel(assets=None), Rel(assets="x"), Rel(assets={"a": 1}), Rel(assets=[5, None])]), [])
+        for Size in ("big", -1, 1.5, True, None, [1], 10 ** 30):
+            Odd = Rel()
+            Odd["assets"][0]["size"] = Size
+            self.assertEqual(Releases.ParseReleases([Odd])[0]["ZipSize"], 0, Size)
+        self.assertEqual(Releases.ParseReleases([Rel()])[0]["ZipSize"], 10)
+
     def test_offline_gives_a_friendly_error(self):
         self.Server.Offline = True
         with self.assertRaises(Releases.ReleaseError) as Caught:
@@ -838,7 +889,33 @@ class TestSafetyRails(unittest.TestCase):
         self.assertTrue(Releases.ReleasesUrl().startswith("https://api.github.com/repos/"))
 
 
+    def test_test_mode_release_server_must_be_on_this_pc(self):
+        # 1.2.1: test mode is switched on by environment variables, which the released RAMMIT-Setup.exe reads too.
+        # Its fake release server may only be on this PC, so those variables can't point a download at the network.
+        os.environ["RAMMIT_INSTALLER_TEST"] = "1"
+        for Bad in ("http://evil.example/repos/o/r/releases", "https://evil.example/x", "http://127.0.0.1.evil.example/x",
+                    "http://user@127.0.0.1:8000/x", "ftp://127.0.0.1/x", "http://10.0.0.5:8000/x", "//127.0.0.1/x",
+                    "http://127.0.0.1:bad/x"):
+            os.environ["RAMMIT_INSTALLER_RELEASES_URL"] = Bad
+            with self.assertRaises(RuntimeError, msg=Bad):
+                Locations.Reload()
+        for Good in ("http://127.0.0.1:8000/repos/o/r/releases", "http://localhost:8000/x", "http://[::1]:8000/x"):
+            os.environ["RAMMIT_INSTALLER_RELEASES_URL"] = Good
+            self.assertEqual(Locations.Reload().ReleasesUrlOverride, Good)
+
+
 class TestApiSurface(InstallerTestCase):
+    def test_client_errors_are_logged_on_one_line(self):
+        Api = InstallerApi.InstallerApi()
+        with mock.patch.object(InstallerApi.Logger, "warning") as Warn:
+            Api.LogClientError("boom\r\n2026-11-10 12:00:00 INFO Install finished\x1b[2J\x00" + "x" * 500)
+            Api.LogClientError(["not", "text"])
+        Warn.assert_called_once()
+        Text = Warn.call_args.args[1]
+        self.assertFalse(any(Ch < " " or Ch == "\x7f" for Ch in Text), repr(Text[:60]))
+        self.assertLessEqual(len(Text), 300)
+        self.assertTrue(Text.startswith("boom  2026-11-10"))
+
     def test_no_public_state_and_bad_arguments_return_errors(self):
         Api = InstallerApi.InstallerApi()
         Api._AttachWindow(Support.EventWindow())
@@ -925,6 +1002,17 @@ class TestUiServer(unittest.TestCase):
         Body = Response.read()
         Connection.close()
         return Response.status, dict(Response.getheaders()), Body
+
+    def test_every_response_carries_the_policy(self):
+        # 1.2.1: also scripts, images and errors, not only the page (an .svg opened on its own is a document too).
+        for Path, Wanted in (("/JS/Installer.js", 200), ("/RAMMIT-Downloader.png", 200), ("/nope.svg", 404)):
+            Status, Headers, _Body = self.Get(Path)
+            self.assertEqual(Status, Wanted, Path)
+            self.assertIn("script-src 'self'", Headers.get("Content-Security-Policy", ""), Path)
+        Status, Headers, _Body = self.Get("/HTML/Installer.html", Host="evil.example")
+        self.assertEqual(Status, 403)
+        self.assertIn("default-src 'none'", Headers.get("Content-Security-Policy", ""))
+        self.assertTrue(0 < UiServer._Handler.timeout <= 60)  # idle connections are dropped
 
     def test_hardening(self):
         Status, Headers, Body = self.Get("/HTML/Installer.html")

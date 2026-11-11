@@ -1,5 +1,5 @@
 ========================================================
-  RAMMIT  -  Roblox Multi-Account Launcher   (v1.2.0)
+  RAMMIT  -  Roblox Multi-Account Launcher   (v1.2.1)
   Setup Guide (read this first)
 ========================================================
 
@@ -10,7 +10,7 @@ them at the same time on one PC. You do NOT need Python or any other
 program installed - everything RAMMIT needs is inside this folder.
 
 The bottom of the Settings panel shows your version, for example
-"RAMMIT v1.2.0 · Stable". Please include it when you report a problem.
+"RAMMIT v1.2.1 · Stable". Please include it when you report a problem.
 
 
 WHAT YOU NEED

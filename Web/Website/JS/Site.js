@@ -47,15 +47,18 @@
         return;
     }
 
-    // Build the frame stack once every image has loaded, so swaps never flash.
+    // Build the frame stack once every image has loaded AND been decoded, so swaps never flash.
+    // (A loaded PNG is only decoded when it is first painted; a hidden frame would show black for a moment.
+    // decode() does that work up front, and decoding = 'sync' makes a swap wait for the picture if it was dropped.)
     const FirstImage = Player.querySelector('.LaunchFrame');
     const Images = [FirstImage];
     const Loads = Frames.slice(1).map(Frame => new Promise(Resolve => {
         const Img = new Image();
         Img.className = 'LaunchFrame';
         Img.alt = '';
-        Img.decoding = 'async';
-        Img.onload = Img.onerror = Resolve;
+        Img.decoding = 'sync';
+        Img.onerror = Resolve;
+        Img.onload = () => (Img.decode ? Img.decode().catch(() => {}) : Promise.resolve()).then(Resolve);
         Img.src = 'Assets/Shots/' + Frame.File;
         Images.push(Img);
     }));
